@@ -1,0 +1,297 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Kullanıcı & kimlik ──────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  phone     String   @unique // normalize: "5XXXXXXXXX"
+  name      String   @default("") // boş ⇒ uygulama isim adımını gösterir
+  email     String   @default("")
+  createdAt DateTime @default(now())
+
+  wallet            Wallet?
+  loyalty           LoyaltyAccount?
+  notificationPrefs NotificationPrefs?
+  orders            Order[]
+  giftsSent         Gift[]             @relation("GiftSender")
+  giftsReceived     Gift[]             @relation("GiftRecipient")
+  qrTokens          QrToken[]
+}
+
+model OtpCode {
+  id         String    @id @default(cuid())
+  phone      String
+  codeHash   String // sha256
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
+}
+
+// ── Şube & menü ─────────────────────────────────────────────────────
+
+model Branch {
+  id          String  @id // slug: "beylikduzu-vadi-loca"
+  name        String
+  address     String
+  city        String
+  phone       String  @default("")
+  lat         Decimal @db.Decimal(9, 6)
+  lng         Decimal @db.Decimal(9, 6)
+  hours       String
+  isOpen      Boolean @default(true)
+  prepMinutes Int     @default(7)
+
+  products BranchProduct[]
+  orders   Order[]
+}
+
+model Category {
+  id        String @id // slug
+  name      String
+  sortOrder Int
+
+  products Product[]
+}
+
+model Product {
+  id              String  @id // slug (Dart _slug ile aynı)
+  name            String
+  price           Decimal @db.Decimal(10, 2) // merkezi fiyat (tüm şubeler)
+  categoryId      String
+  description     String  @default("")
+  imageUrl        String?
+  sizeMl          Int     @default(0)
+  stampMultiplier Int     @default(0)
+  isNew           Boolean @default(false)
+  isFeatured      Boolean @default(false)
+  hasOptions      Boolean @default(false)
+  isActive        Boolean @default(true)
+
+  category           Category        @relation(fields: [categoryId], references: [id])
+  branchAvailability BranchProduct[]
+
+  @@index([categoryId])
+}
+
+// Şube bazlı müsaitlik. Satır yoksa ⇒ ürün o şubede müsait.
+// priceOverride: ileride şube bazlı fiyat için hazır (NULL ⇒ merkezi fiyat).
+model BranchProduct {
+  branchId      String
+  productId     String
+  isAvailable   Boolean  @default(true)
+  priceOverride Decimal? @db.Decimal(10, 2)
+
+  branch  Branch  @relation(fields: [branchId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@id([branchId, productId])
+}
+
+// ── Cüzdan ──────────────────────────────────────────────────────────
+
+enum WalletTxType {
+  TOPUP
+  ORDER_PAYMENT
+  GIFT_SENT
+  GIFT_RECEIVED
+  QR_PAYMENT
+  REFUND
+}
+
+model Wallet {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  balance   Decimal @default(0) @db.Decimal(10, 2)
+  cardLast4 String  @default("7412") // bu fazda simüle kayıtlı kart
+
+  user         User                @relation(fields: [userId], references: [id])
+  transactions WalletTransaction[]
+}
+
+// Salt ekleme (append-only) hareket defteri
+model WalletTransaction {
+  id           String       @id @default(cuid())
+  walletId     String
+  type         WalletTxType
+  amount       Decimal      @db.Decimal(10, 2) // işaretli: yükleme +, ödeme -
+  balanceAfter Decimal      @db.Decimal(10, 2)
+  orderId      String?      @unique
+  giftId       String?
+  note         String       @default("")
+  createdAt    DateTime     @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id])
+
+  @@index([walletId, createdAt])
+}
+
+// ── Sadakat ─────────────────────────────────────────────────────────
+
+enum LoyaltyEventType {
+  STAMPS_EARNED
+  REWARD_EARNED
+  TOPUP_BONUS
+  FREE_DRINK_USED
+  GIFT_DRINK_RECEIVED
+}
+
+model LoyaltyAccount {
+  id         String @id @default(cuid())
+  userId     String @unique
+  stamps     Int    @default(0) // 0..target-1
+  target     Int    @default(5)
+  freeDrinks Int    @default(0)
+
+  user   User           @relation(fields: [userId], references: [id])
+  events LoyaltyEvent[]
+}
+
+// Sözleşmedeki "history" bu tablodan üretilir
+model LoyaltyEvent {
+  id        String           @id @default(cuid())
+  accountId String
+  type      LoyaltyEventType
+  title     String
+  used      Boolean          @default(false) // true = ikram kullanıldı
+  orderId   String?
+  createdAt DateTime         @default(now())
+
+  account LoyaltyAccount @relation(fields: [accountId], references: [id])
+
+  @@index([accountId, createdAt])
+}
+
+// ── Sipariş ─────────────────────────────────────────────────────────
+
+enum OrderStatus {
+  RECEIVED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+model Order {
+  id                String      @id @default(cuid())
+  number            Int         @unique // 1042 → "DD-1042" (order_number_seq)
+  userId            String
+  branchId          String
+  status            OrderStatus @default(RECEIVED)
+  pickupSlot        String
+  subtotal          Decimal     @db.Decimal(10, 2)
+  discount          Decimal     @default(0) @db.Decimal(10, 2)
+  freeDrinkDiscount Decimal     @default(0) @db.Decimal(10, 2)
+  total             Decimal     @db.Decimal(10, 2)
+  promoCode         String?
+  usedFreeDrink     Boolean     @default(false)
+  stampsEarned      Int         @default(0)
+  createdAt         DateTime    @default(now())
+
+  user   User        @relation(fields: [userId], references: [id])
+  branch Branch      @relation(fields: [branchId], references: [id])
+  items  OrderItem[]
+
+  @@index([userId, createdAt])
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  productId   String
+  productName String // sipariş anındaki ad (snapshot)
+  unitPrice   Decimal @db.Decimal(10, 2) // opsiyon farkları dahil (snapshot)
+  quantity    Int
+  size        String  @default("")
+  milk        String  @default("")
+  shot        String  @default("")
+  isFreeDrink Boolean @default(false)
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+// ── Hediye ──────────────────────────────────────────────────────────
+
+enum GiftType {
+  DRINK
+  BALANCE
+}
+
+enum GiftStatus {
+  PENDING
+  REDEEMED
+}
+
+model Gift {
+  id             String     @id @default(cuid())
+  senderId       String
+  recipientPhone String // normalize; henüz kayıtlı olmayabilir
+  recipientId    String?
+  type           GiftType
+  productId      String?
+  label          String // "Fındıklı Latte" | "100 ₺ bakiye"
+  amount         Decimal    @db.Decimal(10, 2)
+  note           String     @default("")
+  status         GiftStatus @default(PENDING)
+  redeemCode     String     @unique
+  redeemedAt     DateTime?
+  createdAt      DateTime   @default(now())
+
+  sender    User  @relation("GiftSender", fields: [senderId], references: [id])
+  recipient User? @relation("GiftRecipient", fields: [recipientId], references: [id])
+
+  @@index([recipientPhone, status])
+  @@index([senderId, createdAt])
+}
+
+// ── Kampanya & promosyon ────────────────────────────────────────────
+
+model Campaign {
+  id          String  @id // "kahve-ictikce"
+  title       String
+  badge       String
+  description String
+  style       String // "orange" | "dark" (CampaignStyle ile eşleşir)
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+}
+
+model PromoCode {
+  code         String    @id // büyük harf: "DOSSO10"
+  discountRate Decimal   @db.Decimal(4, 3) // 0.100
+  isActive     Boolean   @default(true)
+  expiresAt    DateTime?
+}
+
+// ── Bildirim tercihleri & QR ────────────────────────────────────────
+
+model NotificationPrefs {
+  userId      String  @id
+  campaigns   Boolean @default(true)
+  orderStatus Boolean @default(true)
+  sms         Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model QrToken {
+  id         String    @id @default(cuid())
+  userId     String
+  code       String    @unique // "DDPAY-" + rastgele
+  expiresAt  DateTime // +60 sn
+  consumedAt DateTime? // Kerzz satış webhook'u tüketir
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}

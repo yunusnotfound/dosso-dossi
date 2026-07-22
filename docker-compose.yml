@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:17
+    container_name: dosso-db
+    ports:
+      - "5433:5432" # lokal PostgreSQL 17 kurulumu 5432'yi kullanıyor olabilir
+    environment:
+      POSTGRES_USER: dosso
+      POSTGRES_PASSWORD: dosso
+      POSTGRES_DB: dosso_dossi
+    volumes:
+      - dosso_pgdata:/var/lib/postgresql/data
+
+volumes:
+  dosso_pgdata:
