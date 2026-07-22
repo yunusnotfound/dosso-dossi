@@ -1,0 +1,18 @@
+[
+  {
+    "id": "kahve-ictikce",
+    "title": "Kahve İçtikçe Kahve Kazan",
+    "badge": "5+1",
+    "description": "5 kahve sizden, 1. kahve bizden!",
+    "style": "orange",
+    "sortOrder": 0
+  },
+  {
+    "id": "yukle-kazan",
+    "title": "Yükle Kazan",
+    "badge": "+5 ☕",
+    "description": "Tek seferde 1.000 ₺ ve üzeri bakiye yüklemeye 5 ikram kahve hediye.",
+    "style": "dark",
+    "sortOrder": 1
+  }
+]

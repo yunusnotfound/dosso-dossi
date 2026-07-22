@@ -1,0 +1,50 @@
+[
+  {
+    "id": "beylikduzu-vadi-loca",
+    "name": "Beylikdüzü Vadi Loca",
+    "address": "Adnan Kahveci Mah. Sayaca Cad. No:13, Beylikdüzü / İstanbul",
+    "city": "İstanbul",
+    "phone": "(0212) 242 21 21",
+    "lat": 41.002114,
+    "lng": 28.654325,
+    "hours": "08:00–01:00",
+    "isOpen": true,
+    "prepMinutes": 7
+  },
+  {
+    "id": "beylikduzu-son-durak",
+    "name": "Beylikdüzü Son Durak",
+    "address": "Cumhuriyet Mah. Yıldıray Çınar Sok. No:47-1, Büyükçekmece / İstanbul",
+    "city": "İstanbul",
+    "phone": "",
+    "lat": 41.032512,
+    "lng": 28.577218,
+    "hours": "24 saat açık",
+    "isOpen": true,
+    "prepMinutes": 8
+  },
+  {
+    "id": "vatan-caddesi",
+    "name": "Vatan Caddesi",
+    "address": "Akşemsettin Mah. Adnan Menderes Vatan Bulvarı, Dosso Dossi Hotel No:46-48 İç Kapı No:1, Fatih / İstanbul",
+    "city": "İstanbul",
+    "phone": "",
+    "lat": 41.016640,
+    "lng": 28.938536,
+    "hours": "08:00–24:00",
+    "isOpen": true,
+    "prepMinutes": 10
+  },
+  {
+    "id": "diyarbakir-stad",
+    "name": "Diyarbakır Stad",
+    "address": "Fırat Mah. 507. Sok. Dicle Fırat No:5 İç Kapı No:29, Kayapınar / Diyarbakır",
+    "city": "Diyarbakır",
+    "phone": "",
+    "lat": 37.935829,
+    "lng": 40.154803,
+    "hours": "08:00–01:00",
+    "isOpen": true,
+    "prepMinutes": 9
+  }
+]
