@@ -15,6 +15,7 @@ import '../../../core/widgets/brand_logo.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../rewards/application/loyalty_providers.dart';
 import '../../wallet/application/wallet_providers.dart';
+import '../../wallet/data/wallet_repository.dart';
 
 /// Tara & Öde: kasada okutulan QR/barkod + bakiye yükleme.
 class ScanPayScreen extends ConsumerStatefulWidget {
@@ -29,23 +30,20 @@ class _ScanPayScreenState extends ConsumerState<ScanPayScreen> {
 
   int _tab = 0; // 0 = Öde, 1 = Bakiye Yükle
   int _secondsLeft = _refreshSeconds;
-  late String _code;
+  String _code = '';
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _code = _generateCode();
+    _refreshCode();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() {
-        if (_secondsLeft <= 1) {
-          _secondsLeft = _refreshSeconds;
-          _code = _generateCode();
-        } else {
-          _secondsLeft--;
-        }
-      });
+      if (_secondsLeft <= 1) {
+        _refreshCode();
+      } else {
+        setState(() => _secondsLeft--);
+      }
     });
   }
 
@@ -55,11 +53,23 @@ class _ScanPayScreenState extends ConsumerState<ScanPayScreen> {
     super.dispose();
   }
 
-  /// Kasa sisteminin çözeceği tek kullanımlık ödeme kodu (simüle).
-  /// Gerçek API'de sunucudan imzalı token alınacak.
-  String _generateCode() {
+  /// Kasa sisteminin (Kerzz POS) çözeceği tek kullanımlık ödeme kodu.
+  /// Mock'ta yerel üretilir; API modunda sunucudan 60 sn'lik token alınır.
+  Future<void> _refreshCode() async {
     final phone = ref.read(authControllerProvider).value?.phone ?? '';
-    return 'DDPAY|$phone|${DateTime.now().millisecondsSinceEpoch}';
+    try {
+      final token =
+          await ref.read(walletRepositoryProvider).createQrToken(phone);
+      if (!mounted) return;
+      setState(() {
+        _code = token.code;
+        _secondsLeft = _refreshSeconds;
+      });
+    } catch (_) {
+      // Ağ hatasında eski kod görünmeye devam eder; sayaç yeniden başlar.
+      if (!mounted) return;
+      setState(() => _secondsLeft = _refreshSeconds);
+    }
   }
 
   @override
@@ -229,6 +239,17 @@ class _QrCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (code.isEmpty) {
+      return Container(
+        height: 280,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        child: const CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
@@ -382,14 +403,27 @@ Future<void> confirmTopUp(
   );
 
   if (confirmed != true || !context.mounted) return;
-  await ref.read(walletProvider.notifier).topUp(amount);
 
-  // Kampanya: eşik ve üzeri yüklemede ikram kahve hediye edilir.
-  final bonus = amount >= AppConfig.topUpBonusThreshold;
-  if (bonus) {
+  final TopUpResult result;
+  try {
+    result = await ref.read(walletProvider.notifier).topUp(amount);
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: AppColors.danger,
+        content: Text('Yükleme başarısız. Bağlantını kontrol edip tekrar dene.'),
+      ),
+    );
+    return;
+  }
+
+  // Kampanya bonusu sunucuda (mock'ta simülasyonla) hesaplanır.
+  final bonusDrinks = result.bonusDrinks;
+  if (bonusDrinks > 0 && AppConfig.useMocks) {
     ref.read(loyaltyStatusProvider.notifier).addFreeDrinks(
-          AppConfig.topUpBonusDrinks,
-          'Yükleme kampanyası — ${AppConfig.topUpBonusDrinks} ikram kazanıldı',
+          bonusDrinks,
+          'Yükleme kampanyası — $bonusDrinks ikram kazanıldı',
         );
   }
 
@@ -398,8 +432,8 @@ Future<void> confirmTopUp(
     SnackBar(
       backgroundColor: AppColors.success,
       content: Text(
-        bonus
-            ? '${formatTl(amount)} yüklendi · ${AppConfig.topUpBonusDrinks} ikram kahve hediye! 🎉'
+        bonusDrinks > 0
+            ? '${formatTl(amount)} yüklendi · $bonusDrinks ikram kahve hediye! 🎉'
             : '${formatTl(amount)} yüklendi',
       ),
     ),

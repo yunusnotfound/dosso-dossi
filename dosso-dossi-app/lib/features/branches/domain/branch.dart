@@ -9,6 +9,8 @@ class Branch {
     required this.hours,
     this.phone = '',
     this.prepMinutes = 7,
+    this.lat = 0,
+    this.lng = 0,
   });
 
   final String id;
@@ -27,6 +29,11 @@ class Branch {
 
   /// Tahmini hazırlık süresi (dk)
   final int prepMinutes;
+
+  /// Konum (API'den gelir; konum servisi bağlanınca gerçek mesafe
+  /// hesabında kullanılacak)
+  final double lat;
+  final double lng;
 
   String get distanceLabel => distanceMeters >= 1000
       ? '${(distanceMeters / 1000).toStringAsFixed(1)} km'

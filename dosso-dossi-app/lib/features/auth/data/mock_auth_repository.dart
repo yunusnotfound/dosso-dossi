@@ -13,20 +13,19 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<AppUser> verifyOtp({required String phone, required String code}) async {
+  Future<AuthResult> verifyOtp({
+    required String phone,
+    required String code,
+  }) async {
     await Future<void>.delayed(_delay);
     if (code == '000000') {
       throw Exception('Kod hatalı. Tekrar dene.');
     }
-    return AppUser(phone: phone);
+    return AuthResult(token: '', user: AppUser(phone: phone));
   }
 
   @override
-  Future<AppUser> completeProfile({
-    required String phone,
-    required String name,
-  }) async {
+  Future<void> updateProfile({String? name, String? email}) async {
     await Future<void>.delayed(_delay);
-    return AppUser(phone: phone, name: name);
   }
 }

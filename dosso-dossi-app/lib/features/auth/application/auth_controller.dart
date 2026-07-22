@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/storage/local_storage.dart';
+import '../../../core/storage/token_storage.dart';
 import '../data/auth_repository.dart';
 import '../domain/app_user.dart';
 
@@ -26,30 +27,35 @@ class AuthController extends AsyncNotifier<AppUser?> {
   }
 
   Future<void> verifyOtp({required String phone, required String code}) async {
-    final user = await ref
+    final result = await ref
         .read(authRepositoryProvider)
         .verifyOtp(phone: phone, code: code);
-    await _persist(user);
+    if (result.token.isNotEmpty) {
+      await ref.read(tokenStorageProvider).save(result.token);
+    }
+    await _persist(result.user);
   }
 
   Future<void> completeProfile(String name) async {
     final current = state.value;
     if (current == null) return;
-    final user = await ref
-        .read(authRepositoryProvider)
-        .completeProfile(phone: current.phone, name: name);
-    await _persist(user);
+    await ref.read(authRepositoryProvider).updateProfile(name: name);
+    await _persist(current.copyWith(name: name));
   }
 
   /// Kişisel bilgiler ekranından ad/e-posta güncelleme.
   Future<void> updateProfile({String? name, String? email}) async {
     final current = state.value;
     if (current == null) return;
+    await ref
+        .read(authRepositoryProvider)
+        .updateProfile(name: name, email: email);
     await _persist(current.copyWith(name: name, email: email));
   }
 
   Future<void> logout() async {
     await ref.read(sharedPreferencesProvider).remove(_userKey);
+    await ref.read(tokenStorageProvider).clear();
     state = const AsyncData(null);
   }
 

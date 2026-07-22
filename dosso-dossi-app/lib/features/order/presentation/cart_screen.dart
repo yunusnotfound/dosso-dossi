@@ -663,10 +663,11 @@ class _PromoRow extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: () {
-                  final applied = ref
+                onPressed: () async {
+                  final applied = await ref
                       .read(cartProvider.notifier)
                       .applyPromo(controller.text);
+                  if (!context.mounted) return;
                   Navigator.of(context).pop();
                   if (!applied) {
                     ScaffoldMessenger.of(context).showSnackBar(

@@ -1,13 +1,18 @@
-# Dosso Dossi — REST API Sözleşmesi (v1 Taslak)
+# Dosso Dossi — REST API Sözleşmesi (v1)
 
-Backend'i yazacak ekip için sözleşme. Uygulamadaki her mock repository'nin
-API karşılığı buradadır; endpoint hazır olunca ilgili `ApiXRepository`
-yazılıp `data/x_repository.dart` içindeki provider'da tek satır değiştirilir.
+Bu sözleşme `dosso-dossi-backend/` içinde uygulanmıştır (Node.js + Express +
+Prisma + PostgreSQL). Uygulamadaki her repository'nin `ApiXRepository`
+karşılığı yazılmıştır; mock ↔ API geçişi derleme bayrağıyla yapılır:
 
-- **Base URL:** `lib/core/network/api_endpoints.dart` → `baseUrl`
-- **Kimlik doğrulama:** `Authorization: Bearer <token>` (OTP doğrulamasında alınır)
+```bash
+flutter run --dart-define=USE_MOCKS=false --dart-define=API_BASE_URL=http://localhost:3000
+```
+
+- **Base URL:** `--dart-define=API_BASE_URL` (varsayılan `http://localhost:3000`)
+- **Kimlik doğrulama:** `Authorization: Bearer <token>` (OTP doğrulamasında alınır, JWT 30 gün)
 - **Para birimi:** tüm tutarlar kuruş hassasiyetli ondalık TL (`425.50`)
 - **Tarihler:** ISO 8601 UTC
+- **Geliştirme OTP'si:** kod sunucu konsoluna yazılır; `OTP_DEV_MODE=true` iken `111111` her zaman geçer
 
 ## 1. Kimlik (auth) — `features/auth/data/auth_repository.dart`
 
@@ -115,4 +120,22 @@ Uygulama Kerzz ile doğrudan konuşmaz. Backend'in alacağı webhook'lar
 ```
 
 Beklenen kodlar: `INVALID_OTP`, `INSUFFICIENT_BALANCE`, `INVALID_PROMO`,
-`BRANCH_CLOSED`, `PRODUCT_UNAVAILABLE`, `NO_FREE_DRINK`.
+`BRANCH_CLOSED`, `PRODUCT_UNAVAILABLE`, `NO_FREE_DRINK` ve altyapı kodları
+`UNAUTHORIZED` (401), `VALIDATION_ERROR` (400), `RATE_LIMITED` (429, OTP
+gönderiminde 10 dakikada 3 kod sınırı), `NOT_FOUND`, `INTERNAL`.
+
+## Uygulama notları (v1)
+
+- Sipariş fiyatı **sunucuda yeniden hesaplanır**; istemcinin gönderdiği
+  toplamlara güvenilmez. Opsiyon farkları sunucuda sabittir: yulaf/badem
+  sütü +60 ₺, çift shot +40 ₺ (ileride `/menu/options` endpoint'ine taşınabilir).
+- İkram, sepetteki damga kazandıran en yüksek birim fiyatlı içeceği bedava
+  yapar; ikram edilen içecek de damga kazandırır.
+- Çoklu şube: menü ve fiyatlar merkezidir; şube bazlı müsaitlik (ve ileride
+  fiyat farkı) `BranchProduct` tablosuyla yönetilir. Müsait olmayan ürün
+  siparişte `PRODUCT_UNAVAILABLE` döner.
+- Kayıtlı olmayan telefona gönderilen hediye `PENDING` bekler; alıcı o
+  numarayla ilk giriş yaptığında otomatik hesabına işlenir.
+- `POST /orders` yanıtı ayrıca `subtotal`, `discount`, `freeDrinkDiscount`,
+  `branchName` ve yapılandırılmış `items[]` (productName, unitPrice,
+  isFreeDrink...) alanlarını içerir.

@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/app_config.dart';
 import '../../branches/application/branch_providers.dart';
 import '../../branches/domain/branch.dart';
+import '../data/order_repository.dart';
 import '../domain/order_record.dart';
 
 /// Sipariş için seçilen şube (null = en yakın şube kullanılır).
@@ -29,7 +31,21 @@ final ordersProvider =
 
 class OrdersController extends Notifier<List<OrderRecord>> {
   @override
-  List<OrderRecord> build() => [];
+  List<OrderRecord> build() {
+    // API modunda geçmiş siparişler sunucudan yüklenir (mock'ta oturum içi).
+    if (!AppConfig.useMocks) {
+      Future.microtask(_loadFromApi);
+    }
+    return [];
+  }
+
+  Future<void> _loadFromApi() async {
+    try {
+      state = await ref.read(orderRepositoryProvider).getOrders();
+    } catch (_) {
+      // Ağ hatasında liste boş kalır; sonraki sipariş/ekran açılışı tazeler.
+    }
+  }
 
   void add(OrderRecord record) => state = [record, ...state];
 }

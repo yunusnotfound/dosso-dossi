@@ -1,17 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/app_config.dart';
+import '../../../core/network/api_exception.dart';
 import '../../branches/domain/branch.dart';
+import '../../campaigns/data/campaign_repository.dart';
 import '../../rewards/application/loyalty_providers.dart';
 import '../../wallet/application/wallet_providers.dart';
+import '../data/order_repository.dart';
 import '../domain/cart.dart';
 import '../domain/order_record.dart';
 import 'order_providers.dart';
-
-/// Geçerli kampanya kodları (mock). API'de sunucu doğrulayacak.
-const _promoCodes = <String, double>{
-  'DOSSO10': 0.10,
-  'KAHVE20': 0.20,
-};
 
 final cartProvider =
     NotifierProvider<CartController, CartState>(CartController.new);
@@ -43,11 +41,17 @@ class CartController extends Notifier<CartState> {
     state = state.copyWith(items: items);
   }
 
-  /// Kod geçerliyse uygular ve true döner.
-  bool applyPromo(String code) {
-    final rate = _promoCodes[code.trim().toUpperCase()];
-    if (rate == null) return false;
-    state = state.copyWith(promoCode: code.trim().toUpperCase(), discountRate: rate);
+  /// Kodu doğrular (kural sunucuda / mock'ta sabit liste);
+  /// geçerliyse uygular ve true döner.
+  Future<bool> applyPromo(String code) async {
+    final normalized = code.trim().toUpperCase();
+    final result =
+        await ref.read(campaignRepositoryProvider).validateCode(normalized);
+    if (!result.valid) return false;
+    state = state.copyWith(
+      promoCode: normalized,
+      discountRate: result.discountRate,
+    );
     return true;
   }
 
@@ -58,8 +62,9 @@ class CartController extends Notifier<CartState> {
 
   void clear() => state = const CartState();
 
-  /// Ödemeyi simüle eder: bakiyeden düşer, damga ekler, sipariş kaydı oluşturur.
-  /// Bakiye yetersizse null döner.
+  /// Siparişi tamamlar. Bakiye yetersizse null döner.
+  /// Mock modunda ödeme/damga simülasyonu burada; API modunda bakiye,
+  /// damga ve ikram sunucuda işlenir, ilgili provider'lar tazelenir.
   Future<OrderRecord?> checkout({
     required Branch branch,
     required String pickupLabel,
@@ -67,6 +72,32 @@ class CartController extends Notifier<CartState> {
     final cart = state;
     if (cart.items.isEmpty) return null;
 
+    if (AppConfig.useMocks) {
+      return _checkoutMock(cart, branch: branch, pickupLabel: pickupLabel);
+    }
+
+    try {
+      final record = await ref.read(orderRepositoryProvider).placeOrder(
+            branch: branch,
+            pickupLabel: pickupLabel,
+            cart: cart,
+          );
+      ref.read(ordersProvider.notifier).add(record);
+      ref.invalidate(walletProvider);
+      ref.invalidate(loyaltyStatusProvider);
+      state = const CartState();
+      return record;
+    } on ApiException catch (e) {
+      if (e.code == 'INSUFFICIENT_BALANCE') return null;
+      rethrow;
+    }
+  }
+
+  Future<OrderRecord?> _checkoutMock(
+    CartState cart, {
+    required Branch branch,
+    required String pickupLabel,
+  }) async {
     final paid = await ref.read(walletProvider.notifier).pay(cart.total);
     if (!paid) return null;
 
@@ -78,7 +109,7 @@ class CartController extends Notifier<CartState> {
     }
 
     // Not (mock): damga, ikram edilen içecek dahil tüm içeceklerden hesaplanır;
-    // gerçek API kendi kuralını uygulayacak.
+    // gerçek API aynı kuralı sunucuda uygular.
     ref.read(loyaltyStatusProvider.notifier).addStamps(cart.stampsEarned);
 
     final orders = ref.read(ordersProvider);
@@ -88,7 +119,8 @@ class CartController extends Notifier<CartState> {
       branchName: branch.name,
       pickupLabel: pickupLabel,
       itemsLabel: cart.items
-          .map((i) => i.quantity > 1 ? '${i.quantity}x ${i.product.name}' : i.product.name)
+          .map((i) =>
+              i.quantity > 1 ? '${i.quantity}x ${i.product.name}' : i.product.name)
           .join(', '),
       total: cart.total,
       stampsEarned: cart.stampsEarned,

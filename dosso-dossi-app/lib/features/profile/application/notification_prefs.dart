@@ -1,28 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/app_config.dart';
 import '../../../core/storage/local_storage.dart';
+import '../data/notification_prefs_repository.dart';
+import '../domain/notification_prefs_model.dart';
 
-/// Bildirim tercihleri; cihaza kaydedilir.
-/// Gerçek push aboneliği API/Firebase entegrasyonunda bağlanacak.
-class NotificationPrefs {
-  const NotificationPrefs({
-    this.campaigns = true,
-    this.orderStatus = true,
-    this.sms = false,
-  });
+export '../domain/notification_prefs_model.dart';
 
-  final bool campaigns;
-  final bool orderStatus;
-  final bool sms;
-
-  NotificationPrefs copyWith({bool? campaigns, bool? orderStatus, bool? sms}) =>
-      NotificationPrefs(
-        campaigns: campaigns ?? this.campaigns,
-        orderStatus: orderStatus ?? this.orderStatus,
-        sms: sms ?? this.sms,
-      );
-}
-
+/// Bildirim tercihleri; cihazda önbelleklenir, API modunda sunucuyla
+/// senkronlanır. Gerçek push aboneliği Firebase entegrasyonunda bağlanacak.
 final notificationPrefsProvider =
     NotifierProvider<NotificationPrefsController, NotificationPrefs>(
         NotificationPrefsController.new);
@@ -31,6 +17,9 @@ class NotificationPrefsController extends Notifier<NotificationPrefs> {
   @override
   NotificationPrefs build() {
     final prefs = ref.watch(sharedPreferencesProvider);
+    if (!AppConfig.useMocks) {
+      Future.microtask(_loadFromApi);
+    }
     return NotificationPrefs(
       campaigns: prefs.getBool('notif_campaigns') ?? true,
       orderStatus: prefs.getBool('notif_orders') ?? true,
@@ -38,11 +27,33 @@ class NotificationPrefsController extends Notifier<NotificationPrefs> {
     );
   }
 
+  Future<void> _loadFromApi() async {
+    try {
+      final remote =
+          await ref.read(notificationPrefsRepositoryProvider).getPrefs();
+      _cache(remote);
+      state = remote;
+    } catch (_) {
+      // Ağ hatasında yerel önbellek geçerli kalır.
+    }
+  }
+
   void update(NotificationPrefs next) {
-    final prefs = ref.read(sharedPreferencesProvider);
-    prefs.setBool('notif_campaigns', next.campaigns);
-    prefs.setBool('notif_orders', next.orderStatus);
-    prefs.setBool('notif_sms', next.sms);
+    _cache(next);
     state = next;
+    if (!AppConfig.useMocks) {
+      // Sunucuya arka planda yazılır; hata olursa yerel değer korunur.
+      ref
+          .read(notificationPrefsRepositoryProvider)
+          .savePrefs(next)
+          .catchError((_) {});
+    }
+  }
+
+  void _cache(NotificationPrefs prefs) {
+    final store = ref.read(sharedPreferencesProvider);
+    store.setBool('notif_campaigns', prefs.campaigns);
+    store.setBool('notif_orders', prefs.orderStatus);
+    store.setBool('notif_sms', prefs.sms);
   }
 }

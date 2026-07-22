@@ -65,6 +65,8 @@ class _GiftScreenState extends ConsumerState<GiftScreen> {
               date: DateTime.now(),
               note: _noteController.text.trim(),
             ),
+            type: _tab == 0 ? 'drink' : 'balance',
+            productId: _selectedDrink?.id,
           );
       if (!mounted) return;
       if (!ok) {

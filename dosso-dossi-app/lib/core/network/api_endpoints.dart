@@ -1,10 +1,29 @@
-/// REST API adresleri. Backend hazır olduğunda baseUrl'i güncelle;
-/// endpoint listesi docs/API_CONTRACT.md ile birebir aynı tutulur.
-abstract final class ApiEndpoints {
-  /// TODO: API hazır olduğunda gerçek adresle değiştir.
-  static const String baseUrl = 'https://api.dossodossi.example.com/v1';
+import '../constants/app_config.dart';
 
-  // Faz ilerledikçe endpoint sabitleri buraya eklenecek:
-  // static const String login = '/auth/login';
-  // static const String menu = '/menu';
+/// REST API adresleri; docs/API_CONTRACT.md ile birebir aynı.
+abstract final class ApiEndpoints {
+  static const String baseUrl = AppConfig.apiBaseUrl;
+
+  // Kimlik
+  static const String otpSend = '/auth/otp/send';
+  static const String otpVerify = '/auth/otp/verify';
+  static const String me = '/me';
+
+  // Sadakat & cüzdan
+  static const String loyalty = '/me/loyalty';
+  static const String wallet = '/me/wallet';
+  static const String walletTopUp = '/me/wallet/topup';
+  static const String walletQrToken = '/me/wallet/qr-token';
+
+  // Menü & şubeler & kampanyalar
+  static const String menuCategories = '/menu/categories';
+  static const String menuProducts = '/menu/products';
+  static const String branches = '/branches';
+  static const String campaigns = '/campaigns';
+  static const String validatePromoCode = '/campaigns/validate-code';
+
+  // Sipariş & hediye & bildirim
+  static const String orders = '/orders';
+  static const String gifts = '/gifts';
+  static const String notificationPrefs = '/me/notification-prefs';
 }
