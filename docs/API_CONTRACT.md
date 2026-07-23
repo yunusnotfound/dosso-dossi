@@ -2,11 +2,9 @@
 
 Bu sözleşme `dosso-dossi-backend/` içinde uygulanmıştır (Node.js + Express +
 Prisma + PostgreSQL). Uygulamadaki her repository'nin `ApiXRepository`
-karşılığı yazılmıştır; mock ↔ API geçişi derleme bayrağıyla yapılır:
-
-```bash
-flutter run --dart-define=USE_MOCKS=false --dart-define=API_BASE_URL=http://localhost:3000
-```
+karşılığı yazılmıştır. `flutter run` varsayılan olarak gerçek API'ye bağlanır;
+mock veriye dönmek için `--dart-define=USE_MOCKS=true` verilir (testler
+kendiliğinden mock modunda çalışır).
 
 - **Base URL:** `--dart-define=API_BASE_URL` (varsayılan `http://localhost:3000`)
 - **Kimlik doğrulama:** `Authorization: Bearer <token>` (OTP doğrulamasında alınır, JWT 30 gün)

@@ -4,6 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/storage/local_storage.dart';
 import '../../../core/storage/token_storage.dart';
+import '../../favorites/application/favorites_controller.dart';
+import '../../gift/application/gift_controller.dart';
+import '../../order/application/order_providers.dart';
+import '../../profile/application/notification_prefs.dart';
+import '../../rewards/application/loyalty_providers.dart';
+import '../../wallet/application/wallet_providers.dart';
 import '../data/auth_repository.dart';
 import '../domain/app_user.dart';
 
@@ -34,6 +40,7 @@ class AuthController extends AsyncNotifier<AppUser?> {
       await ref.read(tokenStorageProvider).save(result.token);
     }
     await _persist(result.user);
+    _resetUserScopedState();
   }
 
   Future<void> completeProfile(String name) async {
@@ -54,9 +61,28 @@ class AuthController extends AsyncNotifier<AppUser?> {
   }
 
   Future<void> logout() async {
-    await ref.read(sharedPreferencesProvider).remove(_userKey);
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.remove(_userKey);
+    // Cihazda hesaba özel senkron olmayan veriler yeni hesaba taşınmasın.
+    await prefs.remove('favorite_products');
+    await prefs.remove('notif_campaigns');
+    await prefs.remove('notif_orders');
+    await prefs.remove('notif_sms');
     await ref.read(tokenStorageProvider).clear();
     state = const AsyncData(null);
+    _resetUserScopedState();
+  }
+
+  /// Kullanıcıya özel tüm provider'ları sıfırlar. Bunlar keep-alive olduğu
+  /// için hesap değişiminde çağrılmazsa önceki hesabın damga/bakiye/sipariş
+  /// verisi bellekte kalır ve yeni hesapta görünür.
+  void _resetUserScopedState() {
+    ref.invalidate(loyaltyStatusProvider);
+    ref.invalidate(walletProvider);
+    ref.invalidate(ordersProvider);
+    ref.invalidate(giftControllerProvider);
+    ref.invalidate(notificationPrefsProvider);
+    ref.invalidate(favoritesProvider);
   }
 
   Future<void> _persist(AppUser user) async {

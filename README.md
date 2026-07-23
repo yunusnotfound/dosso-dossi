@@ -36,13 +36,12 @@ Geliştirme modunda OTP kodu konsola yazılır; `111111` her zaman geçerlidir.
 ```bash
 cd dosso-dossi-app
 flutter pub get
-flutter run                                          # mock veriyle (varsayılan)
-flutter run --dart-define=USE_MOCKS=false \
-            --dart-define=API_BASE_URL=http://localhost:3000   # gerçek API ile
-flutter test                                         # testler mock modunda çalışır
+flutter run                                  # gerçek API ile (localhost:3000, varsayılan)
+flutter run --dart-define=USE_MOCKS=true     # mock veriyle (backend gerekmez)
+flutter test                                 # testler kendiliğinden mock modunda çalışır
 ```
 
-Android emülatöründe API adresi olarak `http://10.0.2.2:3000` kullanın.
+Android emülatöründe `--dart-define=API_BASE_URL=http://10.0.2.2:3000` ekleyin.
 
 ## Dokümanlar
 

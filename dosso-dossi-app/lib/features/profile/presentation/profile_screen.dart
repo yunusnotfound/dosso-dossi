@@ -104,7 +104,7 @@ class ProfileScreen extends ConsumerWidget {
                 _RowData(
                   icon: Icons.credit_card,
                   title: 'Kayıtlı Kartlar',
-                  trailing: 'Visa •7412',
+                  trailing: wallet == null ? null : 'Visa •${wallet.cardLast4}',
                   onTap: () => context.push(Routes.savedCards),
                 ),
               ],

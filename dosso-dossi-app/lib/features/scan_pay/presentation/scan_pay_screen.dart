@@ -371,6 +371,8 @@ class _QuickTopUpRow extends ConsumerWidget {
 /// Yükleme onayı — hızlı yükleme ve Bakiye Yükle sekmesi ortak kullanır.
 Future<void> confirmTopUp(
     BuildContext context, WidgetRef ref, double amount) async {
+  final cardLast4 =
+      ref.read(walletProvider).value?.cardLast4 ?? '····';
   final confirmed = await showModalBottomSheet<bool>(
     context: context,
     backgroundColor: AppColors.background,
@@ -387,7 +389,7 @@ Future<void> confirmTopUp(
             Text('Bakiye Yükle', style: AppTypography.headline),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Kayıtlı kartın (Visa •7412) ile ${formatTl(amount)} yüklenecek. '
+              'Kayıtlı kartın (Visa •$cardLast4) ile ${formatTl(amount)} yüklenecek. '
               'Bu bir simülasyondur; gerçek ödeme alınmaz.',
               style: AppTypography.bodySecondary,
             ),
@@ -576,8 +578,10 @@ class _TopUpViewState extends ConsumerState<_TopUpView> {
               const Icon(Icons.credit_card, color: AppColors.primary),
               const SizedBox(width: AppSpacing.md),
               Expanded(
-                child: Text('Kayıtlı kart · Visa •7412',
-                    style: AppTypography.body),
+                child: Text(
+                  'Kayıtlı kart · Visa •${wallet.value?.cardLast4 ?? '····'}',
+                  style: AppTypography.body,
+                ),
               ),
               const Icon(Icons.check_circle,
                   size: 20, color: AppColors.success),

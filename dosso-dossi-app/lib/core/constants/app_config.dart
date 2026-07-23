@@ -1,16 +1,19 @@
+import 'dart:io' show Platform;
+
 /// Uygulama geneli iş kuralları. Değişince tüm ekranlar otomatik uyum sağlar.
 /// Kaynak: CEO'nun onayladığı sadakat kampanyaları (Temmuz 2026).
 abstract final class AppConfig {
-  /// true (varsayılan) → mock repository'ler; false → gerçek REST API.
-  /// Gerçek API ile çalıştırmak için:
-  ///   flutter run --dart-define=USE_MOCKS=false \
-  ///               --dart-define=API_BASE_URL=http://localhost:3000
-  /// (Android emülatöründe API_BASE_URL=http://10.0.2.2:3000)
-  /// Testler mock varsayılanıyla çalışır.
-  static const bool useMocks = bool.fromEnvironment(
-    'USE_MOCKS',
-    defaultValue: true,
-  );
+  /// false → gerçek REST API (flutter run varsayılanı),
+  /// true → mock repository'ler (flutter test varsayılanı).
+  ///
+  /// Açık bayrak her zaman kazanır: `--dart-define=USE_MOCKS=true|false`.
+  /// Bayrak verilmediyse `flutter test`'in koştuğu VM'deki FLUTTER_TEST
+  /// ortam değişkeniyle testler kendiliğinden mock'ta kalır (bu bir
+  /// dart-define DEĞİL, o yüzden çalışma zamanında okunur).
+  /// (Android emülatöründe API_BASE_URL=http://10.0.2.2:3000 gerekir.)
+  static bool get useMocks => const bool.hasEnvironment('USE_MOCKS')
+      ? const bool.fromEnvironment('USE_MOCKS')
+      : Platform.environment.containsKey('FLUTTER_TEST');
 
   /// Backend adresi (dosso-dossi-backend, docs/API_CONTRACT.md).
   static const String apiBaseUrl = String.fromEnvironment(

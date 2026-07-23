@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../wallet/application/wallet_providers.dart';
 
-/// Kayıtlı kartlar — mock. Gerçek kart saklama, ödeme sağlayıcısı
-/// entegrasyonunda (iyzico/PayTR tokenizasyon) yapılacak.
-class SavedCardsScreen extends StatelessWidget {
+/// Kayıtlı kartlar. Kart numarası cüzdandan gelir; gerçek kart saklama,
+/// ödeme sağlayıcısı entegrasyonunda (iyzico/PayTR tokenizasyon) yapılacak.
+class SavedCardsScreen extends ConsumerWidget {
   const SavedCardsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wallet = ref.watch(walletProvider).value;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Kayıtlı Kartlar')),
       body: SafeArea(
@@ -41,7 +45,10 @@ class SavedCardsScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Visa •••• 7412', style: AppTypography.body),
+                        Text(
+                          'Visa •••• ${wallet?.cardLast4 ?? '····'}',
+                          style: AppTypography.body,
+                        ),
                         Text('Varsayılan kart',
                             style: AppTypography.bodySecondary
                                 .copyWith(fontSize: 13)),

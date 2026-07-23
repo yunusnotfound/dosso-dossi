@@ -30,21 +30,23 @@ class WalletController extends AsyncNotifier<Wallet> {
 
   /// Bakiye yükler; uygulanan bonusla birlikte sonucu döner.
   Future<TopUpResult> topUp(double amount) async {
-    final wallet = state.value;
+    // Kart numarası uydurulmaz: state henüz yüklenmediyse repodan çekilir.
+    final wallet =
+        state.value ?? await ref.read(walletRepositoryProvider).getWallet();
     final result = await ref.read(walletRepositoryProvider).topUp(amount);
 
     if (AppConfig.useMocks) {
       // Mock repo yalnızca bonusu hesaplar; bakiyeyi burada toplarız.
-      final balance = (wallet?.balance ?? 0) + amount;
+      final balance = wallet.balance + amount;
       state = AsyncData(
-        Wallet(balance: balance, cardLast4: wallet?.cardLast4 ?? '7412'),
+        Wallet(balance: balance, cardLast4: wallet.cardLast4),
       );
       return TopUpResult(balance: balance, bonusDrinks: result.bonusDrinks);
     }
 
     // API modunda sunucu hem bakiyeyi hem bonusu işledi.
     state = AsyncData(
-      Wallet(balance: result.balance, cardLast4: wallet?.cardLast4 ?? '7412'),
+      Wallet(balance: result.balance, cardLast4: wallet.cardLast4),
     );
     ref.invalidate(loyaltyStatusProvider);
     return result;

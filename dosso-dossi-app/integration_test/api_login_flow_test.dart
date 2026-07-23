@@ -10,7 +10,7 @@ import 'package:dosso_dossi/core/storage/local_storage.dart';
 
 /// Gerçek backend'e karşı uçtan uca giriş akışı. Çalıştırma:
 ///   docker compose up -d db && (cd dosso-dossi-backend && npm run dev)
-///   flutter test integration_test -d "iPhone 17" \
+///   flutter test integration_test -d "iPhone 13" \
 ///     --dart-define=USE_MOCKS=false --dart-define=API_BASE_URL=http://localhost:3000
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -30,10 +30,14 @@ void main() {
     fail('Bulunamadı: $finder');
   }
 
-  testWidgets('API modunda OTP girişi: onboarding → kod → ana sayfa',
+  testWidgets('Yeni hesap: OTP girişi → isim adımı → sıfır bakiye ve damga',
       (tester) async {
     expect(AppConfig.useMocks, isFalse,
         reason: 'Bu test --dart-define=USE_MOCKS=false ile çalıştırılmalı');
+
+    // Her koşuda benzersiz, daha önce kayıt olmamış telefon.
+    final epoch = DateTime.now().millisecondsSinceEpoch.toString();
+    final freshPhone = '5${epoch.substring(epoch.length - 9)}';
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -51,17 +55,31 @@ void main() {
     await pumpUntilFound(tester, find.text('Kod Gönder'));
 
     // Telefon gir, kodu iste (sunucu konsola yazar; dev'de 111111 geçer)
-    await tester.enterText(find.byType(TextField), '5551112233');
+    await tester.enterText(find.byType(TextField), freshPhone);
     await tester.pump();
     await tester.tap(find.text('Kod Gönder'));
     await pumpUntilFound(tester, find.text('Kodu gir'));
 
-    // OTP doğrula → sunucudan token + kullanıcı gelir
+    // OTP doğrula → sunucu yeni kullanıcı oluşturur (adı boş)
     await tester.enterText(find.byType(TextField).first, '111111');
 
-    // Ana sayfa: alt menü ve sunucudan gelen kullanıcı verisi
+    // Yeni kullanıcı isim adımına düşer. Ekran geçişi sırasında OTP
+    // ekranının alanı da ağaçta kalabildiğinden hint metniyle daraltılır.
+    await pumpUntilFound(tester, find.text('Sana nasıl hitap edelim?'),
+        timeout: const Duration(seconds: 20));
+    await tester.pump(const Duration(milliseconds: 600)); // geçiş bitsin
+    final nameField = find.byWidgetPredicate(
+      (w) => w is TextField && w.decoration?.hintText == 'Adın Soyadın',
+    );
+    await tester.enterText(nameField, 'Test Kullanıcı');
+    await tester.pump();
+    await tester.tap(find.text('Başlayalım'));
+
+    // Ana sayfa: yeni hesapta damga 0/5 ve bakiye 0,00 olmalı
     await pumpUntilFound(tester, find.text('Ana Sayfa'),
         timeout: const Duration(seconds: 20));
+    await pumpUntilFound(tester, find.text('0/5', findRichText: true));
+    await pumpUntilFound(tester, find.textContaining('0,00'));
     expect(find.text('Sipariş'), findsWidgets);
   });
 }
