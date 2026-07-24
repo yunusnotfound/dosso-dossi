@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/error_feedback.dart';
 import '../../../core/widgets/scrollable_column.dart';
 import '../../../routing/app_router.dart';
 import '../application/auth_controller.dart';
@@ -40,6 +41,8 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
           .sendOtp(_phoneController.text);
       if (!mounted) return;
       context.go('${Routes.otp}?tel=${_phoneController.text}');
+    } catch (e) {
+      if (mounted) showApiError(context, e);
     } finally {
       if (mounted) setState(() => _sending = false);
     }

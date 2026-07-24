@@ -39,14 +39,18 @@ class NotificationPrefsController extends Notifier<NotificationPrefs> {
   }
 
   void update(NotificationPrefs next) {
+    final previous = state;
     _cache(next);
     state = next;
     if (!AppConfig.useMocks) {
-      // Sunucuya arka planda yazılır; hata olursa yerel değer korunur.
-      ref
-          .read(notificationPrefsRepositoryProvider)
-          .savePrefs(next)
-          .catchError((_) {});
+      // Sunucuya arka planda yazılır; reddederse yerel değer geri alınır
+      // (sessiz kalıcı sapma olmaz, anahtar eski konumuna döner).
+      ref.read(notificationPrefsRepositoryProvider).savePrefs(next).catchError((
+        _,
+      ) {
+        _cache(previous);
+        state = previous;
+      });
     }
   }
 

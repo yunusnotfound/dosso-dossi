@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/error_feedback.dart';
 import '../../../core/widgets/scrollable_column.dart';
 import '../../../routing/app_router.dart';
 import '../application/auth_controller.dart';
@@ -59,7 +60,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   }
 
   Future<void> _resend() async {
-    await ref.read(authControllerProvider.notifier).sendOtp(widget.phone);
+    try {
+      await ref.read(authControllerProvider.notifier).sendOtp(widget.phone);
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+      return;
+    }
     if (!mounted) return;
     _codeController.clear();
     _startCountdown();

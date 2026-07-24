@@ -1,0 +1,7 @@
+# Sırlar — asla commit'lenmez
+.env
+.env.*
+!.env.example
+
+node_modules/
+dist/

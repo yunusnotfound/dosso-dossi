@@ -67,12 +67,21 @@ class _AuthInterceptor extends QueuedInterceptor {
       return;
     }
 
-    final refreshed = await _tryRefresh();
-    if (!refreshed) {
-      await tokenStorage.clear();
-      onUnauthorized();
-      handler.next(err);
-      return;
+    // Kuyruktaki önceki istek token'ı zaten yenilediyse tekrar yenileme
+    // (N eşzamanlı 401 → 1 rotasyon); doğrudan yeni token'la tekrarla.
+    final usedAuth = err.requestOptions.headers['Authorization'] as String?;
+    final currentToken = await tokenStorage.readAccess();
+    final alreadyRefreshed =
+        currentToken != null && usedAuth != 'Bearer $currentToken';
+
+    if (!alreadyRefreshed) {
+      final refreshed = await _tryRefresh();
+      if (!refreshed) {
+        await tokenStorage.clear();
+        onUnauthorized();
+        handler.next(err);
+        return;
+      }
     }
 
     // İsteği yeni access token ile bir kez tekrarla

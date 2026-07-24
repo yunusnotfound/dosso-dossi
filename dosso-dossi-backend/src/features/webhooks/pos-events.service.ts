@@ -16,14 +16,22 @@ export interface PosEventResult {
   response: Record<string, unknown>;
 }
 
-/// Tüm POS/ödeme olaylarının idempotency omurgası. Olay önce deftere
-/// yazılır; aynı (source, eventType, externalId) ikinci kez gelirse
-/// handler HİÇ çalıştırılmaz, saklanan yanıt aynen döner.
-/// Handler AppError fırlatırsa olay FAILED işaretlenir ve hata yükselir;
-/// aynı externalId FAILED durumdayken yeniden denenebilir.
+/// Handler, olay satırıyla AYNI transaction içinde çalışır.
+type PosEventHandler = (
+  tx: Prisma.TransactionClient,
+) => Promise<Record<string, unknown>>;
+
+/// Tüm POS/ödeme olaylarının idempotency omurgası.
+///
+/// Atomiklik garantisi: handler'ın yan etkileri ile olayın PROCESSED
+/// işaretlenmesi tek transaction'dır. Süreç ortada çökerse ikisi birden
+/// geri sarılır → satır RECEIVED kalır ve bir sonraki deneme GÜVENLE
+/// yeniden işler (yarım iş için sahte "başarılı" yanıtı dönemez).
+/// Eşzamanlı iki deneme, satır kilidi + guard'lı updateMany ile çözülür:
+/// yalnız biri işler, diğeri saklanan yanıtı döner.
 export async function runPosEvent(
   key: PosEventKey,
-  handler: () => Promise<Record<string, unknown>>,
+  handler: PosEventHandler,
 ): Promise<PosEventResult> {
   let event;
   try {
@@ -49,8 +57,9 @@ export async function runPosEvent(
           },
         },
       });
-      if (existing.status === 'FAILED') {
-        // Başarısız olay yeniden denenebilir
+      if (existing.status === 'FAILED' || existing.status === 'RECEIVED') {
+        // FAILED → yeniden denenebilir; RECEIVED → önceki deneme yarıda
+        // kalmış (çökme) ya da şu an işleniyor — aşağıdaki guard çözer.
         event = existing;
       } else {
         logger.info(
@@ -69,27 +78,51 @@ export async function runPosEvent(
     }
   }
 
+  const eventId = event.id;
   try {
-    const response = await handler();
-    await prisma.posEvent.update({
-      where: { id: event.id },
-      data: {
-        status: response['skipped'] ? 'SKIPPED' : 'PROCESSED',
-        response: response as Prisma.InputJsonValue,
-        processedAt: new Date(),
-        error: null,
-      },
+    const response = await prisma.$transaction(async (tx) => {
+      // Satırı sahiplen: eşzamanlı ikinci deneme burada kilitte bekler,
+      // ilki commit edince count 0 alır ve işi tekrarlamaz.
+      const claimed = await tx.posEvent.updateMany({
+        where: { id: eventId, status: { in: ['RECEIVED', 'FAILED'] } },
+        data: { processedAt: new Date(), error: null },
+      });
+      if (claimed.count === 0) return null;
+
+      const res = await handler(tx);
+      await tx.posEvent.update({
+        where: { id: eventId },
+        data: {
+          status: res['skipped'] ? 'SKIPPED' : 'PROCESSED',
+          response: res as Prisma.InputJsonValue,
+        },
+      });
+      return res;
     });
+
+    if (response === null) {
+      const done = await prisma.posEvent.findUniqueOrThrow({
+        where: { id: eventId },
+      });
+      return {
+        duplicate: true,
+        response: (done.response ?? { ok: true }) as Record<string, unknown>,
+      };
+    }
     return { duplicate: false, response };
   } catch (err) {
-    await prisma.posEvent.update({
-      where: { id: event.id },
-      data: {
-        status: 'FAILED',
-        error: err instanceof AppError ? `${err.code}: ${err.message}` : String(err),
-        processedAt: new Date(),
-      },
-    });
+    // İş geri sarıldı; olay bilgilendirme amaçlı FAILED işaretlenir
+    await prisma.posEvent
+      .update({
+        where: { id: eventId },
+        data: {
+          status: 'FAILED',
+          error:
+            err instanceof AppError ? `${err.code}: ${err.message}` : String(err),
+          processedAt: new Date(),
+        },
+      })
+      .catch(() => {});
     throw err;
   }
 }

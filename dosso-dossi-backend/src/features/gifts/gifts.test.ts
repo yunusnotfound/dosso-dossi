@@ -68,6 +68,29 @@ describe('gifts', () => {
     expect(loyalty.body.history[0].title).toBe('Hediye: Caffe Latte');
   });
 
+  it('aynı hediye iki kez claim edilirse yalnız bir kez kredi işlenir', async () => {
+    const token = await senderToken(500);
+    await request(app)
+      .post('/gifts')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ recipientPhone: RECIPIENT, type: 'balance', amount: 100, note: '' });
+
+    const recipientTok = await login(app, RECIPIENT); // ilk claim burada
+    const gift = await prisma.gift.findFirstOrThrow();
+    const recipient = await prisma.user.findUniqueOrThrow({
+      where: { phone: '5559998877' },
+    });
+
+    // Guard'ı doğrudan zorla: zaten REDEEMED hediyeye ikinci claim
+    const { claimGiftForUser } = await import('./gift-claim.js');
+    await prisma.$transaction((tx) => claimGiftForUser(tx, gift, recipient.id));
+
+    const wallet = await request(app)
+      .get('/me/wallet')
+      .set('Authorization', `Bearer ${recipientTok}`);
+    expect(wallet.body.balance).toBe(100); // 200 değil
+  });
+
   it('yetersiz bakiyede hediye gönderilemez', async () => {
     const token = await senderToken(50);
     const res = await request(app)

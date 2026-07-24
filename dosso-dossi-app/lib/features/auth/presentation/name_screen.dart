@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/error_feedback.dart';
 import '../../../core/widgets/scrollable_column.dart';
 import '../application/auth_controller.dart';
 
@@ -33,6 +34,8 @@ class _NameScreenState extends ConsumerState<NameScreen> {
           .read(authControllerProvider.notifier)
           .completeProfile(_nameController.text.trim());
       // Router isim tamamlanınca ana sayfaya otomatik yönlendirir.
+    } catch (e) {
+      if (mounted) showApiError(context, e);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

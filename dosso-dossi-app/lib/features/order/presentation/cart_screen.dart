@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/error_feedback.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/product_image.dart';
 import '../../../routing/app_router.dart';
@@ -48,6 +49,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final branch = ref.read(activeBranchProvider).value;
     if (branch == null) return;
     final pickupLabel = _slots(branch.prepMinutes)[_slotIndex];
+    final displayedTotal = ref.read(cartProvider).total;
 
     setState(() => _paying = true);
     try {
@@ -65,7 +67,17 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         );
         return;
       }
+      // Sunucu tutarı yeniden hesaplar; ekrandakinden saparsa kullanıcıyı bilgilendir
+      if ((record.total - displayedTotal).abs() > 0.01) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Güncel tutar: ${formatTl(record.total)} olarak alındı'),
+          ),
+        );
+      }
       context.go(Routes.orderSuccess);
+    } catch (e) {
+      if (mounted) showApiError(context, e);
     } finally {
       if (mounted) setState(() => _paying = false);
     }

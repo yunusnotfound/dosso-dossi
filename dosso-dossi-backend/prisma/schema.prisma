@@ -297,6 +297,7 @@ model Order {
   usedFreeDrink     Boolean     @default(false)
   stampsEarned      Int         @default(0)
   posRef            String      @default("") // Kerzz adisyon referansı (adaptör doldurur)
+  forwardedAt       DateTime? // şube POS'una iletim onayı (mini-outbox takibi)
   createdAt         DateTime    @default(now())
 
   user   User        @relation(fields: [userId], references: [id])

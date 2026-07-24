@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import type { Gift } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
 import { dec, toMoney } from '../../lib/money.js';
 import { normalizePhone } from '../../lib/phone.js';
@@ -82,26 +83,18 @@ export async function listGifts(senderId: string) {
   const gifts = await prisma.gift.findMany({
     where: { senderId },
     orderBy: { createdAt: 'desc' },
+    take: 50,
   });
   return gifts.map(serializeGift);
 }
 
-function serializeGift(gift: {
-  id: string;
-  recipientPhone: string;
-  type: string;
-  label: string;
-  amount: unknown;
-  note: string;
-  status: string;
-  createdAt: Date;
-}) {
+function serializeGift(gift: Gift) {
   return {
     id: gift.id,
     recipientPhone: gift.recipientPhone,
     type: gift.type.toLowerCase(),
     label: gift.label,
-    amount: toMoney(gift.amount as never),
+    amount: toMoney(gift.amount),
     note: gift.note,
     status: gift.status.toLowerCase(),
     date: gift.createdAt.toISOString(),

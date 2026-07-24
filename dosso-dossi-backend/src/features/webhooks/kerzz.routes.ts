@@ -19,7 +19,7 @@ kerzzWebhooksRouter.post('/sale', validate(saleSchema), async (req, res, next) =
         externalId: req.body.saleId,
         payload: req.body,
       },
-      () => processSale(req.body),
+      (tx) => processSale(tx, req.body),
     );
     res.json(result.response);
   } catch (err) {
@@ -39,8 +39,9 @@ kerzzWebhooksRouter.post(
           externalId: req.body.eventId,
           payload: req.body,
         },
-        () =>
+        (tx) =>
           advanceOrderStatus(
+            tx,
             parseOrderNumber(req.body.orderId),
             req.body.status.toUpperCase(),
           ),

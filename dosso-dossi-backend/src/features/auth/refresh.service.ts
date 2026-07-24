@@ -55,14 +55,17 @@ export async function rotateRefreshToken(
 
   return prisma.$transaction(async (tx) => {
     const newRaw = await issueRefreshToken(tx, existing.userId, existing.deviceInfo);
-    await tx.refreshToken.update({
-      where: { id: existing.id },
+    // Guard'lı revoke: eşzamanlı iki rotasyon isteğinden yalnız biri geçer;
+    // guard'sız olsaydı tek token'dan iki geçerli zincir doğardı.
+    const revoked = await tx.refreshToken.updateMany({
+      where: { id: existing.id, revokedAt: null },
       data: {
         revokedAt: new Date(),
         lastUsedAt: new Date(),
         replacedById: hash(newRaw).slice(0, 16), // zincir izi (tam hash gerekmez)
       },
     });
+    if (revoked.count === 0) throw AppError.unauthorized();
     return { token: signToken(existing.userId), refreshToken: newRaw };
   });
 }

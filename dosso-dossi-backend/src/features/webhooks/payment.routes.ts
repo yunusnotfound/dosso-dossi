@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { validate } from '../../middleware/validate.js';
 import {
-  confirmTopUp,
+  confirmTopUpTx,
   markPaymentFailed,
 } from '../wallet/payments/topup.service.js';
 import { runPosEvent } from './pos-events.service.js';
@@ -28,10 +28,10 @@ paymentWebhooksRouter.post(
           externalId: req.body.paymentId,
           payload: req.body,
         },
-        async () =>
+        async (tx) =>
           req.body.status === 'succeeded'
-            ? { ok: true, ...(await confirmTopUp(req.body.paymentId)) }
-            : markPaymentFailed(req.body.paymentId),
+            ? { ok: true, ...(await confirmTopUpTx(tx, req.body.paymentId)) }
+            : markPaymentFailed(tx, req.body.paymentId),
       );
       res.json(result.response);
     } catch (err) {

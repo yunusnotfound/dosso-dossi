@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { env } from '../../../config/env.js';
 import { AppError } from '../../../lib/errors.js';
 import { dec, toMoney } from '../../../lib/money.js';
@@ -60,12 +61,20 @@ export async function startTopUp(
   return { ...confirmed, paymentId: intent.id, status: 'succeeded' };
 }
 
-/// Onayı işler; paymentId ile idempotent. Hem startTopUp (dev, anında)
-/// hem /webhooks/payment/confirmation buradan geçer.
+/// Onayı işler; paymentId ile idempotent. startTopUp (dev, anında) bu
+/// sarmalayıcıyı kullanır; ödeme webhook'u runPosEvent'in tx'iyle
+/// confirmTopUpTx'i doğrudan çağırır.
 export async function confirmTopUp(
   intentId: string,
 ): Promise<{ balance: number; bonusDrinks: number }> {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction((tx) => confirmTopUpTx(tx, intentId));
+}
+
+export async function confirmTopUpTx(
+  tx: Prisma.TransactionClient,
+  intentId: string,
+): Promise<{ balance: number; bonusDrinks: number }> {
+  {
     const claimed = await tx.paymentIntent.updateMany({
       where: { id: intentId, status: 'PENDING' },
       data: { status: 'SUCCEEDED', confirmedAt: new Date() },
@@ -113,16 +122,19 @@ export async function confirmTopUp(
       });
     }
     return { balance: toMoney(wallet.balance), bonusDrinks };
-  });
+  }
 }
 
-export async function markPaymentFailed(intentId: string) {
-  const updated = await prisma.paymentIntent.updateMany({
+export async function markPaymentFailed(
+  tx: Prisma.TransactionClient,
+  intentId: string,
+) {
+  const updated = await tx.paymentIntent.updateMany({
     where: { id: intentId, status: 'PENDING' },
     data: { status: 'FAILED' },
   });
   if (updated.count === 0) {
-    const intent = await prisma.paymentIntent.findUnique({
+    const intent = await tx.paymentIntent.findUnique({
       where: { id: intentId },
     });
     if (!intent) throw AppError.notFound('Ödeme bulunamadı');

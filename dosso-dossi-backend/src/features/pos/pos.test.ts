@@ -161,6 +161,35 @@ describe('POS QR tahsilat', () => {
     expect(again.body.error.code).toBe('VOID_NOT_ALLOWED');
   });
 
+  it('çökme penceresi: RECEIVED askıda kalan olay yeniden işlenebilir', async () => {
+    const { code } = await setupUserWithQr(500);
+    // Önceki denemenin handler'dan önce çöktüğünü simüle et:
+    // olay satırı var (RECEIVED) ama hiçbir yan etki yok
+    await prisma.posEvent.create({
+      data: {
+        source: 'kerzz',
+        eventType: 'charge',
+        externalId: 'req-crash',
+        payload: {},
+      },
+    });
+
+    const res = await posRequest(
+      app,
+      '/pos/charge',
+      chargeBody(code, { requestId: 'req-crash' }),
+    );
+    // Sahte "duplicate başarı" DEĞİL, gerçek işleme olmalı
+    expect(res.status).toBe(200);
+    const wallet = await prisma.wallet.findFirstOrThrow();
+    expect(Number(wallet.balance)).toBe(314.5); // düşüm gerçekleşti
+
+    const event = await prisma.posEvent.findFirstOrThrow({
+      where: { externalId: 'req-crash' },
+    });
+    expect(event.status).toBe('PROCESSED');
+  });
+
   it('15 dakikadan eski işlem void edilemez', async () => {
     const { code } = await setupUserWithQr(500);
     const charge = await posRequest(app, '/pos/charge', chargeBody(code));

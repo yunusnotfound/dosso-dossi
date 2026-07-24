@@ -17,7 +17,7 @@ posRouter.post('/charge', validate(chargeSchema), async (req, res, next) => {
         externalId: req.body.requestId,
         payload: req.body,
       },
-      () => chargeQrCode(req.body),
+      (tx) => chargeQrCode(tx, req.body),
     );
     res.json(result.response);
   } catch (err) {
@@ -37,7 +37,7 @@ posRouter.post(
           externalId: req.body.requestId,
           payload: { ...req.body, chargeId: req.params.chargeId },
         },
-        () => voidCharge(req.params.chargeId as string),
+        (tx) => voidCharge(tx, req.params.chargeId as string),
       );
       res.json(result.response);
     } catch (err) {

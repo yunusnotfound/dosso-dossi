@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/error_feedback.dart';
 import '../../../core/utils/formatters.dart';
 import '../../order/application/menu_providers.dart';
 import '../../order/domain/menu.dart';
@@ -82,6 +83,8 @@ class _GiftScreenState extends ConsumerState<GiftScreen> {
       _phoneController.clear();
       _noteController.clear();
       setState(() => _selectedDrink = null);
+    } catch (e) {
+      if (mounted) showApiError(context, e);
     } finally {
       if (mounted) setState(() => _sending = false);
     }

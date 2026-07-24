@@ -1,7 +1,6 @@
-import type { OrderStatus } from '@prisma/client';
+import type { OrderStatus, Prisma } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
 import { logger } from '../../lib/logger.js';
-import { prisma } from '../../lib/prisma.js';
 
 /// Bir duruma hangi önceki durumlardan geçilebilir.
 const VALID_PREDECESSORS: Record<OrderStatus, OrderStatus[]> = {
@@ -18,11 +17,21 @@ const VALID_PREDECESSORS: Record<OrderStatus, OrderStatus[]> = {
 /// gibi) gerçek hatadır → INVALID_STATUS_TRANSITION.
 const ORDER_OF = ['RECEIVED', 'PREPARING', 'READY', 'COMPLETED'] as const;
 
+/// tx: runPosEvent transaction'ı YA DA doğrudan prisma istemcisi
+/// (PrismaClient yapısal olarak TransactionClient'a atanabilir).
 export async function advanceOrderStatus(
+  tx: Prisma.TransactionClient,
   orderNumber: number,
   newStatus: OrderStatus,
+  opts: {
+    /// false (webhook yolu): imkânsız geçiş hata yerine skip döner —
+    /// dış sistemin asla başaramayacağı bir isteği tekrar tekrar
+    /// denemesine (retry fırtınası) yol açılmaz. true: simülatör/route
+    /// yolu gerçek 409 alır.
+    strict?: boolean;
+  } = {},
 ): Promise<{ ok: true; status: string; skipped?: string }> {
-  const order = await prisma.order.findUnique({ where: { number: orderNumber } });
+  const order = await tx.order.findUnique({ where: { number: orderNumber } });
   if (!order) throw AppError.notFound(`Sipariş bulunamadı: DD-${orderNumber}`);
 
   if (order.status === newStatus) {
@@ -41,12 +50,19 @@ export async function advanceOrderStatus(
         skipped: 'stale_transition',
       };
     }
-    throw AppError.invalidStatusTransition(
-      `DD-${orderNumber}: ${order.status} → ${newStatus} geçişi geçersiz`,
-    );
+    if (opts.strict ?? true) {
+      throw AppError.invalidStatusTransition(
+        `DD-${orderNumber}: ${order.status} → ${newStatus} geçişi geçersiz`,
+      );
+    }
+    return {
+      ok: true,
+      status: order.status.toLowerCase(),
+      skipped: 'invalid_transition',
+    };
   }
 
-  const updated = await prisma.order.updateMany({
+  const updated = await tx.order.updateMany({
     where: { number: orderNumber, status: { in: VALID_PREDECESSORS[newStatus] } },
     data: { status: newStatus },
   });

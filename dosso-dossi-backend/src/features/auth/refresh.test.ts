@@ -77,6 +77,16 @@ describe('refresh token', () => {
     expect(res.status).toBe(401);
   });
 
+  it('eşzamanlı iki rotasyon isteğinden yalnız biri başarılı olur', async () => {
+    const { refreshToken } = await loginPair();
+    const [a, b] = await Promise.all([
+      request(app).post('/auth/refresh').send({ refreshToken }),
+      request(app).post('/auth/refresh').send({ refreshToken }),
+    ]);
+    const statuses = [a.status, b.status].sort();
+    expect(statuses).toEqual([200, 401]); // guard'sız olsaydı [200, 200] olurdu
+  });
+
   it('bilinmeyen refresh token 401 döner', async () => {
     await loginPair();
     const res = await request(app)

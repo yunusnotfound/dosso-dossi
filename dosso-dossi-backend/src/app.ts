@@ -1,5 +1,7 @@
 import express from 'express';
+import helmet from 'helmet';
 import { AppError, ErrorCodes } from './lib/errors.js';
+import { prisma } from './lib/prisma.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { requestLogger } from './middleware/request-logger.js';
 import { requireAuth } from './middleware/auth.js';
@@ -19,8 +21,12 @@ import { posAuth } from './middleware/pos-auth.js';
 
 export function createApp(): express.Express {
   const app = express();
+  // Güvenlik başlıkları. CORS bilerek YOK: istemci yalnızca mobil
+  // uygulama (tarayıcı değil); web istemcisi eklenirse allowlist ile açılır.
+  app.use(helmet());
   app.use(
     express.json({
+      limit: '100kb',
       // HMAC imza doğrulaması ham gövde üzerinden yapılır (pos-auth.ts)
       verify: (req, _res, buf) => {
         req.rawBody = buf;
@@ -29,8 +35,14 @@ export function createApp(): express.Express {
   );
   app.use(requestLogger);
 
-  app.get('/health', (_req, res) => {
-    res.json({ ok: true });
+  // Derin health: DB erişilemiyorsa 503 (load balancer trafiği keser)
+  app.get('/health', async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({ ok: true });
+    } catch {
+      res.status(503).json({ ok: false, db: 'unreachable' });
+    }
   });
 
   // Herkese açık

@@ -13,8 +13,11 @@ const _pollInterval = Duration(seconds: 10);
 /// sipariş HAZIR/tamamlanınca yoklama durur ve geçmiş tazelenir.
 /// Mock modunda durum, sipariş yaşına göre yerelde simüle edilir
 /// (backend'in dev otomatik ilerletmesiyle aynı tempoda: 8 sn → 20 sn).
-final orderTrackingProvider = AsyncNotifierProvider.family<
-    OrderTrackingController, OrderRecord, String>(OrderTrackingController.new);
+/// autoDispose: ekran kapanınca zamanlayıcı da ölür — aksi halde açılan
+/// her sipariş için sonsuza dek arka planda yoklama sürerdi.
+final orderTrackingProvider = AsyncNotifierProvider.autoDispose
+    .family<OrderTrackingController, OrderRecord, String>(
+        OrderTrackingController.new);
 
 class OrderTrackingController extends AsyncNotifier<OrderRecord> {
   OrderTrackingController(this.orderId);
@@ -51,28 +54,22 @@ class OrderTrackingController extends AsyncNotifier<OrderRecord> {
   }
 
   /// Mock: siparişin yaşına göre alındı → hazırlanıyor → hazır.
+  /// Sipariş listede yoksa sahte boş kayıt üretilmez — ekran hata
+  /// durumunu göstersin diye fırlatılır.
   OrderRecord _mockRecord(String orderId) {
-    final record = ref
-        .read(ordersProvider)
-        .firstWhere((o) => o.id == orderId, orElse: () => _missing(orderId));
-    final age = DateTime.now().difference(record.createdAt);
+    final record = ref.read(ordersProvider).where((o) => o.id == orderId);
+    if (record.isEmpty) {
+      throw StateError('Sipariş bulunamadı: $orderId');
+    }
+    final found = record.first;
+    final age = DateTime.now().difference(found.createdAt);
     final status = age.inSeconds >= 20
         ? 'ready'
         : age.inSeconds >= 8
             ? 'preparing'
             : 'received';
-    return record.copyWith(status: status);
+    return found.copyWith(status: status);
   }
-
-  OrderRecord _missing(String orderId) => OrderRecord(
-        id: orderId,
-        createdAt: DateTime.now(),
-        branchName: '',
-        pickupLabel: '',
-        itemsLabel: '',
-        total: 0,
-        stampsEarned: 0,
-      );
 
   bool _isTerminal(String status) =>
       status == 'ready' || status == 'completed' || status == 'cancelled';

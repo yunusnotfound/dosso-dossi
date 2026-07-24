@@ -1,6 +1,6 @@
+import type { Prisma } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
 import { dec, toMoney } from '../../lib/money.js';
-import { prisma } from '../../lib/prisma.js';
 import type { ChargeInput } from './pos.schemas.js';
 
 /// Kod ekranda geçerliyken kasanın isteği birkaç saniye gecikebilir;
@@ -11,10 +11,13 @@ const QR_CHARGE_GRACE_MS = 15_000;
 const VOID_WINDOW_MS = 15 * 60_000;
 
 /// Tara & Öde: kasada okutulan kodu tek adımda tahsil eder (authorize+capture).
-/// Reddedilirse transaction geri sarılır — token tüketilmemiş kalır,
-/// müşteri aynı kodla yeniden deneyebilir.
-export async function chargeQrCode(input: ChargeInput) {
-  return prisma.$transaction(async (tx) => {
+/// runPosEvent'in transaction'ı içinde çalışır; reddedilirse her şey geri
+/// sarılır — token tüketilmemiş kalır, müşteri aynı kodla yeniden deneyebilir.
+export async function chargeQrCode(
+  tx: Prisma.TransactionClient,
+  input: ChargeInput,
+) {
+  {
     const branch = await tx.branch.findUnique({ where: { id: input.branchId } });
     if (!branch) throw AppError.notFound('Şube bulunamadı');
 
@@ -70,12 +73,15 @@ export async function chargeQrCode(input: ChargeInput) {
       // Kasiyer teyidi için ad; bakiye bilgisi kasaya sızdırılmaz
       customerName: token.user.name || 'Dosso müşterisi',
     };
-  });
+  }
 }
 
 /// Kasiyer hatası iptali: tam iade. Kısmi iade gerçek Kerzz adaptörüne bırakıldı.
-export async function voidCharge(chargeId: string) {
-  return prisma.$transaction(async (tx) => {
+export async function voidCharge(
+  tx: Prisma.TransactionClient,
+  chargeId: string,
+) {
+  {
     const charge = await tx.posCharge.findUnique({ where: { id: chargeId } });
     if (!charge) throw AppError.notFound('İşlem bulunamadı');
     if (
@@ -107,5 +113,5 @@ export async function voidCharge(chargeId: string) {
     });
 
     return { ok: true, chargeId: charge.id, refunded: toMoney(charge.amount) };
-  });
+  }
 }

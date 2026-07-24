@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
 import { dec, toMoney } from '../../lib/money.js';
+import { logger } from '../../lib/logger.js';
 import { prisma } from '../../lib/prisma.js';
 import { applyLoyalty } from '../loyalty/loyalty-apply.js';
 import { parseOrderNumber } from './order-status.service.js';
@@ -163,7 +164,10 @@ export async function placeOrder(userId: string, input: PlaceOrderInput) {
     return order;
   });
 
-  kerzzPosClient.forwardOrder(order);
+  // At-ve-unut değil: hata sweep'e loglanır, mini-outbox yeniden dener
+  kerzzPosClient
+    .forwardOrder(order)
+    .catch((err) => logger.warn(`Sipariş DD-${order.number} POS'a iletilemedi: ${err}`));
   return serializeOrder(order);
 }
 
@@ -182,6 +186,7 @@ export async function listOrders(userId: string) {
     where: { userId },
     orderBy: { createdAt: 'desc' },
     include: { items: true, branch: true },
+    take: 50,
   });
   return orders.map(serializeOrder);
 }

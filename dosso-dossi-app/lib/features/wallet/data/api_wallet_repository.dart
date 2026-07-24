@@ -32,7 +32,7 @@ class ApiWalletRepository implements WalletRepository {
       final data = res.data!;
       return TopUpResult(
         balance: (data['balance'] as num).toDouble(),
-        bonusDrinks: data['bonusDrinks'] as int,
+        bonusDrinks: (data['bonusDrinks'] as num).toInt(),
       );
     });
   }

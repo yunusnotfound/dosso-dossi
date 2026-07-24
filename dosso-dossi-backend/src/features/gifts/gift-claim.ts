@@ -8,6 +8,14 @@ export async function claimGiftForUser(
   gift: Gift,
   userId: string,
 ): Promise<void> {
+  // Çifte işleme guard'ı: kayıt anındaki claim ile gönderim anındaki claim
+  // yarışsa bile hediye yalnızca bir kez krediye dönüşür.
+  const claimed = await tx.gift.updateMany({
+    where: { id: gift.id, status: 'PENDING' },
+    data: { status: 'REDEEMED', recipientId: userId, redeemedAt: new Date() },
+  });
+  if (claimed.count === 0) return;
+
   if (gift.type === 'BALANCE') {
     const wallet = await tx.wallet.update({
       where: { userId },
@@ -36,8 +44,4 @@ export async function claimGiftForUser(
       },
     });
   }
-  await tx.gift.update({
-    where: { id: gift.id },
-    data: { status: 'REDEEMED', recipientId: userId, redeemedAt: new Date() },
-  });
 }
