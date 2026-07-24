@@ -2,7 +2,9 @@ import { Prisma } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
 import { dec, toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
-import { forwardOrderToKerzz } from './kerzz.client.js';
+import { applyLoyalty } from '../loyalty/loyalty-apply.js';
+import { parseOrderNumber } from './order-status.service.js';
+import { kerzzPosClient } from './pos-client.js';
 import type { PlaceOrderInput } from './orders.schemas.js';
 
 /// Opsiyon fiyat farkları — Flutter'daki product_options.dart ile aynı.
@@ -102,19 +104,6 @@ export async function placeOrder(userId: string, input: PlaceOrderInput) {
     if (debited.count === 0) throw AppError.insufficientBalance();
     const wallet = await tx.wallet.findUniqueOrThrow({ where: { userId } });
 
-    // Sadakat: ikram düş + damga ekle + hedef dolunca ikrama çevir
-    const loyalty = await tx.loyaltyAccount.findUniqueOrThrow({ where: { userId } });
-    const rawStamps = loyalty.stamps + stampsEarned;
-    const rewardsEarned = Math.floor(rawStamps / loyalty.target);
-    await tx.loyaltyAccount.update({
-      where: { userId },
-      data: {
-        stamps: rawStamps % loyalty.target,
-        freeDrinks:
-          loyalty.freeDrinks + rewardsEarned - (input.useFreeDrink ? 1 : 0),
-      },
-    });
-
     const numberRow = await tx.$queryRaw<[{ nextval: bigint }]>(
       Prisma.sql`SELECT nextval('order_number_seq')`,
     );
@@ -160,42 +149,31 @@ export async function placeOrder(userId: string, input: PlaceOrderInput) {
       },
     });
 
-    if (input.useFreeDrink && freeLine) {
-      await tx.loyaltyEvent.create({
-        data: {
-          accountId: loyalty.id,
-          type: 'FREE_DRINK_USED',
-          title: freeLine.product.name,
-          used: true,
-          orderId: order.id,
-        },
-      });
-    }
-    if (stampsEarned > 0) {
-      await tx.loyaltyEvent.create({
-        data: {
-          accountId: loyalty.id,
-          type: 'STAMPS_EARNED',
-          title: `${stampsEarned} damga — Sipariş DD-${number}`,
-          orderId: order.id,
-        },
-      });
-    }
-    for (let i = 0; i < rewardsEarned; i++) {
-      await tx.loyaltyEvent.create({
-        data: {
-          accountId: loyalty.id,
-          type: 'REWARD_EARNED',
-          title: 'Damga kartı tamamlandı — 1 ikram kahve',
-          orderId: order.id,
-        },
-      });
-    }
+    // Damga/ikram işleme — kasadaki satışla (sale webhook) ortak kural
+    await applyLoyalty(tx, userId, {
+      stampsEarned,
+      consumeFreeDrink:
+        input.useFreeDrink && freeLine
+          ? { title: freeLine.product.name }
+          : undefined,
+      sourceTitle: `Sipariş DD-${number}`,
+      orderId: order.id,
+    });
 
     return order;
   });
 
-  forwardOrderToKerzz(order);
+  kerzzPosClient.forwardOrder(order);
+  return serializeOrder(order);
+}
+
+export async function getOrder(userId: string, orderId: string) {
+  const number = parseOrderNumber(orderId);
+  const order = await prisma.order.findFirst({
+    where: { number, userId },
+    include: { items: true, branch: true },
+  });
+  if (!order) throw AppError.notFound('Sipariş bulunamadı');
   return serializeOrder(order);
 }
 

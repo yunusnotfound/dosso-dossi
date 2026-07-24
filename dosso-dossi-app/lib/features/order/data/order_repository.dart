@@ -17,6 +17,9 @@ abstract interface class OrderRepository {
   });
 
   Future<List<OrderRecord>> getOrders();
+
+  /// Canlı sipariş takibi: güncel durum sunucudan okunur.
+  Future<OrderRecord> getOrder(String id);
 }
 
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {

@@ -2,6 +2,10 @@ import { beforeEach, afterAll } from 'vitest';
 import { prisma } from '../lib/prisma.js';
 
 const TABLES = [
+  'PosEvent',
+  'PosCharge',
+  'PaymentIntent',
+  'RefreshToken',
   'OtpCode',
   'WalletTransaction',
   'LoyaltyEvent',

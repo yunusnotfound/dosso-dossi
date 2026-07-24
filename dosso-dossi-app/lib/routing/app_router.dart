@@ -18,6 +18,7 @@ import '../features/home/presentation/home_screen.dart';
 import '../features/order/presentation/cart_screen.dart';
 import '../features/order/presentation/order_screen.dart';
 import '../features/order/presentation/order_success_screen.dart';
+import '../features/order/presentation/order_tracking_screen.dart';
 import '../features/order/presentation/product_detail_screen.dart';
 import '../features/profile/presentation/faq_screen.dart';
 import '../features/profile/presentation/kvkk_screen.dart';
@@ -54,6 +55,7 @@ abstract final class Routes {
   static const product = '/urun/:id';
   static const cart = '/sepet';
   static const orderSuccess = '/siparis-onay';
+  static const orderTracking = '/siparis-takip/:id';
 
   // Kampanya detayları
   static const campaignKahve = '/kampanya/kahve-ictikce';
@@ -69,6 +71,7 @@ abstract final class Routes {
   static const kvkk = '/profil/kvkk';
 
   static String productPath(String id) => '/urun/$id';
+  static String orderTrackingPath(String id) => '/siparis-takip/$id';
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -154,6 +157,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.orderSuccess,
         builder: (context, state) => const OrderSuccessScreen(),
+      ),
+      GoRoute(
+        path: Routes.orderTracking,
+        builder: (context, state) =>
+            OrderTrackingScreen(orderId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: Routes.campaignKahve,

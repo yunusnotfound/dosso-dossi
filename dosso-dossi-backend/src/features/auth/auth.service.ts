@@ -4,9 +4,11 @@ import { normalizePhone } from '../../lib/phone.js';
 import { signToken } from '../../middleware/auth.js';
 import { claimGiftForUser } from '../gifts/gift-claim.js';
 import { consumeOtp, sendOtp } from './otp.service.js';
+import { issueRefreshToken } from './refresh.service.js';
 
 export interface AuthResult {
   token: string;
+  refreshToken: string;
   user: { phone: string; name: string; email: string };
 }
 
@@ -18,7 +20,7 @@ export async function verifyOtp(rawPhone: string, code: string): Promise<AuthRes
   const phone = normalizePhone(rawPhone);
   await consumeOtp(phone, code);
 
-  const user = await prisma.$transaction(async (tx) => {
+  const { user, refreshToken } = await prisma.$transaction(async (tx) => {
     let user = await tx.user.findUnique({ where: { phone } });
     if (!user) {
       user = await tx.user.create({
@@ -31,11 +33,13 @@ export async function verifyOtp(rawPhone: string, code: string): Promise<AuthRes
       });
     }
     await claimPendingGifts(tx, user.id, phone);
-    return user;
+    const refreshToken = await issueRefreshToken(tx, user.id);
+    return { user, refreshToken };
   });
 
   return {
     token: signToken(user.id),
+    refreshToken,
     user: { phone: user.phone, name: user.name, email: user.email },
   };
 }

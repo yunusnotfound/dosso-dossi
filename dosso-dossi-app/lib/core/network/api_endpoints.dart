@@ -7,6 +7,8 @@ abstract final class ApiEndpoints {
   // Kimlik
   static const String otpSend = '/auth/otp/send';
   static const String otpVerify = '/auth/otp/verify';
+  static const String authRefresh = '/auth/refresh';
+  static const String authLogout = '/auth/logout';
   static const String me = '/me';
 
   // Sadakat & cüzdan
@@ -24,6 +26,7 @@ abstract final class ApiEndpoints {
 
   // Sipariş & hediye & bildirim
   static const String orders = '/orders';
+  static String order(String id) => '/orders/$id';
   static const String gifts = '/gifts';
   static const String notificationPrefs = '/me/notification-prefs';
 }

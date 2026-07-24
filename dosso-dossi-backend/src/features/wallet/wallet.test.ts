@@ -14,7 +14,11 @@ describe('wallet', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ amount: 500 });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ balance: 500, bonusDrinks: 0 });
+    expect(res.body).toMatchObject({
+      balance: 500,
+      bonusDrinks: 0,
+      status: 'succeeded',
+    });
 
     const tx = await prisma.walletTransaction.findFirstOrThrow({
       where: { type: 'TOPUP' },

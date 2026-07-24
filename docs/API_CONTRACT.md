@@ -16,9 +16,14 @@ kendiliğinden mock modunda çalışır).
 
 | Metot | Endpoint | Açıklama |
 |---|---|---|
-| POST | `/auth/otp/send` | `{ "phone": "5551112233" }` → SMS kodu gönderir |
-| POST | `/auth/otp/verify` | `{ "phone", "code" }` → `{ "token", "user": { "phone", "name", "email" } }` |
+| POST | `/auth/otp/send` | `{ "phone": "5551112233" }` → SMS kodu gönderir (10 dk'da en çok 3) |
+| POST | `/auth/otp/verify` | `{ "phone", "code" }` → `{ "token", "refreshToken", "user": { "phone", "name", "email" } }` |
+| POST | `/auth/refresh` | `{ "refreshToken" }` → yeni `{ "token", "refreshToken" }` (rotasyon; iptal edilmiş token yeniden kullanılırsa tüm oturumlar iptal edilir) |
+| POST | `/auth/logout` | `{ "refreshToken"? }` → refresh token iptali (her zaman 200) |
 | PATCH | `/me` | `{ "name"?, "email"? }` → güncel kullanıcı |
+
+Access token (JWT) ~15 dk geçerlidir; uygulama 401 aldığında refresh ile
+sessizce yeniler ve isteği tekrarlar.
 
 `name` boş dönerse uygulama isim adımını gösterir (yeni kullanıcı).
 
@@ -38,8 +43,13 @@ Kurallar **sunucuda** uygulanır (kaynak: CEO kampanyaları):
 | Metot | Endpoint | Açıklama |
 |---|---|---|
 | GET | `/me/wallet` | `{ "balance": 425.50, "cardLast4": "7412" }` |
-| POST | `/me/wallet/topup` | `{ "amount": 1000, "savedCardId" }` → yeni bakiye + uygulanan bonus: `{ "balance", "bonusDrinks": 5 }` |
-| POST | `/me/wallet/qr-token` | Tara & Öde için tek kullanımlık kod: `{ "code", "expiresAt" }` (60 sn). Kerzz POS bu kodu çözer — bkz. `KERZZ_POS_ENTEGRASYON.md` |
+| POST | `/me/wallet/topup` | `{ "amount": 1000, "savedCardId" }` → `{ "balance", "bonusDrinks", "paymentId", "status": "succeeded"\|"pending", "redirectUrl"? }` |
+| POST | `/me/wallet/qr-token` | Tara & Öde için tek kullanımlık kod: `{ "code", "expiresAt" }` (60 sn). POS köprüsü `/pos/charge` ile tahsil eder |
+
+Yükleme iki fazlıdır: `PaymentIntent` PENDING açılır, sağlayıcı onayı
+(`/webhooks/payment/confirmation`) gelmeden bakiyeye yazılmaz. Dev
+sağlayıcı anında onaylar; iyzico'da `status: "pending"` + `redirectUrl`
+(3DS) dönecek.
 
 ## 4. Menü — `features/order/data/menu_repository.dart`
 
@@ -73,6 +83,7 @@ Uygulama `lat/lng` ile gerçek mesafe hesaplayacak (şu an temsili).
 |---|---|---|
 | POST | `/orders` | Aşağıdaki gövde → `{ "id": "DD-1042", "status": "received", "total", "stampsEarned" }` |
 | GET | `/orders` | Geçmiş siparişler (yeniden eskiye) |
+| GET | `/orders/:id` | Canlı takip: `status` = `received` → `preparing` → `ready` → `completed` (veya `cancelled`). Uygulama ~10 sn'de bir yoklar |
 
 ```json
 {
@@ -103,13 +114,27 @@ Sunucu: bakiye düşer, damga/ikram işler, siparişi şubenin Kerzz POS'una ile
 |---|---|---|
 | GET/PUT | `/me/notification-prefs` | `{ "campaigns": true, "orderStatus": true, "sms": false }` |
 
-## 10. Kerzz POS köprüsü (sunucu ↔ sunucu)
+## 10. POS köprüsü ve sağlayıcı webhook'ları (sunucu ↔ sunucu)
 
-Uygulama Kerzz ile doğrudan konuşmaz. Backend'in alacağı webhook'lar
-(detay ve açık sorular: `KERZZ_POS_ENTEGRASYON.md`):
+Uygulama Kerzz ile doğrudan konuşmaz. Tüm POS/ödeme uçları **HMAC-SHA256
+imzalıdır** ve **idempotenttir** (aynı `requestId`/`saleId`/`eventId`/
+`paymentId` ikinci kez gelirse ilk yanıt aynen döner, işlem tekrarlanmaz):
 
-- `POST /webhooks/kerzz/sale` — kasadaki satış (damga işleme + QR ödeme onayı)
-- `POST /webhooks/kerzz/order-status` — Gel-Al sipariş durumu (hazırlanıyor/hazır)
+```
+X-Dosso-Signature: t=<unixSaniye>,v1=<hex hmac_sha256(secret, "<t>.<hamGövde>")>
+```
+Tolerans ±300 sn; sırlar `POS_WEBHOOK_SECRET` / `PAYMENT_WEBHOOK_SECRET`.
+
+| Metot | Endpoint | Açıklama |
+|---|---|---|
+| POST | `/pos/charge` | `{ requestId, branchId, code, amount, saleRef? }` → `{ ok, chargeId, amount, customerName }`. Kodu tüketir + bakiyeyi düşer (15 sn grace penceresi). Redde `INVALID_QR` / `INSUFFICIENT_BALANCE`; red durumunda kod tüketilmez |
+| POST | `/pos/charge/:chargeId/void` | `{ requestId, reason? }` → tam iade (15 dk pencere); dışında `VOID_NOT_ALLOWED` |
+| POST | `/webhooks/kerzz/sale` | `{ saleId, branchId, customer:{chargeId?\|qrCode?}, items:[{productId, quantity}] }` → kasada damga işleme. Müşteri eşleşmezse `{ ok, skipped }`; bilinmeyen ürün 0 damga |
+| POST | `/webhooks/kerzz/order-status` | `{ eventId, orderId:"DD-1043", status }` → sipariş durumu. Geç gelen eski durum sessizce atlanır; geçersiz sıçrama `INVALID_STATUS_TRANSITION` |
+| POST | `/webhooks/payment/confirmation` | `{ paymentId, status:"succeeded"\|"failed" }` → yükleme onayı (bakiye burada yazılır) |
+
+Gerçek POS olmadan deneme: `npm run pos:sim -- charge|void|sale|order-status|pay-confirm`
+(bkz. `KERZZ_POS_ENTEGRASYON.md` demo bölümü).
 
 ## Hata biçimi
 
@@ -118,9 +143,12 @@ Uygulama Kerzz ile doğrudan konuşmaz. Backend'in alacağı webhook'lar
 ```
 
 Beklenen kodlar: `INVALID_OTP`, `INSUFFICIENT_BALANCE`, `INVALID_PROMO`,
-`BRANCH_CLOSED`, `PRODUCT_UNAVAILABLE`, `NO_FREE_DRINK` ve altyapı kodları
-`UNAUTHORIZED` (401), `VALIDATION_ERROR` (400), `RATE_LIMITED` (429, OTP
-gönderiminde 10 dakikada 3 kod sınırı), `NOT_FOUND`, `INTERNAL`.
+`BRANCH_CLOSED`, `PRODUCT_UNAVAILABLE`, `NO_FREE_DRINK`, POS/ödeme kodları
+`INVALID_SIGNATURE` (401), `INVALID_QR` (400), `INVALID_STATUS_TRANSITION`
+(409), `VOID_NOT_ALLOWED` (409), `PAYMENT_NOT_PENDING` (409) ve altyapı
+kodları `UNAUTHORIZED` (401), `VALIDATION_ERROR` (400), `RATE_LIMITED`
+(429 — OTP 3/10 dk; topup·sipariş·hediye 10/dk; qr-token 30/dk),
+`NOT_FOUND`, `INTERNAL`.
 
 ## Uygulama notları (v1)
 

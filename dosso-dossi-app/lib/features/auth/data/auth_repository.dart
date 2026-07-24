@@ -6,12 +6,17 @@ import '../domain/app_user.dart';
 import 'api_auth_repository.dart';
 import 'mock_auth_repository.dart';
 
-/// OTP doğrulama sonucu: oturum token'ı + kullanıcı.
-/// Mock'ta token boş döner; API'de JWT gelir.
+/// OTP doğrulama sonucu: access + refresh token + kullanıcı.
+/// Mock'ta token'lar boş döner; API'de JWT (~15 dk) + refresh (60 gün) gelir.
 class AuthResult {
-  const AuthResult({required this.token, required this.user});
+  const AuthResult({
+    required this.token,
+    required this.user,
+    this.refreshToken = '',
+  });
 
   final String token;
+  final String refreshToken;
   final AppUser user;
 }
 
@@ -25,6 +30,9 @@ abstract interface class AuthRepository {
 
   /// Ad/e-posta günceller (isim adımı ve kişisel bilgiler ekranı).
   Future<void> updateProfile({String? name, String? email});
+
+  /// Sunucudaki oturumu sonlandırır (refresh token iptali). Best-effort.
+  Future<void> logout(String refreshToken);
 }
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

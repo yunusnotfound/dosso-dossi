@@ -1,4 +1,4 @@
-/// Tamamlanmış sipariş kaydı (geçmiş siparişler ekranında kullanılır).
+/// Sipariş kaydı (geçmiş siparişler ve canlı takip ekranında kullanılır).
 class OrderRecord {
   const OrderRecord({
     required this.id,
@@ -8,6 +8,7 @@ class OrderRecord {
     required this.itemsLabel,
     required this.total,
     required this.stampsEarned,
+    this.status = 'received',
   });
 
   /// "DD-1042" biçiminde sipariş numarası
@@ -22,4 +23,20 @@ class OrderRecord {
 
   final double total;
   final int stampsEarned;
+
+  /// received | preparing | ready | completed | cancelled
+  final String status;
+
+  bool get isActive => status == 'received' || status == 'preparing';
+
+  OrderRecord copyWith({String? status}) => OrderRecord(
+        id: id,
+        createdAt: createdAt,
+        branchName: branchName,
+        pickupLabel: pickupLabel,
+        itemsLabel: itemsLabel,
+        total: total,
+        stampsEarned: stampsEarned,
+        status: status ?? this.status,
+      );
 }

@@ -69,7 +69,15 @@ class OrderSuccessScreen extends ConsumerWidget {
               ),
             ],
             const Spacer(),
-            FilledButton(
+            if (order != null) ...[
+              FilledButton(
+                onPressed: () =>
+                    context.go(Routes.orderTrackingPath(order.id)),
+                child: const Text('Siparişimi Takip Et'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            OutlinedButton(
               onPressed: () => context.go(Routes.home),
               child: const Text('Ana Sayfaya Dön'),
             ),

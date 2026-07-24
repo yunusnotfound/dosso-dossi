@@ -53,6 +53,15 @@ class ApiOrderRepository implements OrderRepository {
     });
   }
 
+  @override
+  Future<OrderRecord> getOrder(String id) {
+    return apiCall(() async {
+      final res =
+          await _dio.get<Map<String, dynamic>>(ApiEndpoints.order(id));
+      return _orderFromJson(res.data!);
+    });
+  }
+
   OrderRecord _orderFromJson(Map<String, dynamic> json) {
     final items = (json['items'] as List<dynamic>?) ?? const [];
     return OrderRecord(
@@ -70,6 +79,7 @@ class ApiOrderRepository implements OrderRepository {
           .join(', '),
       total: (json['total'] as num).toDouble(),
       stampsEarned: (json['stampsEarned'] as num).toInt(),
+      status: (json['status'] as String?) ?? 'received',
     );
   }
 }

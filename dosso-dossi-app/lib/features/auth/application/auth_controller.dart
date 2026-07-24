@@ -37,7 +37,10 @@ class AuthController extends AsyncNotifier<AppUser?> {
         .read(authRepositoryProvider)
         .verifyOtp(phone: phone, code: code);
     if (result.token.isNotEmpty) {
-      await ref.read(tokenStorageProvider).save(result.token);
+      await ref.read(tokenStorageProvider).saveTokens(
+            access: result.token,
+            refresh: result.refreshToken,
+          );
     }
     await _persist(result.user);
     _resetUserScopedState();
@@ -61,6 +64,14 @@ class AuthController extends AsyncNotifier<AppUser?> {
   }
 
   Future<void> logout() async {
+    // Sunucudaki oturumu da kapat (best-effort; ağ hatası çıkışı engellemez)
+    try {
+      final refresh = await ref.read(tokenStorageProvider).readRefresh();
+      if (refresh != null) {
+        await ref.read(authRepositoryProvider).logout(refresh);
+      }
+    } catch (_) {}
+
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.remove(_userKey);
     // Cihazda hesaba özel senkron olmayan veriler yeni hesaba taşınmasın.

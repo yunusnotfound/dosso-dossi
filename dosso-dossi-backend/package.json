@@ -12,7 +12,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
     "prisma:studio": "prisma studio",
-    "extract:menu": "tsx scripts/extract-menu.ts"
+    "extract:menu": "tsx scripts/extract-menu.ts",
+    "pos:sim": "tsx scripts/pos-simulator.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

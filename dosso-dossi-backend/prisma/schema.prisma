@@ -23,6 +23,28 @@ model User {
   giftsSent         Gift[]             @relation("GiftSender")
   giftsReceived     Gift[]             @relation("GiftRecipient")
   qrTokens          QrToken[]
+  posCharges        PosCharge[]
+  paymentIntents    PaymentIntent[]
+  refreshTokens     RefreshToken[]
+}
+
+// Cihaz başına oturum yenileme token'ı. Ham token DB'de tutulmaz (sha256).
+// Rotasyonda eski satır revoke edilir; iptal edilmiş token yeniden
+// kullanılırsa (çalıntı şüphesi) kullanıcının tüm token'ları iptal edilir.
+model RefreshToken {
+  id           String    @id @default(cuid())
+  userId       String
+  tokenHash    String    @unique // sha256(opak token)
+  deviceInfo   String    @default("")
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String? // rotasyon zinciri (reuse tespiti)
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 model OtpCode {
@@ -127,12 +149,91 @@ model WalletTransaction {
   balanceAfter Decimal      @db.Decimal(10, 2)
   orderId      String?      @unique
   giftId       String?
+  chargeId     String? // PosCharge referansı (düşüm VE iade aynı charge'ı gösterir)
   note         String       @default("")
   createdAt    DateTime     @default(now())
 
   wallet Wallet @relation(fields: [walletId], references: [id])
 
   @@index([walletId, createdAt])
+  @@index([chargeId])
+}
+
+// ── POS / webhook olay defteri (idempotency) ────────────────────────
+
+enum PosEventStatus {
+  RECEIVED
+  PROCESSED
+  SKIPPED
+  FAILED
+}
+
+// Dış sistemlerden gelen her komut/olay önce buraya yazılır.
+// Aynı (source, eventType, externalId) ikinci kez gelirse saklanan
+// yanıt aynen döner — çifte işleme imkânsızlaşır.
+model PosEvent {
+  id          String         @id @default(cuid())
+  source      String // "kerzz" | "payment" | "simulator"
+  eventType   String // "charge" | "charge_void" | "sale" | "order_status" | "payment_confirmation"
+  externalId  String // saleId / requestId / eventId / paymentId
+  payload     Json
+  status      PosEventStatus @default(RECEIVED)
+  response    Json?
+  error       String?
+  createdAt   DateTime       @default(now())
+  processedAt DateTime?
+
+  @@unique([source, eventType, externalId])
+  @@index([createdAt])
+}
+
+// ── QR ödeme (Tara & Öde tüketim tarafı) ────────────────────────────
+
+enum PosChargeStatus {
+  APPROVED
+  VOIDED
+}
+
+model PosCharge {
+  id        String          @id @default(cuid())
+  userId    String
+  qrTokenId String          @unique
+  branchId  String
+  amount    Decimal         @db.Decimal(10, 2)
+  status    PosChargeStatus @default(APPROVED)
+  saleRef   String          @default("") // Kerzz fiş/adisyon no (mutabakat için)
+  voidedAt  DateTime?
+  createdAt DateTime        @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  qrToken QrToken @relation(fields: [qrTokenId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+// ── Ödeme sağlayıcı soyutlaması (iki fazlı yükleme) ─────────────────
+
+enum PaymentIntentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  EXPIRED
+}
+
+model PaymentIntent {
+  id          String              @id @default(cuid())
+  userId      String
+  amount      Decimal             @db.Decimal(10, 2)
+  status      PaymentIntentStatus @default(PENDING)
+  provider    String // "dev" | ileride "iyzico"
+  providerRef String?             @unique
+  redirectUrl String? // 3DS yönlendirmesi için hazır alan
+  createdAt   DateTime            @default(now())
+  confirmedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
 }
 
 // ── Sadakat ─────────────────────────────────────────────────────────
@@ -195,6 +296,7 @@ model Order {
   promoCode         String?
   usedFreeDrink     Boolean     @default(false)
   stampsEarned      Int         @default(0)
+  posRef            String      @default("") // Kerzz adisyon referansı (adaptör doldurur)
   createdAt         DateTime    @default(now())
 
   user   User        @relation(fields: [userId], references: [id])
@@ -288,10 +390,11 @@ model QrToken {
   userId     String
   code       String    @unique // "DDPAY-" + rastgele
   expiresAt  DateTime // +60 sn
-  consumedAt DateTime? // Kerzz satış webhook'u tüketir
+  consumedAt DateTime? // /pos/charge tüketir
   createdAt  DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user   User       @relation(fields: [userId], references: [id])
+  charge PosCharge?
 
   @@index([userId, createdAt])
 }

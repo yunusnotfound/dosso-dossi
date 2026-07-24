@@ -1,7 +1,12 @@
 import { Router } from 'express';
+import { makeRateLimiter } from '../../middleware/rate-limit.js';
 import { validate } from '../../middleware/validate.js';
 import { topUpSchema } from './wallet.schemas.js';
-import { createQrToken, getWallet, topUp } from './wallet.service.js';
+import { createQrToken, getWallet } from './wallet.service.js';
+import { startTopUp } from './payments/topup.service.js';
+
+const topUpLimiter = makeRateLimiter({ windowMs: 60_000, max: 10 });
+const qrLimiter = makeRateLimiter({ windowMs: 60_000, max: 30 });
 
 export const walletRouter = Router();
 
@@ -13,15 +18,15 @@ walletRouter.get('/', async (req, res, next) => {
   }
 });
 
-walletRouter.post('/topup', validate(topUpSchema), async (req, res, next) => {
+walletRouter.post('/topup', topUpLimiter, validate(topUpSchema), async (req, res, next) => {
   try {
-    res.json(await topUp(req.userId, req.body.amount));
+    res.json(await startTopUp(req.userId, req.body.amount));
   } catch (err) {
     next(err);
   }
 });
 
-walletRouter.post('/qr-token', async (req, res, next) => {
+walletRouter.post('/qr-token', qrLimiter, async (req, res, next) => {
   try {
     res.json(await createQrToken(req.userId));
   } catch (err) {

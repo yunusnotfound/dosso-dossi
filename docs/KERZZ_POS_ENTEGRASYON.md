@@ -111,3 +111,32 @@ Mobil Uygulama ──REST──▶ Dosso Backend (bizim API)
 
 - [Kerzz resmi site](https://kerzz.com/) · [Kerzz POS özellikler](https://www.kerzzpos.com/tr/tum-ozellikler) · [Cafe & Bar çözümü](https://www.kerzzpos.com/tr/sektor/cafe-bar)
 - Yazarkasa entegrasyon mevzuat bağlamı: [Optimus POS — yazarkasa entegrasyonları](https://www.optimuspos.com/yazarkasa-entegrasyonlari/), [Gökbim — entegrasyon zorunluluğu](https://www.gokbim.com.tr/yazarkasa-entegrasyon-zorunlulugu/)
+
+## 8. Bizim taraf HAZIR: POS simülatörü ile uçtan uca demo
+
+Backend'in Kerzz'e bakan tüm yüzeyi gerçek mantıkla yazıldı (HMAC imza,
+idempotency, QR tahsilat/iade, kasada damga, sipariş durumu). Kerzz
+adaptörü yalnızca kendi formatlarını `docs/API_CONTRACT.md` §10'daki
+şemalara çevirecek. Gerçek POS olmadan tam döngü:
+
+```bash
+# 1) db + backend açıkken, uygulamada Tara & Öde ekranındaki kodu al
+cd dosso-dossi-backend
+
+# 2) Kasada QR tahsilatı (uygulamada bakiye anında düşer)
+npm run pos:sim -- charge --code DDPAY-xxxx --amount 190
+
+# 3) Kasadaki satış → damga (uygulamada damga/ikram güncellenir)
+npm run pos:sim -- sale --charge-id <chargeId> --items "caffe-latte:5"
+
+# 4) Uygulamadan gel-al siparişi ver → durumu ilerlet (takip ekranı canlanır)
+npm run pos:sim -- order-status --order DD-1044 --status ready
+
+# 5) Kasiyer hatası iptali (15 dk penceresi, tam iade)
+npm run pos:sim -- void --charge-id <chargeId>
+```
+
+Aynı `--request-id`/`--sale-id` ile tekrar çağırınca işlem TEKRARLANMAZ,
+ilk yanıt döner (idempotency canlı gösterimi). Dev modunda sipariş durumu
+`POS_DEV_AUTOADVANCE=true` ile 8 sn'de "hazırlanıyor", 20 sn'de "hazır"
+olur; simülatör komutu bunu manuel de sürebilir.

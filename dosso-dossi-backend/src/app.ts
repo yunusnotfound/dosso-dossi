@@ -11,12 +11,22 @@ import { loyaltyRouter } from './features/loyalty/loyalty.routes.js';
 import { meRouter } from './features/me/me.routes.js';
 import { menuRouter } from './features/menu/menu.routes.js';
 import { ordersRouter } from './features/orders/orders.routes.js';
+import { posRouter } from './features/pos/pos.routes.js';
 import { walletRouter } from './features/wallet/wallet.routes.js';
 import { kerzzWebhooksRouter } from './features/webhooks/kerzz.routes.js';
+import { paymentWebhooksRouter } from './features/webhooks/payment.routes.js';
+import { posAuth } from './middleware/pos-auth.js';
 
 export function createApp(): express.Express {
   const app = express();
-  app.use(express.json());
+  app.use(
+    express.json({
+      // HMAC imza doğrulaması ham gövde üzerinden yapılır (pos-auth.ts)
+      verify: (req, _res, buf) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
   app.use(requestLogger);
 
   app.get('/health', (_req, res) => {
@@ -28,7 +38,14 @@ export function createApp(): express.Express {
   app.use('/menu', menuRouter);
   app.use('/branches', branchesRouter);
   app.use('/campaigns', campaignsRouter); // validate-code kendi içinde auth'lu
-  app.use('/webhooks/kerzz', kerzzWebhooksRouter);
+  app.use('/webhooks/kerzz', posAuth('POS_WEBHOOK_SECRET'), kerzzWebhooksRouter);
+  app.use(
+    '/webhooks/payment',
+    posAuth('PAYMENT_WEBHOOK_SECRET'),
+    paymentWebhooksRouter,
+  );
+  // POS köprüsünün senkron komutları (kasada QR tahsilatı / iptali)
+  app.use('/pos', posAuth('POS_WEBHOOK_SECRET'), posRouter);
 
   // Oturum gerektirir
   app.use('/me/wallet', requireAuth, walletRouter);

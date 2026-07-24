@@ -28,4 +28,7 @@ class MockAuthRepository implements AuthRepository {
   Future<void> updateProfile({String? name, String? email}) async {
     await Future<void>.delayed(_delay);
   }
+
+  @override
+  Future<void> logout(String refreshToken) async {}
 }

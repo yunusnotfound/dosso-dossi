@@ -27,8 +27,18 @@ class ApiAuthRepository implements AuthRepository {
       final data = res.data!;
       return AuthResult(
         token: data['token'] as String,
+        refreshToken: (data['refreshToken'] as String?) ?? '',
         user: AppUser.fromJson(data['user'] as Map<String, dynamic>),
       );
+    });
+  }
+
+  @override
+  Future<void> logout(String refreshToken) {
+    return apiCall(() async {
+      await _dio.post<void>(ApiEndpoints.authLogout, data: {
+        if (refreshToken.isNotEmpty) 'refreshToken': refreshToken,
+      });
     });
   }
 

@@ -12,6 +12,11 @@ export const ErrorCodes = {
   NOT_FOUND: 'NOT_FOUND',
   RATE_LIMITED: 'RATE_LIMITED',
   INTERNAL: 'INTERNAL',
+  INVALID_SIGNATURE: 'INVALID_SIGNATURE',
+  INVALID_QR: 'INVALID_QR',
+  INVALID_STATUS_TRANSITION: 'INVALID_STATUS_TRANSITION',
+  VOID_NOT_ALLOWED: 'VOID_NOT_ALLOWED',
+  PAYMENT_NOT_PENDING: 'PAYMENT_NOT_PENDING',
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
@@ -52,5 +57,20 @@ export class AppError extends Error {
   }
   static rateLimited(message = 'Çok fazla deneme, lütfen bekleyin') {
     return new AppError(ErrorCodes.RATE_LIMITED, 429, message);
+  }
+  static invalidSignature(message = 'İmza doğrulanamadı') {
+    return new AppError(ErrorCodes.INVALID_SIGNATURE, 401, message);
+  }
+  static invalidQr(message = 'Kod geçersiz veya süresi dolmuş') {
+    return new AppError(ErrorCodes.INVALID_QR, 400, message);
+  }
+  static invalidStatusTransition(message = 'Geçersiz sipariş durumu geçişi') {
+    return new AppError(ErrorCodes.INVALID_STATUS_TRANSITION, 409, message);
+  }
+  static voidNotAllowed(message = 'İptal penceresi kapandı veya işlem uygun değil') {
+    return new AppError(ErrorCodes.VOID_NOT_ALLOWED, 409, message);
+  }
+  static paymentNotPending(message = 'Ödeme beklemede değil') {
+    return new AppError(ErrorCodes.PAYMENT_NOT_PENDING, 409, message);
   }
 }
