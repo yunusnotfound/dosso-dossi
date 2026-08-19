@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/coffee_bean_icon.dart';
 import '../../../../routing/app_router.dart';
 import '../../../rewards/application/loyalty_providers.dart';
 import '../../../rewards/domain/loyalty_status.dart';
@@ -189,6 +190,11 @@ class _StampDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final iconColor = earned
+        ? Colors.white
+        : isRewardSlot
+            ? AppColors.goldOnDark
+            : AppColors.stampInactive;
     return Container(
       width: 40,
       height: 40,
@@ -205,15 +211,9 @@ class _StampDot extends StatelessWidget {
                     : AppColors.stampInactive,
               ),
       ),
-      child: Icon(
-        isRewardSlot ? Icons.card_giftcard : Icons.coffee,
-        size: 18,
-        color: earned
-            ? Colors.white
-            : isRewardSlot
-                ? AppColors.goldOnDark
-                : AppColors.stampInactive,
-      ),
+      child: isRewardSlot
+          ? Icon(Icons.card_giftcard, size: 18, color: iconColor)
+          : CoffeeBeanIcon(size: 18, color: iconColor),
     );
   }
 }

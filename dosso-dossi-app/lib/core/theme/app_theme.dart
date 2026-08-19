@@ -69,26 +69,5 @@ abstract final class AppTheme {
             borderSide: BorderSide.none,
           ),
         ),
-        navigationBarTheme: NavigationBarThemeData(
-          backgroundColor: AppColors.surface,
-          indicatorColor: Colors.transparent,
-          height: 68,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          labelTextStyle: WidgetStateProperty.resolveWith(
-            (states) => AppTypography.badge.copyWith(
-              fontSize: 12,
-              color: states.contains(WidgetState.selected)
-                  ? AppColors.primary
-                  : AppColors.textPrimary,
-            ),
-          ),
-          iconTheme: WidgetStateProperty.resolveWith(
-            (states) => IconThemeData(
-              color: states.contains(WidgetState.selected)
-                  ? AppColors.primary
-                  : AppColors.textPrimary,
-            ),
-          ),
-        ),
       );
 }

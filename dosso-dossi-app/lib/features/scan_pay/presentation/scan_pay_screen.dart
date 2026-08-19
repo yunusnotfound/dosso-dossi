@@ -11,11 +11,13 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/brand_artwork.dart';
 import '../../../core/widgets/brand_logo.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../rewards/application/loyalty_providers.dart';
 import '../../wallet/application/wallet_providers.dart';
 import '../../wallet/data/wallet_repository.dart';
+import '../../wallet/domain/wallet.dart';
 
 /// Tara & Öde: kasada okutulan QR/barkod + bakiye yükleme.
 class ScanPayScreen extends ConsumerStatefulWidget {
@@ -166,16 +168,59 @@ class _DossoCard extends ConsumerWidget {
     final wallet = ref.watch(walletProvider);
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.primary, AppColors.primaryLight],
-        ),
       ),
-      child: Column(
+      // Görselin köşeleri kartın yarıçapına uysun.
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          const Positioned.fill(child: BrandArtwork()),
+          // Turuncu perde solda tam opak, sağa doğru incelerek görseli açar:
+          // kart numarası ve bakiye rakamı solda net kalır.
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primaryLight.withValues(alpha: 0.35),
+                  ],
+                  stops: const [0.45, 1],
+                ),
+              ),
+            ),
+          ),
+          // Üst banda ikinci bir perde: sağ üstteki beyaz "Dosso Kart"
+          // yazısı okunur kalsın; kartın alt yarısı tam renkte kalır.
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.7),
+                    AppColors.primary.withValues(alpha: 0),
+                  ],
+                  stops: const [0, 0.5],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: _content(wallet),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _content(AsyncValue<Wallet> wallet) {
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -225,9 +270,7 @@ class _DossoCard extends ConsumerWidget {
               ],
             ),
           ),
-        ],
-      ),
-    );
+        ]);
   }
 }
 

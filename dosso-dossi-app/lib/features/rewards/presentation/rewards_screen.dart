@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/coffee_bean_icon.dart';
 import '../application/loyalty_providers.dart';
 import '../domain/loyalty_status.dart';
 
@@ -194,6 +195,11 @@ class _StampDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final iconColor = earned
+        ? Colors.white
+        : isRewardSlot
+            ? AppColors.goldOnDark
+            : AppColors.stampInactive;
     return Container(
       width: 44,
       height: 44,
@@ -210,15 +216,9 @@ class _StampDot extends StatelessWidget {
                     : AppColors.stampInactive,
               ),
       ),
-      child: Icon(
-        isRewardSlot ? Icons.card_giftcard : Icons.coffee,
-        size: 20,
-        color: earned
-            ? Colors.white
-            : isRewardSlot
-                ? AppColors.goldOnDark
-                : AppColors.stampInactive,
-      ),
+      child: isRewardSlot
+          ? Icon(Icons.card_giftcard, size: 20, color: iconColor)
+          : CoffeeBeanIcon(size: 20, color: iconColor),
     );
   }
 }
