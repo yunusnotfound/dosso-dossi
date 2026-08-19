@@ -10,7 +10,6 @@ import '../../../routing/app_router.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../branches/application/branch_providers.dart';
 import '../../campaigns/application/campaign_providers.dart';
-import 'widgets/branch_tile.dart';
 import 'widgets/campaign_carousel.dart';
 import 'widgets/stamp_card.dart';
 import 'widgets/wallet_card.dart';
@@ -46,7 +45,7 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Text('SANA ÖZEL', style: AppTypography.sectionLabel),
                   GestureDetector(
-                    onTap: () => context.go(Routes.campaigns),
+                    onTap: () => context.push(Routes.campaigns),
                     child: Text(
                       'Tümü',
                       style: AppTypography.bodySecondary,
@@ -56,8 +55,6 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.md),
               const CampaignCarousel(),
-              const SizedBox(height: AppSpacing.lg),
-              const BranchTile(),
               const SizedBox(height: AppSpacing.xl),
             ],
           ),

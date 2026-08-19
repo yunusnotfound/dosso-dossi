@@ -1,2 +1,5 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
+
+// Fiziksel cihaza kurulum için otomatik imzalama takımı
+DEVELOPMENT_TEAM = KHZX6NJ353

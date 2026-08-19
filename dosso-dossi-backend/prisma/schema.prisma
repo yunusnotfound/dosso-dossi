@@ -228,6 +228,10 @@ model PaymentIntent {
   provider    String // "dev" | ileride "iyzico"
   providerRef String?             @unique
   redirectUrl String? // 3DS yönlendirmesi için hazır alan
+  // Bu yüklemede verilen ikram kahve sayısı. Kampanya "ilk yüklemeye özel"
+  // olduğu için sonradan yeniden hesaplanamaz; onay anında buraya yazılır ve
+  // tekrarlanan webhook onayları aynı değeri döner.
+  bonusDrinks Int                 @default(0)
   createdAt   DateTime            @default(now())
   confirmedAt DateTime?
 

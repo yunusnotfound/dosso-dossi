@@ -53,7 +53,7 @@ class _PillNavBar extends StatelessWidget {
     _NavItem(
         1, Icons.qr_code_scanner_outlined, Icons.qr_code_scanner, 'Tara & Öde'),
     _NavItem(3, Icons.card_giftcard_outlined, Icons.card_giftcard, 'Hediye'),
-    _NavItem(4, Icons.local_offer_outlined, Icons.local_offer, 'Kampanyalar'),
+    _NavItem(4, Icons.storefront_outlined, Icons.storefront, 'Mağazalar'),
   ];
 
   static const _fabSlot = 2;

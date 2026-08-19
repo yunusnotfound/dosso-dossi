@@ -11,6 +11,7 @@ import '../features/auth/presentation/phone_login_screen.dart';
 import '../features/auth/presentation/splash_screen.dart';
 import '../features/branches/presentation/branch_list_screen.dart';
 import '../features/campaigns/presentation/campaign_kahve_screen.dart';
+import '../features/campaigns/presentation/campaign_yukle_kazan_screen.dart';
 import '../features/campaigns/presentation/campaigns_screen.dart';
 import '../features/favorites/presentation/favorites_screen.dart';
 import '../features/gift/presentation/gift_screen.dart';
@@ -59,6 +60,7 @@ abstract final class Routes {
 
   // Kampanya detayları
   static const campaignKahve = '/kampanya/kahve-ictikce';
+  static const campaignYukleKazan = '/kampanya/yukle-kazan';
 
   // Profil alt sayfaları
   static const personalInfo = '/profil/bilgiler';
@@ -168,6 +170,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const CampaignKahveScreen(),
       ),
       GoRoute(
+        path: Routes.campaignYukleKazan,
+        builder: (context, state) => const CampaignYukleKazanScreen(),
+      ),
+      GoRoute(
         path: Routes.personalInfo,
         builder: (context, state) => const PersonalInfoScreen(),
       ),
@@ -187,9 +193,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.favorites,
         builder: (context, state) => const FavoritesScreen(),
       ),
+      // Kampanyalar artık alt barda sekme değil; ana sayfadaki "Tümü"
+      // bağlantısından üste açılır.
       GoRoute(
-        path: Routes.branchList,
-        builder: (context, state) => const BranchListScreen(),
+        path: Routes.campaigns,
+        builder: (context, state) => const CampaignsScreen(),
       ),
       GoRoute(
         path: Routes.faq,
@@ -229,8 +237,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
-              path: Routes.campaigns,
-              builder: (context, state) => const CampaignsScreen(),
+              path: Routes.branchList,
+              builder: (context, state) => const BranchListScreen(),
             ),
           ]),
         ],

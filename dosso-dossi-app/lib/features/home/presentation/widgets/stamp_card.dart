@@ -9,6 +9,7 @@ import '../../../../core/widgets/coffee_bean_icon.dart';
 import '../../../../routing/app_router.dart';
 import '../../../rewards/application/loyalty_providers.dart';
 import '../../../rewards/domain/loyalty_status.dart';
+import '../../../rewards/presentation/loyalty_how_it_works_sheet.dart';
 
 /// Ana sayfadaki koyu zeminli damga kartı: 3/5 ilerleme + damga rozetleri.
 class StampCard extends ConsumerWidget {
@@ -165,7 +166,8 @@ class _StampContent extends StatelessWidget {
             const SizedBox(width: AppSpacing.sm),
             Flexible(
               child: TextButton(
-                onPressed: () => _showHowItWorks(context, status.target),
+                onPressed: () =>
+                    showLoyaltyHowItWorksSheet(context, status.target),
                 child: Text(
                   'Nasıl çalışır?',
                   maxLines: 1,
@@ -214,69 +216,6 @@ class _StampDot extends StatelessWidget {
       child: isRewardSlot
           ? Icon(Icons.card_giftcard, size: 18, color: iconColor)
           : CoffeeBeanIcon(size: 18, color: iconColor),
-    );
-  }
-}
-
-void _showHowItWorks(BuildContext context, int target) {
-  showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: AppColors.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
-    ),
-    builder: (context) => Padding(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Nasıl çalışır?', style: AppTypography.headline),
-          const SizedBox(height: AppSpacing.xl),
-          _Step(number: 1, text: 'Kahveni uygulamayla öde'),
-          _Step(number: 2, text: 'Her kahve 1 damga kazandırır'),
-          _Step(number: 3, text: '$target damga = 1 ikram içecek'),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            'İkram içeceğin, dilediğin boyda tek bir el yapımı içecek için geçerlidir.',
-            style: AppTypography.bodySecondary,
-          ),
-          const SizedBox(height: AppSpacing.md),
-        ],
-      ),
-    ),
-  );
-}
-
-class _Step extends StatelessWidget {
-  const _Step({required this.number, required this.text});
-
-  final int number;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              '$number',
-              style: AppTypography.badge.copyWith(color: Colors.white),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.lg),
-          Expanded(child: Text(text, style: AppTypography.body)),
-        ],
-      ),
     );
   }
 }

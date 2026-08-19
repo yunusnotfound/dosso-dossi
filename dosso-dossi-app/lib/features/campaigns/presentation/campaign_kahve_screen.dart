@@ -6,8 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/brand_logo.dart';
-import '../../../routing/app_router.dart';
 import '../../rewards/application/loyalty_providers.dart';
+import '../../rewards/presentation/loyalty_how_it_works_sheet.dart';
 
 /// "Kahve İçtikçe Kahve Kazan" kampanya sayfası.
 /// Resmi afişin (yukle-kazan-afis-standalone.html) birebir uygulama uyarlaması:
@@ -354,7 +354,8 @@ class _CampaignKahveScreenState extends ConsumerState<CampaignKahveScreen>
                     // ── CTA ──
                     Center(
                       child: GestureDetector(
-                        onTap: () => context.push(Routes.rewards),
+                        onTap: () =>
+                            showLoyaltyHowItWorksSheet(context, target),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.xxxl,
@@ -379,13 +380,13 @@ class _CampaignKahveScreenState extends ConsumerState<CampaignKahveScreen>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const Icon(
-                                Icons.credit_card,
+                                Icons.local_cafe_rounded,
                                 color: Colors.white,
                                 size: 22,
                               ),
                               const SizedBox(width: AppSpacing.md),
                               Text(
-                                'Sadakat kartını kasadan iste',
+                                'Hemen denemeye başla',
                                 style: AppTypography.button.copyWith(
                                   fontSize: 17,
                                 ),
@@ -397,7 +398,7 @@ class _CampaignKahveScreenState extends ConsumerState<CampaignKahveScreen>
                     ),
                     const SizedBox(height: AppSpacing.xl),
                     Text(
-                      'Sadakat kartınızı kasadan isteyin, damgaları biriktirin, '
+                      'Kahveni uygulamayla öde, her fincanda bir damga biriktir; '
                       'kahve keyfinize biz de ortak olalım.',
                       textAlign: TextAlign.center,
                       style: AppTypography.bodySecondary.copyWith(

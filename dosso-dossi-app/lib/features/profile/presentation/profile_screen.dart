@@ -133,8 +133,9 @@ class ProfileScreen extends ConsumerWidget {
               rows: [
                 _RowData(
                   icon: Icons.storefront_outlined,
-                  title: 'Şubeler',
-                  onTap: () => context.push(Routes.branchList),
+                  title: 'Mağazalar',
+                  // Artık alt bardaki sekme: push değil, sekmeye geç.
+                  onTap: () => context.go(Routes.branchList),
                 ),
                 _RowData(
                   icon: Icons.help_outline,
