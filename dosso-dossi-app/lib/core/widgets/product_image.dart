@@ -16,7 +16,9 @@ class ProductImage extends StatelessWidget {
   const ProductImage({
     super.key,
     required this.product,
-    this.emojiSize = 56,
+    // Grid kartlarında emoji, fotoğraflı ürünlerle benzer ağırlıkta görünsün
+    // (gerçek fotoğraf eklenince kart düzeni değişmez).
+    this.emojiSize = 96,
     this.background = AppColors.surfaceTint,
     this.memCacheWidth = 450,
   });

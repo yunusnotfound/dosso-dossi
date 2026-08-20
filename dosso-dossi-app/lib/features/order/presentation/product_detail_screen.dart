@@ -378,10 +378,12 @@ class _ProductArt extends StatelessWidget {
   Widget build(BuildContext context) {
     if (product.images.isNotEmpty) {
       final src = product.images.first;
+      // Emoji yer tutucu, fotoğraflı ürünlerle aynı irilikte dursun ki
+      // gerçek fotoğraf gelince görsel ağırlık değişmesin.
       final emoji = Center(
         child: Text(
           product.emoji,
-          style: TextStyle(fontSize: math.min(120, height * 0.55)),
+          style: TextStyle(fontSize: math.min(320, height * 0.7)),
         ),
       );
       if (src.startsWith('/') || src.startsWith('http')) {
@@ -410,7 +412,7 @@ class _ProductArt extends StatelessWidget {
       child: Center(
         child: Text(
           product.emoji,
-          style: TextStyle(fontSize: math.min(120, height * 0.55)),
+          style: TextStyle(fontSize: math.min(320, height * 0.7)),
         ),
       ),
     );
