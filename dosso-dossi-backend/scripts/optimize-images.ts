@@ -54,6 +54,7 @@ const ALIASES: Record<string, string> = {
 /// Mükerrer çekimler — kullanılmayacak dosyalar.
 const SKIP = new Set([
   'beyaz-cik-brownie-2',
+  'beyaz-c-ik-brownie-2',
   'panini-izgara-tavuklu-sandvic-2',
   'havuclu-kek-46',
 ]);
@@ -103,8 +104,18 @@ async function main() {
       continue;
     }
     const outFile = path.join(outDir, `${product.id}.webp`);
+    // trim: kaynaklardaki geniş boş kenarları atar ki ürün kadraja dolsun
+    // (uygulamada görsel küçücük kalmasın); ardından küçük bir şeffaf pay.
     await sharp(path.join(srcDir, file))
-      .resize({ width: 1000, height: 1000, fit: 'inside', withoutEnlargement: true })
+      .trim({ threshold: 25 })
+      .resize({ width: 960, height: 960, fit: 'inside', withoutEnlargement: true })
+      .extend({
+        top: 20,
+        bottom: 20,
+        left: 20,
+        right: 20,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
       .webp({ quality: 80 })
       .toFile(outFile);
     // İçerik hash'i URL'de: fotoğraf değişince URL değişir, cihazlardaki

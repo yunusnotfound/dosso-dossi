@@ -209,8 +209,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 ),
               ),
               // ── Vitrin: sürüklenebilir ürün karuseli ──
+              // Görsel alanı sheet'e göre büyütüldü (2:3 → 5:6): ürün
+              // fotoğrafı ekranda iri ve baskın görünsün.
               Expanded(
-                flex: 2,
+                flex: 5,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onHorizontalDragStart: (_) => _dragDx = 0,
@@ -233,7 +235,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               ),
               // ── Alt panel (HTML: s04-sheet) ──
               Expanded(
-                flex: 3,
+                flex: 6,
                 child: Container(
                   width: double.infinity,
                   decoration: const BoxDecoration(
