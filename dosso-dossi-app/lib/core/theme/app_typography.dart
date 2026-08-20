@@ -20,9 +20,24 @@ abstract final class AppTypography {
         height: height,
       );
 
+  /// Ekran başlıklarının fontu. Gövde fontundan ayrı tutulur ki
+  /// başlık karakteri bağımsız değiştirilebilsin.
+  static TextStyle _display({
+    double size = 30,
+    FontWeight weight = FontWeight.w800,
+    Color color = AppColors.textPrimary,
+    double? height,
+  }) =>
+      GoogleFonts.bricolageGrotesque(
+        fontSize: size,
+        fontWeight: weight,
+        color: color,
+        height: height,
+      );
+
   /// Ekran başlığı: "Günaydın, Elif", "Tara & Öde"
   static TextStyle get displayLarge =>
-      _base(size: 30, weight: FontWeight.w800, height: 1.1);
+      _display(size: 30, weight: FontWeight.w800, height: 1.1);
 
   /// Sayfa başlığı: "Profil", "Sepet (2)"
   static TextStyle get headline => _base(size: 24, weight: FontWeight.w800);

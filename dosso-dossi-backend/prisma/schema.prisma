@@ -7,6 +7,73 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ── Yönetim paneli kimliği ──────────────────────────────────────────
+// Müşteri kimliğinden (User/OTP) tamamen ayrı bir evren: ayrı tablo,
+// ayrı JWT sırrı ve audience'ı. Müşteri token'ı panele asla giremez.
+
+enum AdminRole {
+  SUPER_ADMIN
+  MANAGER
+  BRANCH_MANAGER // yalnızca kendi branchId'sini görür/yönetir
+  VIEWER
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String    @default("")
+  role         AdminRole @default(VIEWER)
+  branchId     String? // yalnız BRANCH_MANAGER için anlamlı
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  branch        Branch?             @relation(fields: [branchId], references: [id])
+  refreshTokens AdminRefreshToken[]
+  auditLogs     AuditLog[]
+}
+
+// RefreshToken deseninin admin kopyası: ham token saklanmaz, rotasyonda
+// eski satır revoke edilir, iptal edilmiş token yeniden kullanılırsa
+// (çalıntı şüphesi) yöneticinin tüm oturumları düşer.
+model AdminRefreshToken {
+  id           String    @id @default(cuid())
+  adminId      String
+  tokenHash    String    @unique // sha256(opak token)
+  deviceInfo   String    @default("")
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  admin AdminUser @relation(fields: [adminId], references: [id])
+
+  @@index([adminId])
+}
+
+// Panelden yapılan HER yazma buraya düşer. Para ve sadakat düzeltmelerinde
+// `reason` zorunludur; before/after ham kayıt anlık görüntüsüdür.
+model AuditLog {
+  id       String   @id @default(cuid())
+  adminId  String
+  action   String // "order.cancel", "wallet.adjust", "product.update"
+  entity   String // "Order", "Wallet", "Product"
+  entityId String
+  before   Json?
+  after    Json?
+  reason   String   @default("")
+  ip       String   @default("")
+  createdAt DateTime @default(now())
+
+  admin AdminUser @relation(fields: [adminId], references: [id])
+
+  @@index([adminId, createdAt])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
 // ── Kullanıcı & kimlik ──────────────────────────────────────────────
 
 model User {
@@ -14,6 +81,8 @@ model User {
   phone     String   @unique // normalize: "5XXXXXXXXX"
   name      String   @default("") // boş ⇒ uygulama isim adımını gösterir
   email     String   @default("")
+  // Panelden dondurulan hesap: giriş yapabilir ama işlem yapamaz.
+  isBlocked Boolean  @default(false)
   createdAt DateTime @default(now())
 
   wallet            Wallet?
@@ -75,6 +144,7 @@ model Branch {
 
   products BranchProduct[]
   orders   Order[]
+  admins   AdminUser[]
 }
 
 model Category {
@@ -228,6 +298,10 @@ model PaymentIntent {
   provider    String // "dev" | ileride "iyzico"
   providerRef String?             @unique
   redirectUrl String? // 3DS yönlendirmesi için hazır alan
+  // Bu yüklemede verilen ikram kahve sayısı. Kampanya "ilk yüklemeye özel"
+  // olduğu için sonradan yeniden hesaplanamaz; onay anında buraya yazılır ve
+  // tekrarlanan webhook onayları aynı değeri döner.
+  bonusDrinks Int                 @default(0)
   createdAt   DateTime            @default(now())
   confirmedAt DateTime?
 
@@ -244,6 +318,8 @@ enum LoyaltyEventType {
   TOPUP_BONUS
   FREE_DRINK_USED
   GIFT_DRINK_RECEIVED
+  // Panelden yapılan düzeltme / sipariş iptalinin sadakat geri alımı.
+  ADJUSTMENT
 }
 
 model LoyaltyAccount {
@@ -373,6 +449,27 @@ model PromoCode {
   discountRate Decimal   @db.Decimal(4, 3) // 0.100
   isActive     Boolean   @default(true)
   expiresAt    DateTime?
+}
+
+// Panelden yönetilen çalışma zamanı ayarları (damga hedefi, yükleme eşiği…).
+// Kod içindeki sabitlerin tek kaynağı buraya taşınır; her değişiklik audit'li.
+model Setting {
+  key       String   @id // "loyalty.stampTarget"
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+// Ürün opsiyonu ve fiyat farkı (yulaf sütü +60, çift shot +40).
+// Şu an sabit tabloda duruyor; panel bu kaydı tek kaynak yapar.
+model ProductOption {
+  id        String  @id @default(cuid())
+  group     String // "milk" | "shot"
+  name      String // "Yulaf sütü"
+  priceDelta Decimal @db.Decimal(10, 2)
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  @@unique([group, name])
 }
 
 // ── Bildirim tercihleri & QR ────────────────────────────────────────

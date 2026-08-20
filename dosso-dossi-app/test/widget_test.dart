@@ -22,7 +22,10 @@ void main() {
     await tester.pumpWidget(await _buildApp({}));
     await tester.pumpAndSettle();
 
-    expect(find.text('Telefonla Devam Et'), findsOneWidget);
+    // Kaydırmalı tanıtımın ilk sayfası: QR adımı + Devam/Atla butonları.
+    expect(find.text('QR Okut & Öde'), findsOneWidget);
+    expect(find.text('Devam'), findsOneWidget);
+    expect(find.text('Atla'), findsOneWidget);
   });
 
   testWidgets('Oturum varsa ana sayfa ve alt menü gösterilir', (tester) async {
@@ -37,17 +40,21 @@ void main() {
 
     expect(find.text('Ana Sayfa'), findsWidgets);
     expect(find.text('Sipariş'), findsWidgets);
+    // Kampanyalar sekmesinin yerini Mağazalar aldı.
+    expect(find.text('Mağazalar'), findsWidgets);
+    expect(find.text('Kampanyalar'), findsNothing);
 
     // Ana sayfa içeriği: selamlama, damga sayacı (3/5) ve bakiye
     expect(find.textContaining('Elif'), findsOneWidget);
     expect(find.text('3/5', findRichText: true), findsOneWidget);
     expect(find.textContaining('425,50'), findsOneWidget);
+    // Şube kartı ana sayfadan kaldırıldı; kampanya şeridi en altta.
     await tester.dragUntilVisible(
-      find.text('Beylikdüzü Vadi Loca'),
+      find.text('SANA ÖZEL'),
       find.byType(ListView).first,
       const Offset(0, -100),
     );
-    expect(find.text('Beylikdüzü Vadi Loca'), findsOneWidget);
+    expect(find.text('SANA ÖZEL'), findsOneWidget);
   });
 
   testWidgets('Sipariş akışı: ürün ekle, öde, damga kazan', (tester) async {

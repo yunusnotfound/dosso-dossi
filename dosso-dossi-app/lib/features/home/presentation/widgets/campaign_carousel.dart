@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -9,6 +8,11 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../routing/app_router.dart';
 import '../../../campaigns/application/campaign_providers.dart';
 import '../../../campaigns/domain/campaign.dart';
+
+/// Afiş kartları 4:5 dikey oranda; carousel yüksekliği buna göre seçildi ki
+/// afiş kırpılmadan bütün olarak görünsün.
+const double _carouselHeight = 230;
+const double _afisCardWidth = _carouselHeight * 0.8;
 
 /// "Sana Özel" yatay kampanya kartları.
 class CampaignCarousel extends ConsumerWidget {
@@ -25,16 +29,30 @@ class CampaignCarousel extends ConsumerWidget {
       ),
       error: (e, _) => const SizedBox.shrink(),
       data: (items) => SizedBox(
-        height: 180,
+        height: _carouselHeight,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: items.length,
           separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
           itemBuilder: (context, index) {
             final campaign = items[index];
-            // 5+1 kampanyası: afiş görseliyle aynı kart, afiş sayfasına gider.
+            // 5+1 kampanyası: kartın kendisi afiş; dokununca kampanya
+            // sayfası açılır.
             if (campaign.id == 'kahve-ictikce') {
-              return const _KahveHeroCard();
+              return const _AfisCard(
+                assetPath: 'assets/images/kahve_ictikce_afis.jpg',
+                route: Routes.campaignKahve,
+                label: 'İçtikçe kazan kampanyası: 5 al, 1 hediye',
+              );
+            }
+            // Yükle Kazan: kartın kendisi afişin ta kendisi — üzerine yazı
+            // basılmıyor, afişte zaten var. Dokununca tam ekran açılır.
+            if (campaign.id == 'yukle-kazan') {
+              return const _AfisCard(
+                assetPath: 'assets/images/yukle_kazan_afis.jpg',
+                route: Routes.campaignYukleKazan,
+                label: 'Yükle Kazan kampanyası: ilk yüklemene 5 kahve hediye',
+              );
             }
             return _CampaignCard(campaign: campaign);
           },
@@ -44,104 +62,34 @@ class CampaignCarousel extends ConsumerWidget {
   }
 }
 
-/// Kampanyalar sekmesindeki tanıtım kartının birebir aynısı (kompakt).
-/// Dokununca "Kahve İçtikçe Kahve Kazan" afiş sayfası açılır.
-class _KahveHeroCard extends StatelessWidget {
-  const _KahveHeroCard();
+/// Arka planı kampanya afişinin kendisi olan kart.
+/// Üzerine hiçbir metin basılmaz; afişin kendi tipografisi görünür.
+class _AfisCard extends StatelessWidget {
+  const _AfisCard({
+    required this.assetPath,
+    required this.route,
+    required this.label,
+  });
+
+  final String assetPath;
+  final String route;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.push(Routes.campaignKahve),
-      child: Container(
-        width: 280,
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: () => context.push(route),
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF301D11), Color(0xFF20140C)],
+          child: SizedBox(
+            width: _afisCardWidth,
+            height: _carouselHeight,
+            // Afiş 4:5, kart da 4:5 — cover kırpma yapmadan tam oturur.
+            child: Image.asset(assetPath, fit: BoxFit.cover),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'KAHVE İÇTİKÇE',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.title.copyWith(
-                color: const Color(0xFFFFF9F2),
-                fontSize: 18,
-                letterSpacing: 1.2,
-              ),
-            ),
-            Text(
-              'Kahve Kazan',
-              style: GoogleFonts.dancingScript(
-                color: const Color(0xFFE8BE68),
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-                height: 1.1,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text.rich(
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              TextSpan(
-                text: '5 KAHVE ',
-                style: AppTypography.body.copyWith(
-                    color: const Color(0xFFF1832A), fontSize: 14),
-                children: [
-                  TextSpan(
-                    text: 'SİZDEN',
-                    style: AppTypography.body.copyWith(
-                        color: const Color(0xFFFFF9F2), fontSize: 14),
-                  ),
-                  TextSpan(
-                    text: ' · 1 KAHVE ',
-                    style: AppTypography.body.copyWith(
-                        color: const Color(0xFFE8BE68), fontSize: 14),
-                  ),
-                  TextSpan(
-                    text: 'BİZDEN',
-                    style: AppTypography.body.copyWith(
-                        color: const Color(0xFFFFF9F2), fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-            const Spacer(),
-            Row(
-              children: [
-                Flexible(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFFE86A10), Color(0xFFC55408)],
-                      ),
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                    ),
-                    child: Text(
-                      'Kampanyayı Keşfet →',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          AppTypography.badge.copyWith(color: Colors.white),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                const Text('☕', style: TextStyle(fontSize: 26)),
-              ],
-            ),
-          ],
         ),
       ),
     );
@@ -158,7 +106,7 @@ class _CampaignCard extends StatelessWidget {
     final isDark = campaign.style == CampaignStyle.dark;
 
     return GestureDetector(
-      onTap: () => context.go(Routes.campaigns),
+      onTap: () => context.push(Routes.campaigns),
       child: Container(
         width: 250,
         padding: const EdgeInsets.all(AppSpacing.lg),

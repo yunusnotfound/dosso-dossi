@@ -134,9 +134,16 @@ class _GiftScreenState extends ConsumerState<GiftScreen> {
     final amount = _giftAmount;
 
     return Scaffold(
+      // Sekme değil, üste açılan sayfa: AppBar yalnızca geri oku sağlar.
+      appBar: AppBar(toolbarHeight: 48),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.page),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.page,
+            0,
+            AppSpacing.page,
+            AppSpacing.page,
+          ),
           children: [
             Text('Hediye', style: AppTypography.displayLarge),
             const SizedBox(height: AppSpacing.sm),

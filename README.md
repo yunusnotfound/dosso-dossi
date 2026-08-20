@@ -5,6 +5,7 @@ Kahve zinciri için sadakat + sipariş platformu (monorepo).
 ```
 ├── dosso-dossi-app/       # Flutter mobil uygulaması (iOS + Android)
 ├── dosso-dossi-backend/   # Node.js + Express + Prisma + PostgreSQL REST API
+├── dosso-dossi-admin/     # React + Vite yönetim paneli (backend'in /admin ağacı)
 ├── docs/                  # Ortak dokümanlar (API sözleşmesi, Kerzz POS notları, yol haritası)
 └── docker-compose.yml     # Geliştirme veritabanı (PostgreSQL 17)
 ```
@@ -30,6 +31,19 @@ npm test                         # vitest + supertest (dosso_dossi_test DB)
 ```
 
 Geliştirme modunda OTP kodu konsola yazılır; `111111` her zaman geçerlidir.
+
+### Yönetim paneli
+
+```bash
+cd dosso-dossi-backend
+npm run admin:create -- eposta@ornek.com "Ad Soyad"   # ilk SUPER_ADMIN
+cd ../dosso-dossi-admin
+npm install
+npm run dev                      # http://localhost:5173
+```
+
+Backend `.env`'inde `ADMIN_JWT_SECRET` (JWT_SECRET'tan farklı) ve
+`ADMIN_ORIGINS` gerekir; ayrıntı için [dosso-dossi-admin/README.md](dosso-dossi-admin/README.md).
 
 ### Flutter uygulaması
 

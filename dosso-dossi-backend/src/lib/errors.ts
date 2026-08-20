@@ -8,6 +8,7 @@ export const ErrorCodes = {
   PRODUCT_UNAVAILABLE: 'PRODUCT_UNAVAILABLE',
   NO_FREE_DRINK: 'NO_FREE_DRINK',
   UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   NOT_FOUND: 'NOT_FOUND',
   RATE_LIMITED: 'RATE_LIMITED',
@@ -51,6 +52,10 @@ export class AppError extends Error {
   }
   static unauthorized(message = 'Oturum gerekli') {
     return new AppError(ErrorCodes.UNAUTHORIZED, 401, message);
+  }
+  /// Kimlik doğru ama yetki yok (401'den farkı: yeniden giriş çözmez).
+  static forbidden(message = 'Bu işlem için yetkiniz yok') {
+    return new AppError(ErrorCodes.FORBIDDEN, 403, message);
   }
   static notFound(message = 'Kayıt bulunamadı') {
     return new AppError(ErrorCodes.NOT_FOUND, 404, message);

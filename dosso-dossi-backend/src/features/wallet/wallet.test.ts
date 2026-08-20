@@ -27,7 +27,32 @@ describe('wallet', () => {
     expect(Number(tx.balanceAfter)).toBe(500);
   });
 
-  it('999.99 yükleme bonus vermez, 1000 yükleme 5 ikram verir', async () => {
+  it('ilk yükleme 1000 ise 5 ikram verir, sonraki yüklemeler ikram vermez', async () => {
+    const token = await login(app, '05551112233');
+    const auth = ['Authorization', `Bearer ${token}`] as const;
+
+    const first = await request(app)
+      .post('/me/wallet/topup')
+      .set(...auth)
+      .send({ amount: 1000 });
+    expect(first.body.bonusDrinks).toBe(5);
+
+    // Kampanya tek seferlik: aynı tutarı tekrar yüklemek ikram getirmez.
+    const second = await request(app)
+      .post('/me/wallet/topup')
+      .set(...auth)
+      .send({ amount: 1000 });
+    expect(second.body.bonusDrinks).toBe(0);
+    expect(second.body.balance).toBeCloseTo(2000);
+
+    const loyalty = await prisma.loyaltyAccount.findFirstOrThrow();
+    expect(loyalty.freeDrinks).toBe(5);
+    expect(
+      await prisma.loyaltyEvent.count({ where: { type: 'TOPUP_BONUS' } }),
+    ).toBe(1);
+  });
+
+  it('ilk yükleme eşiğin altındaysa hak düşer, sonraki 1000 yükleme ikram vermez', async () => {
     const token = await login(app, '05551112233');
     const auth = ['Authorization', `Bearer ${token}`] as const;
 
@@ -37,18 +62,18 @@ describe('wallet', () => {
       .send({ amount: 999.99 });
     expect(almost.body.bonusDrinks).toBe(0);
 
-    const bonus = await request(app)
+    const later = await request(app)
       .post('/me/wallet/topup')
       .set(...auth)
       .send({ amount: 1000 });
-    expect(bonus.body.bonusDrinks).toBe(5);
-    expect(bonus.body.balance).toBeCloseTo(1999.99);
+    expect(later.body.bonusDrinks).toBe(0);
+    expect(later.body.balance).toBeCloseTo(1999.99);
 
     const loyalty = await prisma.loyaltyAccount.findFirstOrThrow();
-    expect(loyalty.freeDrinks).toBe(5);
+    expect(loyalty.freeDrinks).toBe(0);
     expect(
       await prisma.loyaltyEvent.count({ where: { type: 'TOPUP_BONUS' } }),
-    ).toBe(1);
+    ).toBe(0);
   });
 
   it('qr-token 60 saniyelik tek kullanımlık kod üretir; yenisi eskisini geçersiz kılar', async () => {

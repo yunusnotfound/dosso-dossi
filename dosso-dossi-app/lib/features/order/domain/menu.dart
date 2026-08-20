@@ -1,3 +1,7 @@
+/// Online Mağaza'da satılan kategoriler. Bu kategoriler sipariş (menü)
+/// ekranında listelenmez; vitrinleri Online Mağaza sekmesidir.
+const shopCategoryIds = {'merch', 'cekirdek'};
+
 /// Menü kategorisi.
 class MenuCategory {
   const MenuCategory({required this.id, required this.name});

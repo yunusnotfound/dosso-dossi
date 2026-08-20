@@ -21,6 +21,16 @@ abstract final class AppConfig {
     defaultValue: 'http://localhost:3000',
   );
 
+  /// Mapbox erişim anahtarı. GitHub gizli anahtar taraması repo'da tutulmasına
+  /// izin vermediği için derlemede dışarıdan verilir:
+  ///   flutter run/build ... --dart-define-from-file=dart_defines.json
+  /// (dart_defines.json git'e girmez; şablonu dart_defines.example.json)
+  static const String mapboxToken = String.fromEnvironment('MAPBOX_TOKEN');
+
+  /// Markaya özel harita stili (Mapbox hesabındaki "Dosso Dossi Coffee").
+  /// light-v11 tabanından krem/kahve paletine boyanmış 50 katman.
+  static const String mapboxStyle = 'beko17/cmt1qq20v002n01s37dx4hblj';
+
   /// Kampanya 1: Kaç kahvede 1 ikram içecek kazanılır ("5 kahve alana 1 kahve").
   static const int stampsPerReward = 5;
 

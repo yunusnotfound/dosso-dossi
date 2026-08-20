@@ -2,6 +2,9 @@ import { beforeEach, afterAll } from 'vitest';
 import { prisma } from '../lib/prisma.js';
 
 const TABLES = [
+  'AuditLog',
+  'AdminRefreshToken',
+  'AdminUser',
   'PosEvent',
   'PosCharge',
   'PaymentIntent',
@@ -23,6 +26,8 @@ const TABLES = [
   'Branch',
   'Campaign',
   'PromoCode',
+  'ProductOption',
+  'Setting',
 ];
 
 beforeEach(async () => {

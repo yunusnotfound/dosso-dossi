@@ -1,0 +1,63 @@
+@import 'tailwindcss';
+
+/* Panelin TÜM renkleri burada. Kaynak: mobil app_colors.dart — değerler
+   birebir. Ekran kodlarına ham renk yazılmaz, her şey token'dan gelir. */
+@theme {
+  /* ── Marka ── */
+  --color-brand: #d9682a;
+  --color-brand-light: #e68a4e;
+  --color-coffee: #2e211a;
+
+  /* ── Zeminler ── */
+  --color-canvas: #f3ede2;
+  --color-surface: #ffffff;
+  --color-surface-tint: #f9e9dc;
+  --color-surface-sunken: #ede5d8;
+
+  /* ── Metin ── */
+  --color-ink: #1e1611;
+  --color-ink-muted: #8a7f76;
+  --color-on-dark: #f7f2ea;
+  --color-on-dark-muted: #b8a99c;
+
+  /* ── Vurgu ── */
+  --color-gold: #eac980;
+  --color-on-gold: #6b4e12;
+  --color-gold-dark: #d4a94e;
+
+  /* ── Durum ── */
+  --color-ok: #3e7c4f;
+  --color-ok-soft: #ddebdd;
+  --color-warn: #b8860b;
+  --color-warn-soft: #f7ecd0;
+  --color-bad: #c24a30;
+  --color-bad-soft: #f6e0d8;
+
+  --color-line: #efe9df;
+
+  /* ── Köşeler: mobil AppRadius ── */
+  --radius-card: 16px;
+  --radius-card-lg: 24px;
+  --radius-chip: 12px;
+  --radius-pill: 100px;
+
+  /* Başlıklar marka sesi, gövde/tablo yoğun veri okunabilirliği için Inter.
+     Baloo 2 rakamları tabular değil; tablolarda sayılar kaymasın. */
+  --font-display: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+  body {
+    margin: 0;
+  }
+  /* Tablolarda ve KPI'larda rakamlar hizalı aksın */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}

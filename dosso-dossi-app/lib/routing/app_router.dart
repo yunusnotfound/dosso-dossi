@@ -9,8 +9,10 @@ import '../features/auth/presentation/onboarding_screen.dart';
 import '../features/auth/presentation/otp_screen.dart';
 import '../features/auth/presentation/phone_login_screen.dart';
 import '../features/auth/presentation/splash_screen.dart';
-import '../features/branches/presentation/branch_list_screen.dart';
+import '../features/branches/presentation/branch_detail_screen.dart';
+import '../features/branches/presentation/branch_map_screen.dart';
 import '../features/campaigns/presentation/campaign_kahve_screen.dart';
+import '../features/campaigns/presentation/campaign_yukle_kazan_screen.dart';
 import '../features/campaigns/presentation/campaigns_screen.dart';
 import '../features/favorites/presentation/favorites_screen.dart';
 import '../features/gift/presentation/gift_screen.dart';
@@ -29,6 +31,7 @@ import '../features/profile/presentation/profile_screen.dart';
 import '../features/profile/presentation/saved_cards_screen.dart';
 import '../features/rewards/presentation/rewards_screen.dart';
 import '../features/scan_pay/presentation/scan_pay_screen.dart';
+import '../features/shop/presentation/shop_screen.dart';
 import 'main_shell.dart';
 
 /// Tüm sayfa yolları. Yeni ekran eklerken önce buraya path tanımla.
@@ -44,12 +47,13 @@ abstract final class Routes {
   static const home = '/';
   static const scanPay = '/tara-ode';
   static const order = '/siparis';
-  static const gift = '/hediye';
+  static const shop = '/online-magaza';
   static const campaigns = '/kampanyalar';
 
   // Sekme üstüne açılan sayfalar
   static const profile = '/profil';
   static const rewards = '/ikramlarim';
+  static const gift = '/hediye';
 
   // Sipariş akışı
   static const product = '/urun/:id';
@@ -59,6 +63,7 @@ abstract final class Routes {
 
   // Kampanya detayları
   static const campaignKahve = '/kampanya/kahve-ictikce';
+  static const campaignYukleKazan = '/kampanya/yukle-kazan';
 
   // Profil alt sayfaları
   static const personalInfo = '/profil/bilgiler';
@@ -67,11 +72,13 @@ abstract final class Routes {
   static const orderHistory = '/profil/siparisler';
   static const favorites = '/profil/favoriler';
   static const branchList = '/subeler';
+  static const branchDetail = '/subeler/:id';
   static const faq = '/profil/sss';
   static const kvkk = '/profil/kvkk';
 
   static String productPath(String id) => '/urun/$id';
   static String orderTrackingPath(String id) => '/siparis-takip/$id';
+  static String branchDetailPath(String id) => '/subeler/$id';
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -81,9 +88,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(authState.dispose);
   ref.listen(authControllerProvider, (_, next) => authState.value = next);
 
+  // Açılış animasyonu bitene kadar splash'te kal (oturum anında yüklense bile).
+  final splashHold =
+      ValueNotifier<bool>(ref.read(splashHoldProvider).isLoading);
+  ref.onDispose(splashHold.dispose);
+  ref.listen(splashHoldProvider, (_, next) => splashHold.value = next.isLoading);
+
   return GoRouter(
     initialLocation: Routes.home,
-    refreshListenable: authState,
+    refreshListenable: Listenable.merge([authState, splashHold]),
     redirect: (context, state) {
       final auth = authState.value;
       final location = state.matchedLocation;
@@ -91,8 +104,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           location == Routes.onboarding ||
           location.startsWith(Routes.login);
 
-      // Oturum diskten okunurken açılış ekranı göster.
-      if (auth.isLoading) {
+      // Oturum diskten okunurken ve açılış animasyonu sürerken splash göster.
+      if (auth.isLoading || splashHold.value) {
         return location == Routes.splash ? null : Routes.splash;
       }
 
@@ -145,6 +158,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.rewards,
         builder: (context, state) => const RewardsScreen(),
       ),
+      // Hediye artık alt barda sekme değil; profildeki "Diğer"
+      // bölümünden üste açılır.
+      GoRoute(
+        path: Routes.gift,
+        builder: (context, state) => const GiftScreen(),
+      ),
       GoRoute(
         path: Routes.product,
         builder: (context, state) =>
@@ -168,6 +187,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const CampaignKahveScreen(),
       ),
       GoRoute(
+        path: Routes.campaignYukleKazan,
+        builder: (context, state) => const CampaignYukleKazanScreen(),
+      ),
+      GoRoute(
         path: Routes.personalInfo,
         builder: (context, state) => const PersonalInfoScreen(),
       ),
@@ -187,9 +210,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.favorites,
         builder: (context, state) => const FavoritesScreen(),
       ),
+      // Kampanyalar artık alt barda sekme değil; ana sayfadaki "Tümü"
+      // bağlantısından üste açılır.
       GoRoute(
-        path: Routes.branchList,
-        builder: (context, state) => const BranchListScreen(),
+        path: Routes.campaigns,
+        builder: (context, state) => const CampaignsScreen(),
       ),
       GoRoute(
         path: Routes.faq,
@@ -198,6 +223,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.kvkk,
         builder: (context, state) => const KvkkScreen(),
+      ),
+      GoRoute(
+        path: Routes.branchDetail,
+        builder: (context, state) =>
+            BranchDetailScreen(branchId: state.pathParameters['id'] ?? ''),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -223,14 +253,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
-              path: Routes.gift,
-              builder: (context, state) => const GiftScreen(),
+              path: Routes.shop,
+              builder: (context, state) => const ShopScreen(),
             ),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
-              path: Routes.campaigns,
-              builder: (context, state) => const CampaignsScreen(),
+              path: Routes.branchList,
+              builder: (context, state) => const BranchMapScreen(),
             ),
           ]),
         ],

@@ -4,10 +4,12 @@ import { AppError } from '../../../lib/errors.js';
 import { dec, toMoney } from '../../../lib/money.js';
 import { prisma } from '../../../lib/prisma.js';
 import { paymentProvider } from './dev-payment-provider.js';
+import { getSetting } from '../../settings/settings.service.js';
 
-// CEO kampanyası: tek seferde 1.000 ₺+ yükleme → 5 ikram kahve
-const TOPUP_BONUS_THRESHOLD = 1000;
-const TOPUP_BONUS_DRINKS = 5;
+// CEO kampanyası: kullanıcının İLK bakiye yüklemesi eşiği geçiyorsa ikram
+// kahve verilir. Tek seferliktir: ilk yükleme eşiğin altındaysa da hak düşer,
+// sonraki yüklemelerde tutar ne olursa olsun ikram verilmez.
+// Eşik/adet/kural artık Setting tablosundan (panelden yönetilir).
 
 export interface TopUpResult {
   balance: number;
@@ -83,7 +85,6 @@ export async function confirmTopUpTx(
     if (!intent) throw AppError.notFound('Ödeme bulunamadı');
 
     const amount = Number(intent.amount);
-    const bonusDrinks = amount >= TOPUP_BONUS_THRESHOLD ? TOPUP_BONUS_DRINKS : 0;
 
     if (claimed.count === 0) {
       // Daha önce sonuçlanmış: SUCCEEDED ise idempotent yanıt, değilse hata
@@ -91,8 +92,24 @@ export async function confirmTopUpTx(
       const wallet = await tx.wallet.findUniqueOrThrow({
         where: { userId: intent.userId },
       });
-      return { balance: toMoney(wallet.balance), bonusDrinks };
+      // İkram onay anında hesaplanıp intent'e yazıldı; burada yeniden
+      // hesaplanamaz çünkü yükleme kaydı artık "ilk" değil.
+      return { balance: toMoney(wallet.balance), bonusDrinks: intent.bonusDrinks };
     }
+
+    // Kampanya yalnızca ilk yüklemeye özel: bu cüzdanda daha önce yükleme
+    // kaydı varsa tutar ne olursa olsun ikram verilmez.
+    const walletBefore = await tx.wallet.findUniqueOrThrow({
+      where: { userId: intent.userId },
+    });
+    const previousTopUps = await tx.walletTransaction.count({
+      where: { walletId: walletBefore.id, type: 'TOPUP' },
+    });
+    const firstOnly = await getSetting<boolean>('loyalty.topUpBonusFirstOnly');
+    const threshold = await getSetting<number>('loyalty.topUpBonusThreshold');
+    const drinks = await getSetting<number>('loyalty.topUpBonusDrinks');
+    const eligible = (!firstOnly || previousTopUps === 0) && amount >= threshold;
+    const bonusDrinks = eligible ? drinks : 0;
 
     const wallet = await tx.wallet.update({
       where: { userId: intent.userId },
@@ -109,6 +126,10 @@ export async function confirmTopUpTx(
     });
 
     if (bonusDrinks > 0) {
+      await tx.paymentIntent.update({
+        where: { id: intentId },
+        data: { bonusDrinks },
+      });
       const loyalty = await tx.loyaltyAccount.update({
         where: { userId: intent.userId },
         data: { freeDrinks: { increment: bonusDrinks } },

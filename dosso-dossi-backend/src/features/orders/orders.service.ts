@@ -4,23 +4,17 @@ import { dec, toMoney } from '../../lib/money.js';
 import { logger } from '../../lib/logger.js';
 import { prisma } from '../../lib/prisma.js';
 import { applyLoyalty } from '../loyalty/loyalty-apply.js';
+import { loadOptionDeltas } from '../menu/options.service.js';
 import { parseOrderNumber } from './order-status.service.js';
 import { kerzzPosClient } from './pos-client.js';
 import type { PlaceOrderInput } from './orders.schemas.js';
 
-/// Opsiyon fiyat farkları — Flutter'daki product_options.dart ile aynı.
-/// TODO: ileride /menu/options endpoint'ine taşınabilir (sözleşme notu).
-const OPTION_DELTAS: Record<string, number> = {
-  'Yulaf sütü': 60,
-  'Badem sütü': 60,
-  'Çift shot': 40,
-};
-
-function optionDelta(name: string): number {
-  return OPTION_DELTAS[name] ?? 0;
-}
-
 export async function placeOrder(userId: string, input: PlaceOrderInput) {
+  // Opsiyon fiyat farkları artık ProductOption tablosundan (panelden
+  // yönetilir); transaction'a girmeden okunur, önbellekli.
+  const deltas = await loadOptionDeltas();
+  const optionDelta = (name: string): number => deltas.get(name) ?? 0;
+
   const order = await prisma.$transaction(async (tx) => {
     const branch = await tx.branch.findUnique({ where: { id: input.branchId } });
     if (!branch) throw AppError.notFound('Şube bulunamadı');

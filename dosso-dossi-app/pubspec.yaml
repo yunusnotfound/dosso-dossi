@@ -43,6 +43,10 @@ dependencies:
   shared_preferences: ^2.5.5
   intl: ^0.20.3
   flutter_secure_storage: ^10.3.1
+  flutter_map: ^8.3.1
+  latlong2: ^0.10.1
+  url_launcher: ^6.3.2
+  flutter_map_cancellable_tile_provider: ^3.1.1
 
 dev_dependencies:
   flutter_test:
@@ -56,6 +60,19 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   integration_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.4
+
+# Uygulama ikonu: beyaz zeminli yuvarlak Dosso Dossi Coffee logosu.
+# Yeniden üretmek için: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/images/logo.png
+  remove_alpha_ios: true
+  background_color_ios: "#FFFFFF"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: assets/images/logo.png
+  adaptive_icon_foreground_inset: 16
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
