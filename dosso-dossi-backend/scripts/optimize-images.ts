@@ -7,6 +7,7 @@
 /// Kullanım: npm run optimize:images [-- /başka/kaynak/klasör]
 /// Sıralama önemli: extract:menu → optimize:images → prisma:seed
 /// (extract:menu, menu.json'u imageUrl:null ile yeniden üretir.)
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -68,6 +69,14 @@ async function main() {
     products: MenuProduct[];
   };
   const byId = new Map(menu.products.map((p) => [p.id, p]));
+  // Bazı dışa aktarımlar Türkçe harfleri bozup araya '_' sokuyor
+  // ("Havuçlu" → "Havuc_lu"). Tire çıkarılmış ikinci bir dizin bu tür
+  // adları da yakalar ("havuc-lu-kek" → "havuclukek" → havuclu-kek).
+  const dashless = (v: string) => v.replaceAll('-', '');
+  const byDashless = new Map(menu.products.map((p) => [dashless(p.id), p]));
+  const aliasDashless = new Map(
+    Object.entries(ALIASES).map(([k, v]) => [dashless(k), v]),
+  );
   fs.mkdirSync(outDir, { recursive: true });
 
   const unmatched: string[] = [];
@@ -76,23 +85,36 @@ async function main() {
 
   for (const file of fs.readdirSync(srcDir).filter((f) => /\.png$/i.test(f))) {
     // macOS dosya adlarını NFD saklar; Türkçe harf haritası NFC bekler.
-    const base = file.replace(/\.png$/i, '').normalize('NFC');
+    // Bazı dışa aktarımlar başa zaman damgası ekler ("1787..._Ad.png").
+    const base = file
+      .replace(/\.png$/i, '')
+      .replace(/^\d+_/, '')
+      .normalize('NFC');
     const s = slug(base);
     if (SKIP.has(s)) {
       skipped++;
       continue;
     }
-    const id = ALIASES[s] ?? s;
-    const product = byId.get(id);
+    const aliased = ALIASES[s] ?? aliasDashless.get(dashless(s));
+    const product =
+      byId.get(aliased ?? s) ?? (aliased ? undefined : byDashless.get(dashless(s)));
     if (!product) {
       unmatched.push(`${file} → ${s}`);
       continue;
     }
+    const outFile = path.join(outDir, `${product.id}.webp`);
     await sharp(path.join(srcDir, file))
       .resize({ width: 1000, height: 1000, fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 80 })
-      .toFile(path.join(outDir, `${id}.webp`));
-    product.imageUrl = `/media/products/${id}.webp`;
+      .toFile(outFile);
+    // İçerik hash'i URL'de: fotoğraf değişince URL değişir, cihazlardaki
+    // 1 yıllık immutable önbellek kendiliğinden kırılır.
+    const hash = crypto
+      .createHash('md5')
+      .update(fs.readFileSync(outFile))
+      .digest('hex')
+      .slice(0, 8);
+    product.imageUrl = `/media/products/${product.id}.webp?v=${hash}`;
     written++;
   }
 
