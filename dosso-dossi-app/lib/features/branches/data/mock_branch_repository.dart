@@ -10,6 +10,8 @@ class MockBranchRepository implements BranchRepository {
     return const [
       Branch(
         id: 'beylikduzu-vadi-loca',
+        lat: 41.00838,
+        lng: 28.632925,
         name: 'Beylikdüzü Vadi Loca',
         address: 'Adnan Kahveci Mah. Sayaca Cad. No:13, Beylikdüzü / İstanbul',
         city: 'İstanbul',
@@ -21,6 +23,8 @@ class MockBranchRepository implements BranchRepository {
       ),
       Branch(
         id: 'beylikduzu-son-durak',
+        lat: 41.021873,
+        lng: 28.623523,
         name: 'Beylikdüzü Son Durak',
         address:
             'Cumhuriyet Mah. Yıldıray Çınar Sok. No:47-1, Büyükçekmece / İstanbul',
@@ -32,6 +36,8 @@ class MockBranchRepository implements BranchRepository {
       ),
       Branch(
         id: 'vatan-caddesi',
+        lat: 41.016863,
+        lng: 28.940617,
         name: 'Vatan Caddesi',
         address:
             'Akşemsettin Mah. Adnan Menderes Vatan Bulvarı, Dosso Dossi Hotel No:46-48 İç Kapı No:1, Fatih / İstanbul',
@@ -43,6 +49,8 @@ class MockBranchRepository implements BranchRepository {
       ),
       Branch(
         id: 'diyarbakir-stad',
+        lat: 37.926528,
+        lng: 40.164817,
         name: 'Diyarbakır Stad',
         address:
             'Fırat Mah. 507. Sok. Dicle Fırat No:5 İç Kapı No:29, Kayapınar / Diyarbakır',

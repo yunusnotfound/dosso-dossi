@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -51,6 +52,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   ProductOption _milk = ProductOptions.defaultMilk;
   ProductOption _shot = ProductOptions.defaultShot;
 
+  /// Sepete ekleme onayı: buton kısa süreliğine "Sepete Eklendi" olur.
+  Timer? _addedTimer;
+  bool _added = false;
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +67,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
 
   @override
   void dispose() {
+    _addedTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -103,12 +109,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     ref.read(cartProvider.notifier).add(
           CartItem(product: product, milk: _milk, shot: _shot),
         );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${product.name} sepete eklendi'),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+    setState(() => _added = true);
+    _addedTimer?.cancel();
+    _addedTimer = Timer(const Duration(milliseconds: 1600), () {
+      if (mounted) setState(() => _added = false);
+    });
   }
 
   @override
@@ -267,6 +272,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                             onMilk: (o) => setState(() => _milk = o),
                             onShot: (o) => setState(() => _shot = o),
                             onAdd: () => _addToCart(product),
+                            added: _added,
                           ),
                         ),
                       ),
@@ -383,6 +389,7 @@ class _SheetContent extends StatelessWidget {
     required this.onMilk,
     required this.onShot,
     required this.onAdd,
+    required this.added,
   });
 
   final Product product;
@@ -392,6 +399,9 @@ class _SheetContent extends StatelessWidget {
   final ValueChanged<ProductOption> onMilk;
   final ValueChanged<ProductOption> onShot;
   final VoidCallback onAdd;
+
+  /// Az önce sepete eklendi mi — buton kısa süreliğine onay durumuna geçer.
+  final bool added;
 
   @override
   Widget build(BuildContext context) {
@@ -452,12 +462,23 @@ class _SheetContent extends StatelessWidget {
           else
             const Spacer(),
           const SizedBox(height: AppSpacing.md),
+          // Bildirim (SnackBar) yok: geri bildirim butonun kendisinde.
           FilledButton(
             onPressed: onAdd,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.coffeeDark,
+              backgroundColor:
+                  added ? AppColors.success : AppColors.coffeeDark,
             ),
-            child: Text('Sepete Ekle · ${formatTl(price)}'),
+            child: added
+                ? const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check, size: 20, color: Colors.white),
+                      SizedBox(width: AppSpacing.sm),
+                      Text('Sepete Eklendi'),
+                    ],
+                  )
+                : Text('Sepete Ekle · ${formatTl(price)}'),
           ),
         ],
       ),

@@ -46,3 +46,6 @@ app.*.map.json
 
 # Claude Code yerel ayarları
 .claude/
+
+# Gizli derleme tanımları (Mapbox token vb.) — repo'ya girmez
+dart_defines.json

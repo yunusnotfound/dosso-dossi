@@ -47,7 +47,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Telefonla Devam Et'));
+    // Tanıtımı atla → telefon giriş ekranı
+    await tester.tap(find.text('Atla'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), '5551112233');

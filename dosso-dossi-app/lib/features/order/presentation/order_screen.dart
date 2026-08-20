@@ -14,6 +14,7 @@ import '../application/cart_controller.dart';
 import '../application/menu_providers.dart';
 import '../application/order_providers.dart';
 import '../domain/menu.dart';
+import 'widgets/add_to_cart_button.dart';
 
 /// Öne Çıkanlar için sahte kategori kimliği.
 const _featuredId = '_featured';
@@ -33,6 +34,8 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
   List<Product> _filter(List<Product> products) {
     final query = _query.trim().toLowerCase();
     return products.where((p) {
+      // Mağaza ürünleri (termos, çekirdek) menüde ve menü aramasında yok.
+      if (shopCategoryIds.contains(p.categoryId)) return false;
       if (query.isNotEmpty) return p.name.toLowerCase().contains(query);
       if (_categoryId == _featuredId) return p.isFeatured;
       return p.categoryId == _categoryId;
@@ -126,7 +129,8 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                       crossAxisCount: 2,
                       mainAxisSpacing: AppSpacing.md,
                       crossAxisSpacing: AppSpacing.md,
-                      childAspectRatio: 0.72,
+                      // "Sepete ekle" butonlu kartlara yer açar.
+                      childAspectRatio: 0.62,
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) =>
@@ -323,7 +327,7 @@ class _CategoryChips extends StatelessWidget {
   Widget build(BuildContext context) {
     final all = [
       const MenuCategory(id: _featuredId, name: 'Öne Çıkanlar'),
-      ...categories,
+      ...categories.where((c) => !shopCategoryIds.contains(c.id)),
     ];
 
     return SizedBox(
@@ -424,6 +428,13 @@ class _ProductCard extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
               style: AppTypography.title,
             ),
+            // Kişiselleştirmesiz ürünler (tatlı, atıştırmalık, soft içecek)
+            // karttan direkt sepete eklenir; süt/shot seçenekli kahveler
+            // detay ekranından eklenir.
+            if (!product.hasOptions) ...[
+              const SizedBox(height: AppSpacing.sm),
+              AddToCartButton(product: product),
+            ],
           ],
         ),
       ),

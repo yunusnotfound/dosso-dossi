@@ -22,6 +22,9 @@ String formatDayHeader(DateTime date) =>
 String formatDayMonth(DateTime date) =>
     '${date.day} ${_months[date.month - 1]}';
 
+/// DateTime.weekday (1=Pazartesi … 7=Pazar) → Türkçe gün adı.
+String weekdayName(int weekday) => _weekdays[weekday - 1];
+
 /// Saate göre selamlama.
 String greetingFor(DateTime now) {
   if (now.hour < 6) return 'İyi geceler';

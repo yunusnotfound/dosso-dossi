@@ -105,7 +105,9 @@ class PillNavBar extends StatelessWidget {
     _NavItem(2, Icons.coffee_outlined, Icons.coffee, 'Sipariş'),
     _NavItem(
         1, Icons.qr_code_scanner_outlined, Icons.qr_code_scanner, 'Tara & Öde'),
-    _NavItem(3, Icons.card_giftcard_outlined, Icons.card_giftcard, 'Hediye'),
+    // Not: shopping_bag değil local_mall — sepet butonu shopping_bag kullanır,
+    // ikisi aynı ekranda karışmasın.
+    _NavItem(3, Icons.local_mall_outlined, Icons.local_mall, 'Online Mağaza'),
     _NavItem(4, Icons.storefront_outlined, Icons.storefront, 'Mağazalar'),
   ];
 

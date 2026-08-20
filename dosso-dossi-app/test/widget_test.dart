@@ -22,7 +22,10 @@ void main() {
     await tester.pumpWidget(await _buildApp({}));
     await tester.pumpAndSettle();
 
-    expect(find.text('Telefonla Devam Et'), findsOneWidget);
+    // Kaydırmalı tanıtımın ilk sayfası: QR adımı + Devam/Atla butonları.
+    expect(find.text('QR Okut & Öde'), findsOneWidget);
+    expect(find.text('Devam'), findsOneWidget);
+    expect(find.text('Atla'), findsOneWidget);
   });
 
   testWidgets('Oturum varsa ana sayfa ve alt menü gösterilir', (tester) async {

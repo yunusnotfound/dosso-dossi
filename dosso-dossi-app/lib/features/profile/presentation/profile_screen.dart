@@ -132,6 +132,11 @@ class ProfileScreen extends ConsumerWidget {
               label: 'DİĞER',
               rows: [
                 _RowData(
+                  icon: Icons.card_giftcard,
+                  title: 'Hediye Gönder',
+                  onTap: () => context.push(Routes.gift),
+                ),
+                _RowData(
                   icon: Icons.storefront_outlined,
                   title: 'Mağazalar',
                   // Artık alt bardaki sekme: push değil, sekmeye geç.

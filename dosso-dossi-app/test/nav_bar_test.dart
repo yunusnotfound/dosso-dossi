@@ -53,7 +53,7 @@ void main() {
 
     // Etiketle ikon arasındaki boşluğa basmak da sekmeyi seçmeli
     // (HitTestBehavior.opaque olmadan burası ölü alan olurdu).
-    await tester.tap(find.text('Hediye'));
+    await tester.tap(find.text('Online Mağaza'));
     await tester.pump();
     expect(tapped, 3);
   });
