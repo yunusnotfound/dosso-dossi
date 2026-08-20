@@ -20,6 +20,11 @@ abstract final class ApiEndpoints {
   // Menü & şubeler & kampanyalar
   static const String menuCategories = '/menu/categories';
   static const String menuProducts = '/menu/products';
+
+  /// '/media/...' gibi göreli görsel yollarını API tabanına çevirir;
+  /// tam URL'ler ve asset yolları olduğu gibi döner.
+  static String mediaUrl(String path) =>
+      path.startsWith('/') ? '$baseUrl$path' : path;
   static const String branches = '/branches';
   static const String campaigns = '/campaigns';
   static const String validatePromoCode = '/campaigns/validate-code';

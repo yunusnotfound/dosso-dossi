@@ -1,3 +1,4 @@
+import path from 'node:path';
 import express from 'express';
 import helmet from 'helmet';
 import { AppError, ErrorCodes } from './lib/errors.js';
@@ -46,6 +47,23 @@ export function createApp(): express.Express {
       res.status(503).json({ ok: false, db: 'unreachable' });
     }
   });
+
+  // Ürün görselleri (uploads/ → optimize-images.ts üretir). Dosya adı
+  // içerik değişince değişir varsayımıyla 1 yıl immutable önbellek.
+  // helmet'in same-origin CORP başlığı bu rota için gevşetilir ki admin
+  // paneli (farklı origin) <img> ile önizleyebilsin.
+  app.use(
+    '/media',
+    (_req, res, next) => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      next();
+    },
+    express.static(path.resolve(process.cwd(), 'uploads'), {
+      immutable: true,
+      maxAge: '365d',
+      index: false,
+    }),
+  );
 
   // Yönetim paneli: müşteri API'sinden ayrı auth evreni, dar CORS allowlist'i.
   app.use('/admin', adminCors, adminRouter);

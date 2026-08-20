@@ -28,8 +28,9 @@ class FavoritesScreen extends ConsumerWidget {
           child: Text('Menü yüklenemedi', style: AppTypography.bodySecondary),
         ),
         data: (list) {
-          final favorites =
-              list.where((p) => favoriteIds.contains(p.id)).toList();
+          final favorites = list
+              .where((p) => favoriteIds.contains(p.id))
+              .toList();
           if (favorites.isEmpty) {
             return Center(
               child: Column(
@@ -68,8 +69,11 @@ class FavoritesScreen extends ConsumerWidget {
                         child: SizedBox(
                           width: 56,
                           height: 56,
-                          child:
-                              ProductImage(product: product, emojiSize: 28),
+                          child: ProductImage(
+                            product: product,
+                            emojiSize: 28,
+                            memCacheWidth: 200,
+                          ),
                         ),
                       ),
                       const SizedBox(width: AppSpacing.md),
@@ -78,8 +82,10 @@ class FavoritesScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(product.name, style: AppTypography.body),
-                            Text(formatTl(product.price),
-                                style: AppTypography.title),
+                            Text(
+                              formatTl(product.price),
+                              style: AppTypography.title,
+                            ),
                           ],
                         ),
                       ),
@@ -87,8 +93,10 @@ class FavoritesScreen extends ConsumerWidget {
                         onPressed: () => ref
                             .read(favoritesProvider.notifier)
                             .toggle(product.id),
-                        icon: const Icon(Icons.favorite,
-                            color: AppColors.danger),
+                        icon: const Icon(
+                          Icons.favorite,
+                          color: AppColors.danger,
+                        ),
                       ),
                     ],
                   ),

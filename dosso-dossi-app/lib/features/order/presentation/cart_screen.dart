@@ -35,9 +35,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final earliest = now.add(Duration(minutes: prepMinutes));
     String fmt(DateTime t) =>
         '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
-    final next = DateTime(now.year, now.month, now.day, earliest.hour,
-            (earliest.minute ~/ 15) * 15)
-        .add(const Duration(minutes: 15));
+    final next = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      earliest.hour,
+      (earliest.minute ~/ 15) * 15,
+    ).add(const Duration(minutes: 15));
     return [
       'En kısa (~$prepMinutes dk)',
       fmt(next),
@@ -61,8 +65,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: AppColors.danger,
-            content:
-                Text('Bakiye yetersiz. Tara & Öde ekranından yükleme yapabilirsin.'),
+            content: Text(
+              'Bakiye yetersiz. Tara & Öde ekranından yükleme yapabilirsin.',
+            ),
           ),
         );
         return;
@@ -71,7 +76,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       if ((record.total - displayedTotal).abs() > 0.01) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Güncel tutar: ${formatTl(record.total)} olarak alındı'),
+            content: Text(
+              'Güncel tutar: ${formatTl(record.total)} olarak alındı',
+            ),
           ),
         );
       }
@@ -100,8 +107,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   const SizedBox(height: AppSpacing.md),
                   Text('Sepetin boş', style: AppTypography.title),
                   const SizedBox(height: AppSpacing.xs),
-                  Text('Menüden bir şeyler ekle',
-                      style: AppTypography.bodySecondary),
+                  Text(
+                    'Menüden bir şeyler ekle',
+                    style: AppTypography.bodySecondary,
+                  ),
                 ],
               ),
             )
@@ -130,8 +139,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         Container(
                           decoration: BoxDecoration(
                             color: AppColors.surface,
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.md),
+                            borderRadius: BorderRadius.circular(AppRadius.md),
                           ),
                           child: Column(
                             children: [
@@ -158,13 +166,15 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             padding: const EdgeInsets.all(AppSpacing.md),
                             decoration: BoxDecoration(
                               color: AppColors.surfaceTint,
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.sm),
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.local_cafe,
-                                    size: 18, color: AppColors.primary),
+                                const Icon(
+                                  Icons.local_cafe,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
                                 const SizedBox(width: AppSpacing.sm),
                                 Expanded(
                                   child: Text.rich(
@@ -173,13 +183,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                       style: AppTypography.bodySecondary,
                                       children: [
                                         TextSpan(
-                                          text:
-                                              '+${cart.stampsEarned} damga',
+                                          text: '+${cart.stampsEarned} damga',
                                           style: AppTypography.body.copyWith(
-                                              color: AppColors.primary),
+                                            color: AppColors.primary,
+                                          ),
                                         ),
-                                        const TextSpan(
-                                            text: ' kazanacaksın.'),
+                                        const TextSpan(text: ' kazanacaksın.'),
                                       ],
                                     ),
                                   ),
@@ -197,8 +206,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             padding: const EdgeInsets.all(AppSpacing.lg),
                             decoration: BoxDecoration(
                               color: AppColors.surface,
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.md),
+                              borderRadius: BorderRadius.circular(AppRadius.md),
                             ),
                             child: Row(
                               children: [
@@ -211,9 +219,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
-                                      Icons.account_balance_wallet_outlined,
-                                      size: 22,
-                                      color: AppColors.primary),
+                                    Icons.account_balance_wallet_outlined,
+                                    size: 22,
+                                    color: AppColors.primary,
+                                  ),
                                 ),
                                 const SizedBox(width: AppSpacing.md),
                                 Expanded(
@@ -221,8 +230,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text('Dosso Kart',
-                                          style: AppTypography.body),
+                                      Text(
+                                        'Dosso Kart',
+                                        style: AppTypography.body,
+                                      ),
                                       Text(
                                         'Bakiye: ${formatTl(w.balance)}',
                                         style: AppTypography.bodySecondary
@@ -234,8 +245,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                 const CircleAvatar(
                                   radius: 14,
                                   backgroundColor: AppColors.success,
-                                  child: Icon(Icons.check,
-                                      size: 16, color: Colors.white),
+                                  child: Icon(
+                                    Icons.check,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ],
                             ),
@@ -246,8 +260,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(AppSpacing.page, 0,
-                        AppSpacing.page, AppSpacing.md),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.page,
+                      0,
+                      AppSpacing.page,
+                      AppSpacing.md,
+                    ),
                     child: FilledButton(
                       onPressed: _paying ? null : _pay,
                       child: _paying
@@ -260,7 +278,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                               ),
                             )
                           : Text(
-                              'Dosso Kart ile Öde · ${formatTl(cart.total)}'),
+                              'Dosso Kart ile Öde · ${formatTl(cart.total)}',
+                            ),
                     ),
                   ),
                 ],
@@ -278,8 +297,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       backgroundColor: AppColors.background,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) => SafeArea(
@@ -314,7 +332,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: () {
-                      ref.read(cartProvider.notifier).updateAt(
+                      ref
+                          .read(cartProvider.notifier)
+                          .updateAt(
                             index,
                             item.copyWith(milk: milk, shot: shot),
                           );
@@ -370,8 +390,11 @@ class _BranchCard extends StatelessWidget {
                   color: AppColors.surfaceTint,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.storefront_outlined,
-                    size: 22, color: AppColors.primary),
+                child: const Icon(
+                  Icons.storefront_outlined,
+                  size: 22,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -383,8 +406,7 @@ class _BranchCard extends StatelessWidget {
                       address,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style:
-                          AppTypography.bodySecondary.copyWith(fontSize: 13),
+                      style: AppTypography.bodySecondary.copyWith(fontSize: 13),
                     ),
                   ],
                 ),
@@ -408,7 +430,9 @@ class _BranchCard extends StatelessWidget {
                   onTap: () => onSlotChanged(i),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.xs,
+                    ),
                     decoration: BoxDecoration(
                       color: i == selectedSlot
                           ? AppColors.gold
@@ -424,11 +448,13 @@ class _BranchCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (i == 0) ...[
-                          Icon(Icons.schedule,
-                              size: 14,
-                              color: i == selectedSlot
-                                  ? AppColors.onGold
-                                  : AppColors.textSecondary),
+                          Icon(
+                            Icons.schedule,
+                            size: 14,
+                            color: i == selectedSlot
+                                ? AppColors.onGold
+                                : AppColors.textSecondary,
+                          ),
                           const SizedBox(width: AppSpacing.xs),
                         ],
                         Text(
@@ -475,7 +501,11 @@ class _CartItemRow extends StatelessWidget {
             child: SizedBox(
               width: 56,
               height: 56,
-              child: ProductImage(product: item.product, emojiSize: 28),
+              child: ProductImage(
+                product: item.product,
+                emojiSize: 28,
+                memCacheWidth: 200,
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -490,8 +520,10 @@ class _CartItemRow extends StatelessWidget {
                   style: AppTypography.body,
                 ),
                 const SizedBox(height: 2),
-                Text(item.optionsLabel,
-                    style: AppTypography.bodySecondary.copyWith(fontSize: 13)),
+                Text(
+                  item.optionsLabel,
+                  style: AppTypography.bodySecondary.copyWith(fontSize: 13),
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
@@ -500,16 +532,21 @@ class _CartItemRow extends StatelessWidget {
                         onTap: onEdit,
                         child: Text(
                           'Düzenle',
-                          style: AppTypography.body
-                              .copyWith(color: AppColors.primary, fontSize: 14),
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.primary,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                       const SizedBox(width: AppSpacing.lg),
                     ],
                     GestureDetector(
                       onTap: onDelete,
-                      child: const Icon(Icons.delete_outline,
-                          size: 20, color: AppColors.textSecondary),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        size: 20,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -557,16 +594,21 @@ class _FreeDrinkRow extends ConsumerWidget {
               color: AppColors.gold,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.card_giftcard,
-                size: 22, color: AppColors.onGold),
+            child: const Icon(
+              Icons.card_giftcard,
+              size: 22,
+              color: AppColors.onGold,
+            ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('İkram hakkını kullan ($freeDrinks adet)',
-                    style: AppTypography.body),
+                Text(
+                  'İkram hakkını kullan ($freeDrinks adet)',
+                  style: AppTypography.body,
+                ),
                 Text(
                   '${cart.freeDrinkItem!.product.name} ücretsiz olur',
                   style: AppTypography.bodySecondary.copyWith(fontSize: 13),
@@ -613,28 +655,36 @@ class _PromoRow extends ConsumerWidget {
                 color: AppColors.surfaceTint,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.confirmation_number_outlined,
-                  size: 22, color: AppColors.primary),
+              child: const Icon(
+                Icons.confirmation_number_outlined,
+                size: 22,
+                color: AppColors.primary,
+              ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: hasPromo
                   ? Text(
                       '${cart.promoCode} · %${(cart.discountRate * 100).round()} indirim',
-                      style:
-                          AppTypography.body.copyWith(color: AppColors.success),
+                      style: AppTypography.body.copyWith(
+                        color: AppColors.success,
+                      ),
                     )
                   : Text('Kampanya kodu ekle', style: AppTypography.body),
             ),
             hasPromo
                 ? GestureDetector(
-                    onTap: () =>
-                        ref.read(cartProvider.notifier).removePromo(),
-                    child: const Icon(Icons.close,
-                        size: 20, color: AppColors.textSecondary),
+                    onTap: () => ref.read(cartProvider.notifier).removePromo(),
+                    child: const Icon(
+                      Icons.close,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
                   )
-                : const Icon(Icons.chevron_right,
-                    color: AppColors.textSecondary),
+                : const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.textSecondary,
+                  ),
           ],
         ),
       ),
@@ -648,16 +698,14 @@ class _PromoRow extends ConsumerWidget {
       backgroundColor: AppColors.background,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (context) => Padding(
         padding: EdgeInsets.only(
           left: AppSpacing.page,
           right: AppSpacing.page,
           top: AppSpacing.page,
-          bottom:
-              MediaQuery.of(context).viewInsets.bottom + AppSpacing.page,
+          bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.page,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -720,8 +768,10 @@ class _TotalsCard extends StatelessWidget {
           _totalRow('İndirim', '-${formatTl(cart.discount)}'),
           if (cart.freeDrinkDiscount > 0) ...[
             const SizedBox(height: AppSpacing.sm),
-            _totalRow('İkram (${cart.freeDrinkItem?.product.name})',
-                '-${formatTl(cart.freeDrinkDiscount)}'),
+            _totalRow(
+              'İkram (${cart.freeDrinkItem?.product.name})',
+              '-${formatTl(cart.freeDrinkDiscount)}',
+            ),
           ],
           const Padding(
             padding: EdgeInsets.symmetric(vertical: AppSpacing.md),

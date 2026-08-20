@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
@@ -73,9 +75,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   }
 
   void _animateShiftTo(double target, {VoidCallback? onDone}) {
-    _shiftAnimation = Tween<double>(begin: _shift, end: target).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _shiftAnimation = Tween<double>(
+      begin: _shift,
+      end: target,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _controller
       ..reset()
       ..forward().whenComplete(() => onDone?.call());
@@ -89,16 +92,19 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     }
     final dir = _shift > 0 ? 1 : -1;
     _swapping = true;
-    _animateShiftTo(dir.toDouble(), onDone: () {
-      if (!mounted) return;
-      setState(() {
-        _index = (_index! + dir + siblings.length) % siblings.length;
-        _shift = 0;
-        _milk = ProductOptions.defaultMilk;
-        _shot = ProductOptions.defaultShot;
-        _swapping = false;
-      });
-    });
+    _animateShiftTo(
+      dir.toDouble(),
+      onDone: () {
+        if (!mounted) return;
+        setState(() {
+          _index = (_index! + dir + siblings.length) % siblings.length;
+          _shift = 0;
+          _milk = ProductOptions.defaultMilk;
+          _shot = ProductOptions.defaultShot;
+          _swapping = false;
+        });
+      },
+    );
   }
 
   double _priceFor(Product product) => product.hasOptions
@@ -106,9 +112,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       : product.price;
 
   void _addToCart(Product product) {
-    ref.read(cartProvider.notifier).add(
-          CartItem(product: product, milk: _milk, shot: _shot),
-        );
+    ref
+        .read(cartProvider.notifier)
+        .add(CartItem(product: product, milk: _milk, shot: _shot));
     setState(() => _added = true);
     _addedTimer?.cancel();
     _addedTimer = Timer(const Duration(milliseconds: 1600), () {
@@ -137,8 +143,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
           return Scaffold(
             appBar: AppBar(),
             body: Center(
-              child:
-                  Text('Ürün bulunamadı', style: AppTypography.bodySecondary),
+              child: Text(
+                'Ürün bulunamadı',
+                style: AppTypography.bodySecondary,
+              ),
             ),
           );
         }
@@ -158,7 +166,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 bottom: false,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.sm,
+                  ),
                   child: Row(
                     children: [
                       CircleAvatar(
@@ -207,8 +217,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   onHorizontalDragUpdate: (details) {
                     if (_swapping || siblings.length < 2) return;
                     _dragDx += details.delta.dx;
-                    setState(() =>
-                        _shift = (-_dragDx / _slotOffset).clamp(-1.3, 1.3));
+                    setState(
+                      () => _shift = (-_dragDx / _slotOffset).clamp(-1.3, 1.3),
+                    );
                   },
                   onHorizontalDragEnd: (_) => _onDragEnd(siblings),
                   onHorizontalDragCancel: () => _onDragEnd(siblings),
@@ -227,8 +238,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(30)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(30),
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: Color(0x1F2A1B12),
@@ -243,7 +255,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                         width: 44,
                         height: 5,
                         margin: const EdgeInsets.only(
-                            top: AppSpacing.md, bottom: AppSpacing.sm),
+                          top: AppSpacing.md,
+                          bottom: AppSpacing.sm,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.divider,
                           borderRadius: BorderRadius.circular(3),
@@ -254,15 +268,15 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                           duration: const Duration(milliseconds: 220),
                           transitionBuilder: (child, animation) =>
                               FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0, 0.03),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: child,
-                            ),
-                          ),
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0, 0.03),
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: child,
+                                ),
+                              ),
                           child: _SheetContent(
                             key: ValueKey(product.id),
                             product: product,
@@ -316,7 +330,7 @@ class _CarouselStage extends StatelessWidget {
           if (siblings.length == 2 && rel.abs() > 1) continue;
           final itemIndex =
               ((index + rel) % siblings.length + siblings.length) %
-                  siblings.length;
+              siblings.length;
           final p = rel - shift;
           final ap = p.abs();
           final scale = 1 - 0.375 * math.min(ap, 1);
@@ -361,9 +375,32 @@ class _ProductArt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (product.images.isNotEmpty) {
+      final src = product.images.first;
+      final emoji = Center(
+        child: Text(
+          product.emoji,
+          style: TextStyle(fontSize: math.min(120, height * 0.55)),
+        ),
+      );
+      if (src.startsWith('/') || src.startsWith('http')) {
+        // Karusel aynı anda 5 örnek kurar; decode yüksekliği sınırlanmazsa
+        // 5 tam çözünürlük görsel belleği ve kaydırmayı yorar.
+        final dpr = MediaQuery.devicePixelRatioOf(context);
+        return SizedBox(
+          height: height,
+          child: CachedNetworkImage(
+            imageUrl: ApiEndpoints.mediaUrl(src),
+            fit: BoxFit.contain,
+            memCacheHeight: (height * dpr).round().clamp(1, 1000),
+            fadeInDuration: const Duration(milliseconds: 150),
+            placeholder: (_, _) => emoji,
+            errorWidget: (_, _, _) => emoji,
+          ),
+        );
+      }
       return SizedBox(
         height: height,
-        child: Image.asset(product.images.first, fit: BoxFit.contain),
+        child: Image.asset(src, fit: BoxFit.contain),
       );
     }
     return SizedBox(
@@ -407,7 +444,11 @@ class _SheetContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.xs, AppSpacing.xl, AppSpacing.xl),
+        AppSpacing.xl,
+        AppSpacing.xs,
+        AppSpacing.xl,
+        AppSpacing.xl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -466,8 +507,7 @@ class _SheetContent extends StatelessWidget {
           FilledButton(
             onPressed: onAdd,
             style: FilledButton.styleFrom(
-              backgroundColor:
-                  added ? AppColors.success : AppColors.coffeeDark,
+              backgroundColor: added ? AppColors.success : AppColors.coffeeDark,
             ),
             child: added
                 ? const Row(
@@ -496,7 +536,9 @@ class _InfoChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: gold ? AppColors.gold : Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.pill),

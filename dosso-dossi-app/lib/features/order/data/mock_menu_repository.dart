@@ -198,7 +198,8 @@ class MockMenuRepository implements MenuRepository {
     _p('tatlilar', 'Dondurmalı Çikolatalı Brownie', 430),
 
     // ── KEK & KURABİYE (Kek + Kurabiye + Muffin + Donut) ──────
-    _p('kek-kurabiye', 'Sweet Çikolatalı Cookie', 130),
+    _p('kek-kurabiye', 'Sweet Çikolatalı Cookie', 130,
+        images: ['assets/images/cookie_cikolatali.png']),
     _p('kek-kurabiye', 'Sweet Cookie', 130),
     _p('kek-kurabiye', 'Mermer Kek', 180),
     _p('kek-kurabiye', 'Havuçlu Kek', 180),
