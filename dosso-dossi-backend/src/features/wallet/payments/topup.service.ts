@@ -4,12 +4,12 @@ import { AppError } from '../../../lib/errors.js';
 import { dec, toMoney } from '../../../lib/money.js';
 import { prisma } from '../../../lib/prisma.js';
 import { paymentProvider } from './dev-payment-provider.js';
+import { getSetting } from '../../settings/settings.service.js';
 
-// CEO kampanyası: kullanıcının İLK bakiye yüklemesi 1.000 ₺+ ise 5 ikram
-// kahve. Tek seferliktir: ilk yükleme eşiğin altındaysa da hak düşer,
+// CEO kampanyası: kullanıcının İLK bakiye yüklemesi eşiği geçiyorsa ikram
+// kahve verilir. Tek seferliktir: ilk yükleme eşiğin altındaysa da hak düşer,
 // sonraki yüklemelerde tutar ne olursa olsun ikram verilmez.
-const TOPUP_BONUS_THRESHOLD = 1000;
-const TOPUP_BONUS_DRINKS = 5;
+// Eşik/adet/kural artık Setting tablosundan (panelden yönetilir).
 
 export interface TopUpResult {
   balance: number;
@@ -105,10 +105,11 @@ export async function confirmTopUpTx(
     const previousTopUps = await tx.walletTransaction.count({
       where: { walletId: walletBefore.id, type: 'TOPUP' },
     });
-    const bonusDrinks =
-      previousTopUps === 0 && amount >= TOPUP_BONUS_THRESHOLD
-        ? TOPUP_BONUS_DRINKS
-        : 0;
+    const firstOnly = await getSetting<boolean>('loyalty.topUpBonusFirstOnly');
+    const threshold = await getSetting<number>('loyalty.topUpBonusThreshold');
+    const drinks = await getSetting<number>('loyalty.topUpBonusDrinks');
+    const eligible = (!firstOnly || previousTopUps === 0) && amount >= threshold;
+    const bonusDrinks = eligible ? drinks : 0;
 
     const wallet = await tx.wallet.update({
       where: { userId: intent.userId },

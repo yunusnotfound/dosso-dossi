@@ -5,21 +5,69 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_typography.dart';
 
+/// Sekme geçişlerinin ortak süresi/eğrisi: bar ve sayfa aynı ritimde aksın.
+const _transitionDuration = Duration(milliseconds: 240);
+const _transitionCurve = Curves.easeOutCubic;
+
 /// 5 sekmeli alt menü kabuğu. Sekme ekranları app_router.dart'ta tanımlıdır.
-class MainShell extends StatelessWidget {
+class MainShell extends StatefulWidget {
   const MainShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell>
+    with SingleTickerProviderStateMixin {
+  /// Sekme değişince yeni sayfa hafifçe belirip yukarı yerleşir.
+  /// Giden sayfa ayrıca canlandırılmıyor: StatefulNavigationShell'i
+  /// AnimatedSwitcher'a sarmak ağaçta iki örnek bırakır ve sekmelerin
+  /// durumunu (kaydırma konumu, form içeriği) bozar.
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: _transitionDuration,
+    value: 1,
+  );
+
+  late final Animation<double> _fade = Tween(begin: 0.85, end: 1.0)
+      .animate(CurvedAnimation(parent: _controller, curve: _transitionCurve));
+
+  late final Animation<Offset> _slide =
+      Tween(begin: const Offset(0, 0.012), end: Offset.zero)
+          .animate(CurvedAnimation(parent: _controller, curve: _transitionCurve));
+
+  @override
+  void didUpdateWidget(covariant MainShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.navigationShell.currentIndex !=
+        widget.navigationShell.currentIndex) {
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: _PillNavBar(
-        currentIndex: navigationShell.currentIndex,
-        onSelected: (index) => navigationShell.goBranch(
+      body: FadeTransition(
+        opacity: _fade,
+        child: SlideTransition(
+          position: _slide,
+          child: widget.navigationShell,
+        ),
+      ),
+      bottomNavigationBar: PillNavBar(
+        currentIndex: widget.navigationShell.currentIndex,
+        onSelected: (index) => widget.navigationShell.goBranch(
           index,
-          initialLocation: index == navigationShell.currentIndex,
+          initialLocation: index == widget.navigationShell.currentIndex,
         ),
       ),
     );
@@ -40,8 +88,13 @@ class _NavItem {
 /// Zeminden ayrık, hap şeklinde yüzen alt menü. Ortadaki "Tara & Öde"
 /// sekmesi hapın üzerine taşan yuvarlak bir FAB olarak durur.
 /// Yüksekliği Scaffold'da yer kapladığı için içerik barın altında kalmaz.
-class _PillNavBar extends StatelessWidget {
-  const _PillNavBar({required this.currentIndex, required this.onSelected});
+/// Dokunma davranışı test edilebilsin diye görünür (public) bırakıldı.
+class PillNavBar extends StatelessWidget {
+  const PillNavBar({
+    super.key,
+    required this.currentIndex,
+    required this.onSelected,
+  });
 
   final int currentIndex;
   final ValueChanged<int> onSelected;
@@ -119,8 +172,8 @@ class _PillNavBar extends StatelessWidget {
           ),
         ],
       ),
-      // Material: InkWell dalgalarının hap zeminine düşmesi ve hap
-      // şeklinde kırpılması için gerekli.
+      // Material: hapın beyaz zemini ve köşelerinin kırpılması için.
+      // (Dokunma dalgası bilerek kaldırıldı — bkz. _PillNavTab.)
       child: Material(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -167,52 +220,101 @@ class _PillNavTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : AppColors.textSecondary;
     return Semantics(
       selected: selected,
-      child: InkWell(
+      child: GestureDetector(
+        // InkWell yerine GestureDetector: dokunma dalgası/gölgesi
+        // istenmiyor. Geri bildirimi zaten seçili sekmenin turuncu hapı
+        // ve ikon rengi veriyor.
+        behavior: HitTestBehavior.opaque, // boşluklar da tıklanabilir kalsın
         onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (showIcon)
-              // Seçili sekmenin ikonu soluk turuncu bir hapın içine alınır.
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOut,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.xs,
+        // Tek bir 0↔1 değeri; hap zemini, ikon geçişi ve yazı rengi aynı
+        // kaynaktan beslendiği için hepsi birlikte yumuşar.
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(end: selected ? 1 : 0),
+          duration: _transitionDuration,
+          curve: _transitionCurve,
+          builder: (context, t, _) {
+            final color =
+                Color.lerp(AppColors.textSecondary, AppColors.primary, t)!;
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (showIcon)
+                  // Seçili sekmenin ikonu soluk turuncu bir hapın içine alınır.
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Color.lerp(
+                        Colors.transparent,
+                        AppColors.surfaceTint,
+                        t,
+                      ),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.xs,
+                      ),
+                      child: _MorphIcon(
+                        idle: item.icon,
+                        active: item.selectedIcon,
+                        t: t,
+                        color: color,
+                      ),
+                    ),
+                  )
+                else
+                  const SizedBox(height: _iconSlotHeight),
+                const SizedBox(height: 3),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  // Dar ekranlarda "Kampanyalar" kırpılmak yerine küçülür.
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      item.label,
+                      maxLines: 1,
+                      style: AppTypography.badge
+                          .copyWith(fontSize: 11, color: color),
+                    ),
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: selected ? AppColors.surfaceTint : Colors.transparent,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                ),
-                child: Icon(
-                  selected ? item.selectedIcon : item.icon,
-                  size: _iconSize,
-                  color: color,
-                ),
-              )
-            else
-              const SizedBox(height: _iconSlotHeight),
-            const SizedBox(height: 3),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              // Dar ekranlarda "Kampanyalar" kırpılmak yerine küçülür.
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  item.label,
-                  maxLines: 1,
-                  style:
-                      AppTypography.badge.copyWith(fontSize: 11, color: color),
-                ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
+    );
+  }
+}
+
+/// İçi boş ve dolu ikon arasında sert değişim yerine çapraz geçiş.
+/// İkisi de aynı boyutta olduğu için yığın ikon kadar yer kaplar,
+/// yerleşim animasyon boyunca oynamaz.
+class _MorphIcon extends StatelessWidget {
+  const _MorphIcon({
+    required this.idle,
+    required this.active,
+    required this.t,
+    required this.color,
+    this.size = _PillNavTab._iconSize,
+  });
+
+  final IconData idle;
+  final IconData active;
+  final double t;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Opacity(opacity: 1 - t, child: Icon(idle, size: size, color: color)),
+        Opacity(opacity: t, child: Icon(active, size: size, color: color)),
+      ],
     );
   }
 }
@@ -233,39 +335,51 @@ class _ScanFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Gölge FAB'ın rengini izler; seçiliyken koyu butonun altında turuncu
-    // hale kalmasın.
-    final background = selected ? AppColors.coffeeDark : AppColors.primary;
     return Semantics(
       button: true,
       selected: selected,
       label: item.label,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: background.withValues(alpha: 0.30),
-              blurRadius: 20,
-              offset: const Offset(0, 7),
+      // Zemin ve gölge sekmelerle aynı süre/eğride akar.
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(end: selected ? 1 : 0),
+        duration: _transitionDuration,
+        curve: _transitionCurve,
+        builder: (context, t, _) {
+          // Gölge FAB'ın rengini izler; seçiliyken koyu butonun altında
+          // turuncu hale kalmasın.
+          final background =
+              Color.lerp(AppColors.primary, AppColors.coffeeDark, t)!;
+          return Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: background,
+              boxShadow: [
+                BoxShadow(
+                  color: background.withValues(alpha: 0.30),
+                  blurRadius: 20,
+                  offset: const Offset(0, 7),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Material(
-          color: background,
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onTap,
-            child: Icon(
-              selected ? item.selectedIcon : item.icon,
-              size: 26,
-              color: Colors.white,
+            clipBehavior: Clip.antiAlias,
+            child: GestureDetector(
+              // Sekmelerle aynı davranış: dokunma dalgası yok.
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
+              child: Center(
+                child: _MorphIcon(
+                  idle: item.icon,
+                  active: item.selectedIcon,
+                  t: t,
+                  color: Colors.white,
+                  size: 26,
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

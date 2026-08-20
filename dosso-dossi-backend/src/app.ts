@@ -18,6 +18,8 @@ import { walletRouter } from './features/wallet/wallet.routes.js';
 import { kerzzWebhooksRouter } from './features/webhooks/kerzz.routes.js';
 import { paymentWebhooksRouter } from './features/webhooks/payment.routes.js';
 import { posAuth } from './middleware/pos-auth.js';
+import { adminCors } from './middleware/admin-cors.js';
+import { adminRouter } from './features/admin/admin.routes.js';
 
 export function createApp(): express.Express {
   const app = express();
@@ -44,6 +46,9 @@ export function createApp(): express.Express {
       res.status(503).json({ ok: false, db: 'unreachable' });
     }
   });
+
+  // Yönetim paneli: müşteri API'sinden ayrı auth evreni, dar CORS allowlist'i.
+  app.use('/admin', adminCors, adminRouter);
 
   // Herkese açık
   app.use('/auth', authRouter);

@@ -17,6 +17,20 @@ const envSchema = z
     POS_WEBHOOK_SECRET: z.string().min(16),
     PAYMENT_WEBHOOK_SECRET: z.string().min(16),
     PAYMENT_PROVIDER: z.string().default('dev'),
+    // Yönetim paneli: müşteri JWT'sinden AYRI sır. Aynı sır kullanılırsa
+    // müşteri token'ı panele geçerdi; bu yüzden ayrı ve zorunlu.
+    ADMIN_JWT_SECRET: z.string().min(16),
+    ADMIN_JWT_EXPIRES_IN: z.string().default('15m'),
+    // Panelin çalıştığı origin(ler); CORS yalnızca bunlara açılır.
+    ADMIN_ORIGINS: z
+      .string()
+      .default('http://localhost:5173')
+      .transform((v) =>
+        v
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+      ),
     // Dev: sipariş durumunu otomatik ilerlet (yalnızca geliştirmede aç)
     POS_DEV_AUTOADVANCE: z
       .string()
@@ -46,7 +60,25 @@ const envSchema = z
           'POS_DEV_AUTOADVANCE üretimde true olamaz (sahte durum ilerletme)',
       });
     }
-    for (const key of ['POS_WEBHOOK_SECRET', 'PAYMENT_WEBHOOK_SECRET', 'JWT_SECRET'] as const) {
+    if (cfg.ADMIN_JWT_SECRET === cfg.JWT_SECRET) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'ADMIN_JWT_SECRET, JWT_SECRET ile aynı olamaz (müşteri token’ı panele geçerdi)',
+      });
+    }
+    if (cfg.ADMIN_ORIGINS.some((o) => o.startsWith('http://'))) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'ADMIN_ORIGINS üretimde https olmalı',
+      });
+    }
+    for (const key of [
+      'POS_WEBHOOK_SECRET',
+      'PAYMENT_WEBHOOK_SECRET',
+      'JWT_SECRET',
+      'ADMIN_JWT_SECRET',
+    ] as const) {
       if (cfg[key].includes('degistir') || cfg[key].includes('dev-')) {
         ctx.addIssue({
           code: 'custom',

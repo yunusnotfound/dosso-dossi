@@ -65,12 +65,28 @@ async function main() {
     await prisma.promoCode.upsert({ where: { code: p.code }, update: p, create: p });
   }
 
+  // Opsiyon fiyat farkları artık DB'de (panelden yönetilir); kodda sabit
+  // kalmadı. Seed yalnızca ilk değerleri kurar, sonrası panelden.
+  const options = [
+    { group: 'milk', name: 'Yulaf sütü', priceDelta: 60, sortOrder: 0 },
+    { group: 'milk', name: 'Badem sütü', priceDelta: 60, sortOrder: 1 },
+    { group: 'shot', name: 'Çift shot', priceDelta: 40, sortOrder: 0 },
+  ];
+  for (const o of options) {
+    await prisma.productOption.upsert({
+      where: { group_name: { group: o.group, name: o.name } },
+      update: {},
+      create: o,
+    });
+  }
+
   const counts = {
     categories: await prisma.category.count(),
     products: await prisma.product.count(),
     branches: await prisma.branch.count(),
     campaigns: await prisma.campaign.count(),
     promoCodes: await prisma.promoCode.count(),
+    productOptions: await prisma.productOption.count(),
   };
   console.log('Seed tamam:', counts);
 }

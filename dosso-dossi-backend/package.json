@@ -11,6 +11,7 @@
     "test": "vitest run",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
+    "admin:create": "tsx prisma/seed-admin.ts",
     "prisma:studio": "prisma studio",
     "extract:menu": "tsx scripts/extract-menu.ts",
     "pos:sim": "tsx scripts/pos-simulator.ts"
@@ -19,7 +20,9 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.1.0",
     "@prisma/client": "^6.19.3",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
