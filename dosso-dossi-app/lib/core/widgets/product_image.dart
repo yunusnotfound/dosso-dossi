@@ -21,11 +21,16 @@ class ProductImage extends StatelessWidget {
     this.emojiSize = 96,
     this.background = AppColors.surfaceTint,
     this.memCacheWidth = 450,
+    this.preferGrid = false,
   });
 
   final Product product;
   final double emojiSize;
   final Color background;
+
+  /// true ise (sadece sipariş grid'i) varsa kare vitrin fotoğrafı
+  /// [Product.gridImage] kutuyu kenardan kenara doldurur (cover).
+  final bool preferGrid;
 
   /// Ağ görselinin bellekte decode edileceği azami genişlik (fiziksel px).
   /// Grid varsayılanı 450 (~150pt @3x); küçük satırlar 200 geçer.
@@ -39,6 +44,19 @@ class ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final grid = product.gridImage;
+    if (preferGrid && grid != null) {
+      return CachedNetworkImage(
+        imageUrl: ApiEndpoints.mediaUrl(grid),
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        memCacheWidth: memCacheWidth,
+        fadeInDuration: const Duration(milliseconds: 150),
+        placeholder: (_, _) => _emoji(),
+        errorWidget: (_, _, _) => _emoji(),
+      );
+    }
     if (product.images.isEmpty) return _emoji();
     final src = product.images.first;
     if (src.startsWith('/') || src.startsWith('http')) {

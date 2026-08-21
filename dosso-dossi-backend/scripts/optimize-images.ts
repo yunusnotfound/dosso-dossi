@@ -15,8 +15,20 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const srcDir = process.argv[2] ?? path.join(os.homedir(), 'Desktop', 'ürünler');
-const outDir = path.resolve(here, '../uploads/products');
+
+// --grid <klasör>: sipariş grid'i için kare vitrin fotoğrafları işlenir
+// (kırpma yok, 640x640 cover, gridImageUrl alanına yazar). Bayraksız mod
+// detay görsellerini işler (trim + 960, imageUrl alanına yazar).
+const args = process.argv.slice(2);
+const gridMode = args[0] === '--grid';
+const srcDir =
+  (gridMode ? args[1] : args[0]) ?? path.join(os.homedir(), 'Desktop', 'ürünler');
+const outDir = path.resolve(
+  here,
+  gridMode ? '../uploads/products/grid' : '../uploads/products',
+);
+const urlPrefix = gridMode ? '/media/products/grid' : '/media/products';
+const urlField = gridMode ? 'gridImageUrl' : 'imageUrl';
 const menuFile = path.resolve(here, '../prisma/seed-data/menu.json');
 
 // extract-menu.ts slug() ile birebir aynı
@@ -62,6 +74,7 @@ const SKIP = new Set([
 interface MenuProduct {
   id: string;
   imageUrl: string | null;
+  gridImageUrl?: string | null;
   [key: string]: unknown;
 }
 
@@ -81,6 +94,8 @@ async function main() {
   fs.mkdirSync(outDir, { recursive: true });
 
   const unmatched: string[] = [];
+  const duplicates: string[] = [];
+  const done = new Set<string>();
   let written = 0;
   let skipped = 0;
 
@@ -103,21 +118,35 @@ async function main() {
       unmatched.push(`${file} → ${s}`);
       continue;
     }
+    // Aynı ürüne birden fazla dosya düşerse ("Ad (2).png") ilkini kullan.
+    if (done.has(product.id)) {
+      duplicates.push(`${file} → ${product.id} (atlandı)`);
+      continue;
+    }
+    done.add(product.id);
     const outFile = path.join(outDir, `${product.id}.webp`);
-    // trim: kaynaklardaki geniş boş kenarları atar ki ürün kadraja dolsun
-    // (uygulamada görsel küçücük kalmasın); ardından küçük bir şeffaf pay.
-    await sharp(path.join(srcDir, file))
-      .trim({ threshold: 25 })
-      .resize({ width: 960, height: 960, fit: 'inside', withoutEnlargement: true })
-      .extend({
-        top: 20,
-        bottom: 20,
-        left: 20,
-        right: 20,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      })
-      .webp({ quality: 80 })
-      .toFile(outFile);
+    const pipeline = sharp(path.join(srcDir, file));
+    if (gridMode) {
+      // Kare vitrin: fon zaten kadrajın parçası, kırpmadan tam kare doldur.
+      await pipeline
+        .resize({ width: 640, height: 640, fit: 'cover' })
+        .webp({ quality: 80 })
+        .toFile(outFile);
+    } else {
+      // Detay: geniş boş kenarları at, ürün kadraja dolsun; küçük şeffaf pay.
+      await pipeline
+        .trim({ threshold: 25 })
+        .resize({ width: 960, height: 960, fit: 'inside', withoutEnlargement: true })
+        .extend({
+          top: 20,
+          bottom: 20,
+          left: 20,
+          right: 20,
+          background: { r: 0, g: 0, b: 0, alpha: 0 },
+        })
+        .webp({ quality: 80 })
+        .toFile(outFile);
+    }
     // İçerik hash'i URL'de: fotoğraf değişince URL değişir, cihazlardaki
     // 1 yıllık immutable önbellek kendiliğinden kırılır.
     const hash = crypto
@@ -125,15 +154,20 @@ async function main() {
       .update(fs.readFileSync(outFile))
       .digest('hex')
       .slice(0, 8);
-    product.imageUrl = `/media/products/${product.id}.webp?v=${hash}`;
+    product[urlField] = `${urlPrefix}/${product.id}.webp?v=${hash}`;
     written++;
   }
 
   fs.writeFileSync(menuFile, `${JSON.stringify(menu, null, 2)}\n`);
 
-  const withImage = menu.products.filter((p) => p.imageUrl != null).length;
-  console.log(`✓ ${written} webp yazıldı → ${outDir} (${skipped} mükerrer atlandı)`);
-  console.log(`Görselli ürün: ${withImage}/${menu.products.length}`);
+  const withImage = menu.products.filter((p) => p[urlField] != null).length;
+  console.log(
+    `✓ [${gridMode ? 'grid' : 'detay'}] ${written} webp yazıldı → ${outDir} (${skipped} listeden atlandı)`,
+  );
+  console.log(`${urlField} dolu ürün: ${withImage}/${menu.products.length}`);
+  if (duplicates.length) {
+    console.log(`Aynı ürüne mükerrer dosya (${duplicates.length}):\n  ${duplicates.join('\n  ')}`);
+  }
   if (unmatched.length) {
     console.warn(`⚠ Eşleşmeyen ${unmatched.length} dosya:\n  ${unmatched.join('\n  ')}`);
     process.exitCode = 1;

@@ -71,6 +71,7 @@ class ApiMenuRepository implements MenuRepository {
       isFeatured: (json['isFeatured'] as bool?) ?? false,
       hasOptions: (json['hasOptions'] as bool?) ?? false,
       images: imageUrl == null ? const [] : [imageUrl],
+      gridImage: json['gridImageUrl'] as String?,
     );
   }
 }

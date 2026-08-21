@@ -93,7 +93,8 @@
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/filtre-kahve.webp?v=b4e1118e"
     },
     {
       "id": "mehmedi-mesari-filtre",
@@ -197,7 +198,8 @@
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/cafe-americano.webp?v=4dfb3314"
     },
     {
       "id": "cappuccino",
@@ -223,7 +225,8 @@
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": true,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/caffe-latte.webp?v=10267f5b"
     },
     {
       "id": "flat-white",
@@ -262,7 +265,8 @@
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/mocha-bianco.webp?v=b597427b"
     },
     {
       "id": "caramel-macchiato",
@@ -301,7 +305,8 @@
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/spice-vaniglia-eleganza.webp?v=771e1540"
     },
     {
       "id": "cacao-royale",
@@ -392,7 +397,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/chai-tea-latte.webp?v=88f5d41d"
     },
     {
       "id": "matcha-latte",
@@ -405,7 +411,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/matcha-latte.webp?v=b8874b71"
     },
     {
       "id": "matcha-fragola-latte",
@@ -418,7 +425,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/matcha-fragola-latte.webp?v=97eb004f"
     },
     {
       "id": "matcha-vaniglia-latte",
@@ -444,7 +452,8 @@
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": true,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/cafe-freddo.webp?v=9d5cac5e"
     },
     {
       "id": "americano-freddo",
@@ -470,7 +479,8 @@
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/latte-freddo.webp?v=a5e3f1f3"
     },
     {
       "id": "dolce-mocha-freddo",
@@ -509,7 +519,8 @@
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/dolce-caramel-macchiato.webp?v=5bf94dbf"
     },
     {
       "id": "freddo-latte-brulee",
@@ -535,7 +546,8 @@
       "stampMultiplier": 1,
       "isNew": true,
       "isFeatured": false,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/caramel-volt.webp?v=b576d47b"
     },
     {
       "id": "spice-vaniglia-eleganza-freddo",
@@ -639,7 +651,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/velvet-cacao.webp?v=c8f5d846"
     },
     {
       "id": "coco-bianca",
@@ -665,7 +678,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": true,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/pink-velvet.webp?v=7618589f"
     },
     {
       "id": "oreo-crumble",
@@ -678,7 +692,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/oreo-crumble.webp?v=1b31eec3"
     },
     {
       "id": "caramello",
@@ -691,7 +706,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/caramello.webp?v=b810e5aa"
     },
     {
       "id": "banana-cacao",
@@ -730,7 +746,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/mango.webp?v=815951d5"
     },
     {
       "id": "fragola",
@@ -756,7 +773,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/wild-forest.webp?v=dc76964b"
     },
     {
       "id": "passione-limone",
@@ -834,7 +852,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": true,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/casa-limone.webp?v=706a81f3"
     },
     {
       "id": "sole-lime",
@@ -847,7 +866,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/sole-lime.webp?v=3be03d60"
     },
     {
       "id": "berries-fresco",
@@ -860,7 +880,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/berries-fresco.webp?v=aa17b8bb"
     },
     {
       "id": "dragon-frutta",
@@ -873,7 +894,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/dragon-frutta.webp?v=be1da931"
     },
     {
       "id": "mango-arancio",
@@ -886,7 +908,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/mango-arancio.webp?v=34d0bc20"
     },
     {
       "id": "su-uludag",
@@ -1328,7 +1351,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/tereyagli-kruvasan.webp?v=262cf636"
     },
     {
       "id": "cikolatali-kruvasan",
@@ -1341,7 +1365,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": true,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/cikolatali-kruvasan.webp?v=b05351ea"
     },
     {
       "id": "danish-uzumlu",
@@ -1354,7 +1379,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/danish-uzumlu.webp?v=c6481a2f"
     },
     {
       "id": "newyork-roll-kruvasan-cikolatali",
@@ -1367,7 +1393,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/newyork-roll-kruvasan-cikolatali.webp?v=b058d199"
     },
     {
       "id": "newyork-roll-kruvasan-frambuazli",
@@ -1393,7 +1420,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/newyork-roll-kruvasan-beyaz-cikolatali.webp?v=ba7ece55"
     },
     {
       "id": "newyork-roll-kruvasan-fistikli",
@@ -1419,7 +1447,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/snickers-pasta.webp?v=963efa19"
     },
     {
       "id": "visneli-brownie",
@@ -1432,7 +1461,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/visneli-brownie.webp?v=18ca3944"
     },
     {
       "id": "beyaz-cikolatali-brownie",
@@ -1445,7 +1475,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/beyaz-cikolatali-brownie.webp?v=49b3b6b6"
     },
     {
       "id": "mozaik-pasta",
@@ -1471,7 +1502,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": true,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/frambuazli-cheesecake.webp?v=ff2adcd2"
     },
     {
       "id": "limonlu-cheesecake",
@@ -1484,7 +1516,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/limonlu-cheesecake.webp?v=e84d35f4"
     },
     {
       "id": "tiramisu",
@@ -1510,7 +1543,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/latte-pasta.webp?v=d3643e6f"
     },
     {
       "id": "profiterol-pasta",
@@ -1536,7 +1570,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/red-velvet-pasta.webp?v=7d302248"
     },
     {
       "id": "magnolia-fistikli",
@@ -1549,7 +1584,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/magnolia-fistikli.webp?v=a66a2289"
     },
     {
       "id": "magnolia-visneli",
@@ -1575,7 +1611,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/magnolia-mangolu.webp?v=33928cac"
     },
     {
       "id": "magnolia-lotus",
@@ -1640,7 +1677,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/elmali-crumble.webp?v=1efa2c69"
     },
     {
       "id": "kestaneli-crumble",
@@ -1770,7 +1808,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/sweet-cikolatali-cookie.webp?v=cc65b8d8"
     },
     {
       "id": "sweet-cookie",
@@ -1796,7 +1835,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/mermer-kek.webp?v=f47d1921"
     },
     {
       "id": "havuclu-kek",
@@ -1809,7 +1849,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/havuclu-kek.webp?v=831225ac"
     },
     {
       "id": "limonlu-kek",
@@ -1835,7 +1876,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/glutensiz-havuclu-kek.webp?v=92b7287c"
     },
     {
       "id": "glutensiz-mozaik-kek",
@@ -1848,7 +1890,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/glutensiz-mozaik-kek.webp?v=1877dfb9"
     },
     {
       "id": "glutensiz-newyork-cookie",
@@ -1991,7 +2034,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/kajun-tavuklu-sandvic.webp?v=05d17acb"
     },
     {
       "id": "kuru-domatesli-cevizli-mozzarella-sandvic",
@@ -2082,7 +2126,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/las-vegas-uc-peynirli-bagel.webp?v=c16b8e04"
     },
     {
       "id": "kare-mozzarella-sandvic",
@@ -2095,7 +2140,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/kare-mozzarella-sandvic.webp?v=7163a366"
     },
     {
       "id": "panini-izgara-tavuklu-sandvic",
@@ -2108,7 +2154,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/panini-izgara-tavuklu-sandvic.webp?v=7b3427d0"
     },
     {
       "id": "panini-hindi-fume-sandvic",
@@ -2121,7 +2168,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/panini-hindi-fume-sandvic.webp?v=3cb970c7"
     },
     {
       "id": "cikolata-sutlu-bitter-beyaz",
@@ -2810,7 +2858,8 @@
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/macaron-6-li.webp?v=a0a3edf2"
     },
     {
       "id": "blend-harman-kahveler-250-gr",

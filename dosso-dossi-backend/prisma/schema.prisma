@@ -162,6 +162,8 @@ model Product {
   categoryId      String
   description     String  @default("")
   imageUrl        String?
+  /// Sipariş grid'i için kare vitrin fotoğrafı (imageUrl detay ekranında kalır)
+  gridImageUrl    String?
   sizeMl          Int     @default(0)
   stampMultiplier Int     @default(0)
   isNew           Boolean @default(false)

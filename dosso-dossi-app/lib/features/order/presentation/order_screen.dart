@@ -388,7 +388,9 @@ class _ProductCard extends ConsumerWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                     child: SizedBox.expand(
-                      child: ProductImage(product: product),
+                      // Kare vitrin fotoğrafı (varsa) grid kutusunu kenardan
+                      // kenara doldurur; detay ekranı bundan etkilenmez.
+                      child: ProductImage(product: product, preferGrid: true),
                     ),
                   ),
                   if (product.stampMultiplier > 1)
