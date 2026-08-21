@@ -229,7 +229,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                           left: 0,
                           right: 0,
                           top: 0,
-                          height: bodyH * 0.48,
+                          // Dokunma alanı panelin üst kenarında biter; görsel
+                          // (artHeight) daha uzun olduğu için panele taşar.
+                          // Böylece paneldeki dokunmalar karusele takılmaz.
+                          height: bodyH * 0.38,
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
                             onHorizontalDragStart: (_) => _dragDx = 0,
@@ -250,6 +253,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                               index: _index!,
                               shift: _shift,
                               slotOffset: _slotOffset,
+                              // Dokunma alanından uzun: aradaki fark kadar
+                              // panele taşar (havada asılı görünüm).
+                              artHeight: bodyH * 0.45,
                             ),
                           ),
                         ),
@@ -334,6 +340,7 @@ class _CarouselStage extends StatelessWidget {
     required this.index,
     required this.shift,
     required this.slotOffset,
+    required this.artHeight,
   });
 
   final List<Product> siblings;
@@ -341,11 +348,13 @@ class _CarouselStage extends StatelessWidget {
   final double shift;
   final double slotOffset;
 
+  /// Görselin yüksekliği — dokunma alanından bağımsız ki panele taşabilsin.
+  final double artHeight;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final artHeight = constraints.maxHeight * 0.94;
         final slots = <int>[-2, -1, 1, 2, 0]; // merkez en üstte çizilir
         final children = <Widget>[];
 
@@ -376,15 +385,23 @@ class _CarouselStage extends StatelessWidget {
           children.add(
             Positioned.fill(
               child: Align(
-                child: Transform(
-                  transform: transform,
-                  alignment: Alignment.center,
-                  child: Opacity(
-                    opacity: opacity.clamp(0.0, 1.0),
-                    child: _ProductArt(
-                      product: siblings[itemIndex],
-                      height: artHeight,
-                      focus: 1 - t,
+                alignment: Alignment.topCenter,
+                // Görsel dokunma alanından uzun; OverflowBox kısıtı gevşetir
+                // ki alt kenardan panelin üzerine taşabilsin.
+                child: OverflowBox(
+                  alignment: Alignment.topCenter,
+                  minHeight: artHeight,
+                  maxHeight: artHeight,
+                  child: Transform(
+                    transform: transform,
+                    alignment: Alignment.center,
+                    child: Opacity(
+                      opacity: opacity.clamp(0.0, 1.0),
+                      child: _ProductArt(
+                        product: siblings[itemIndex],
+                        height: artHeight,
+                        focus: 1 - t,
+                      ),
                     ),
                   ),
                 ),
