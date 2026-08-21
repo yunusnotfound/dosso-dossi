@@ -25,8 +25,8 @@ class ShopScreen extends ConsumerStatefulWidget {
 }
 
 class _ShopScreenState extends ConsumerState<ShopScreen> {
-  /// Başlığın iki yanına ayrılan alan: 2 ikon (40) + aralık (8).
-  static const _headerIconsWidth = 88.0;
+  /// Başlığın iki yanına ayrılan alan: 2 ikon (40) + aralık (4).
+  static const _headerIconsWidth = 84.0;
 
   String _query = '';
   String _categoryId = 'merch';
@@ -65,12 +65,16 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                 children: [
                   const SizedBox(width: _headerIconsWidth),
                   Expanded(
-                    child: Text(
-                      'Online Mağaza',
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.headline,
+                    // Dar ekranlarda (iPhone SE) başlık kırpılmak yerine
+                    // sığacak kadar küçülür; geniş ekranlarda tam boyutta.
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Online Mağaza',
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        style: AppTypography.headline,
+                      ),
                     ),
                   ),
                   SizedBox(
@@ -82,7 +86,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                           icon: Icons.favorite_border,
                           onTap: () => context.push(Routes.favorites),
                         ),
-                        const SizedBox(width: AppSpacing.sm),
+                        const SizedBox(width: AppSpacing.xs),
                         Badge(
                           label: Text('$cartCount'),
                           isLabelVisible: cartCount > 0,
