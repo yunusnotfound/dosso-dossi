@@ -82,11 +82,17 @@ class _GreetingHeader extends ConsumerWidget {
             children: [
               Text(formatDayHeader(now), style: AppTypography.bodySecondary),
               const SizedBox(height: 2),
-              Text(
-                firstName.isEmpty
-                    ? greetingFor(now)
-                    : '${greetingFor(now)}, $firstName',
-                style: AppTypography.displayLarge,
+              // Uzun isimlerde satır kaymasın; sığmazsa küçülür.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  firstName.isEmpty
+                      ? greetingFor(now)
+                      : '${greetingFor(now)}, $firstName',
+                  maxLines: 1,
+                  style: AppTypography.displayLarge,
+                ),
               ),
             ],
           ),

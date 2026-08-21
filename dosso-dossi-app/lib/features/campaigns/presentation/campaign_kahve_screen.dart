@@ -188,22 +188,27 @@ class _CampaignKahveScreenState extends ConsumerState<CampaignKahveScreen>
                             width: 1.5,
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const _EyebrowDot(),
-                            const SizedBox(width: AppSpacing.md),
-                            Text(
-                              'KAHVE İÇTİKÇE · KAHVE KAZAN',
-                              style: AppTypography.badge.copyWith(
-                                color: _gold300,
-                                fontSize: 13,
-                                letterSpacing: 2.2,
+                        // Geniş harf aralıklı rozet dar ekranda sığsın.
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const _EyebrowDot(),
+                              const SizedBox(width: AppSpacing.md),
+                              Text(
+                                'KAHVE İÇTİKÇE · KAHVE KAZAN',
+                                maxLines: 1,
+                                style: AppTypography.badge.copyWith(
+                                  color: _gold300,
+                                  fontSize: 13,
+                                  letterSpacing: 2.2,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            const _EyebrowDot(),
-                          ],
+                              const SizedBox(width: AppSpacing.md),
+                              const _EyebrowDot(),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -252,21 +257,25 @@ class _CampaignKahveScreenState extends ConsumerState<CampaignKahveScreen>
                         ),
                       ),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const _Rule(),
-                        const SizedBox(width: AppSpacing.lg),
-                        Text(
-                          'KAHVE BİZDEN',
-                          style: AppTypography.displayLarge.copyWith(
-                            color: _onDark,
-                            fontSize: 30,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const _Rule(),
+                          const SizedBox(width: AppSpacing.lg),
+                          Text(
+                            'KAHVE BİZDEN',
+                            maxLines: 1,
+                            style: AppTypography.displayLarge.copyWith(
+                              color: _onDark,
+                              fontSize: 30,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: AppSpacing.lg),
-                        const _Rule(),
-                      ],
+                          const SizedBox(width: AppSpacing.lg),
+                          const _Rule(),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
                     // ── Fincan dizisi (canlı damga durumu) ──

@@ -337,9 +337,13 @@ class _QrCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Text(
-                'Kasada okutun · Kod $secondsLeft sn içinde yenilenir',
-                style: AppTypography.bodySecondary.copyWith(fontSize: 13),
+              Flexible(
+                child: Text(
+                  'Kasada okutun · Kod $secondsLeft sn içinde yenilenir',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.bodySecondary.copyWith(fontSize: 13),
+                ),
               ),
             ],
           ),

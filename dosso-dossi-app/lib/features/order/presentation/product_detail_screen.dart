@@ -458,9 +458,17 @@ class _SheetContent extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                formatTl(price),
-                style: AppTypography.numberLarge.copyWith(fontSize: 30),
+              // Yüksek fiyatlar rozetleri taşırmasın: gerekirse küçülür.
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    formatTl(price),
+                    maxLines: 1,
+                    style: AppTypography.numberLarge.copyWith(fontSize: 30),
+                  ),
+                ),
               ),
               const Spacer(),
               if (product.sizeMl > 0) ...[
@@ -477,9 +485,19 @@ class _SheetContent extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.xs),
-          Text(product.name, style: AppTypography.headline),
+          Text(
+            product.name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.headline,
+          ),
           const SizedBox(height: AppSpacing.xs),
-          Text(product.description, style: AppTypography.bodySecondary),
+          Text(
+            product.description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.bodySecondary,
+          ),
           const SizedBox(height: AppSpacing.md),
           if (product.hasOptions)
             Expanded(

@@ -44,9 +44,15 @@ class WalletCard extends ConsumerWidget {
                       wallet.when(
                         loading: () => Text('...', style: AppTypography.title),
                         error: (e, _) => Text('—', style: AppTypography.title),
-                        data: (w) => Text(
-                          formatTl(w.balance),
-                          style: AppTypography.title.copyWith(fontSize: 20),
+                        // Yüksek bakiyeler dar kartta kırpılmasın.
+                        data: (w) => FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            formatTl(w.balance),
+                            maxLines: 1,
+                            style: AppTypography.title.copyWith(fontSize: 20),
+                          ),
                         ),
                       ),
                     ],

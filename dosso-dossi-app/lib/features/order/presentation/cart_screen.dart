@@ -277,8 +277,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : Text(
-                              'Dosso Kart ile Öde · ${formatTl(cart.total)}',
+                          : FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'Dosso Kart ile Öde · ${formatTl(cart.total)}',
+                                maxLines: 1,
+                              ),
                             ),
                     ),
                   ),
@@ -793,7 +797,16 @@ class _TotalsCard extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: AppTypography.bodySecondary),
+        // Uzun ürün adlı etiketler ("İkram (…)") tutarı taşırmasın.
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.bodySecondary,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
         Text(value, style: AppTypography.bodySecondary),
       ],
     );

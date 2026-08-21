@@ -197,12 +197,15 @@ class _OnboardingPage extends StatelessWidget {
                 style: AppTypography.displayLarge.copyWith(fontSize: 26),
               ),
               const SizedBox(height: AppSpacing.sm),
-              // Sabit yükseklik: kart sınırı sayfalar arasında zıplamasın.
-              SizedBox(
-                height: 66,
+              // En az bu yükseklik: kart sınırı sayfalar arasında zıplamasın.
+              // Uzun açıklama/büyük yazı ölçeğinde taşmak yerine kısalır.
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 66),
                 child: Text(
                   data.description,
                   textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTypography.bodySecondary.copyWith(
                     fontSize: 15,
                     height: 1.4,

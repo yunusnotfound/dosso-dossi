@@ -95,10 +95,15 @@ class _BranchMapScreenState extends ConsumerState<BranchMapScreen> {
                 children: [
                   const SizedBox(width: 72),
                   Expanded(
-                    child: Text(
-                      'Mağazalar',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.headline,
+                    // Dar ekranda başlık sarmak yerine sığacak kadar küçülür.
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Mağazalar',
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        style: AppTypography.headline,
+                      ),
                     ),
                   ),
                   SizedBox(

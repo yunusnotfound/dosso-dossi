@@ -299,29 +299,42 @@ class _OfferBox extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'İLK YÜKLEMEYE ÖZEL',
-                style: AppTypography.badge.copyWith(
-                  color: _gold300.withValues(alpha: 0.9),
-                  fontSize: 11,
-                  letterSpacing: 1.6,
+          // Dar ekranda sol sütun sağdaki metni ezmesin.
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'İLK YÜKLEMEYE ÖZEL',
+                    maxLines: 1,
+                    style: AppTypography.badge.copyWith(
+                      color: _gold300.withValues(alpha: 0.9),
+                      fontSize: 11,
+                      letterSpacing: 1.6,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                '1.000 ₺',
-                style: AppTypography.displayLarge.copyWith(
-                  color: _onDark,
-                  fontSize: 30,
+                const SizedBox(height: AppSpacing.xs),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '1.000 ₺',
+                    maxLines: 1,
+                    style: AppTypography.displayLarge.copyWith(
+                      color: _onDark,
+                      fontSize: 30,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(width: AppSpacing.lg),
+          const SizedBox(width: AppSpacing.md),
           Container(
             width: 34,
             height: 34,

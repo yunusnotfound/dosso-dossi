@@ -46,7 +46,12 @@ class ProfileScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(user?.name ?? '', style: AppTypography.headline),
+                      Text(
+                        user?.name ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.headline,
+                      ),
                       Text(
                         user != null && user.email.isNotEmpty
                             ? user.email
@@ -255,10 +260,20 @@ class _SectionRow extends StatelessWidget {
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(data.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTypography.body.copyWith(color: color)),
             ),
             if (data.trailing != null) ...[
-              Text(data.trailing!, style: AppTypography.bodySecondary),
+              const SizedBox(width: AppSpacing.sm),
+              Flexible(
+                child: Text(
+                  data.trailing!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.bodySecondary,
+                ),
+              ),
               const SizedBox(width: AppSpacing.xs),
             ],
             if (!data.danger)
