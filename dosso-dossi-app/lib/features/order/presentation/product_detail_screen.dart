@@ -41,7 +41,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
 
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 420),
+    duration: const Duration(milliseconds: 520),
   );
   Animation<double>? _shiftAnimation;
 
@@ -75,10 +75,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   }
 
   void _animateShiftTo(double target, {VoidCallback? onDone}) {
-    _shiftAnimation = Tween<double>(
-      begin: _shift,
-      end: target,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _shiftAnimation = Tween<double>(begin: _shift, end: target).animate(
+      // Hafif yaylanma: ürünler yerine "oturuyormuş" gibi gelir.
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
     _controller
       ..reset()
       ..forward().whenComplete(() => onDone?.call());
@@ -208,98 +208,120 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   ),
                 ),
               ),
-              // ── Vitrin: sürüklenebilir ürün karuseli ──
-              // Görsel alanı sheet'e göre büyütüldü (2:3 → 5:6): ürün
-              // fotoğrafı ekranda iri ve baskın görünsün.
+              // ── Gövde: alt panel + üzerine taşan ürün vitrini ──
+              // Görsel panelin üst kenarını geçer; altındaki yumuşak gölgeyle
+              // havada asılı durur (referans tasarım).
               Expanded(
-                flex: 5,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onHorizontalDragStart: (_) => _dragDx = 0,
-                  onHorizontalDragUpdate: (details) {
-                    if (_swapping || siblings.length < 2) return;
-                    _dragDx += details.delta.dx;
-                    setState(
-                      () => _shift = (-_dragDx / _slotOffset).clamp(-1.3, 1.3),
-                    );
-                  },
-                  onHorizontalDragEnd: (_) => _onDragEnd(siblings),
-                  onHorizontalDragCancel: () => _onDragEnd(siblings),
-                  child: _CarouselStage(
-                    siblings: siblings,
-                    index: _index!,
-                    shift: _shift,
-                    slotOffset: _slotOffset,
-                  ),
-                ),
-              ),
-              // ── Alt panel (HTML: s04-sheet) ──
-              Expanded(
-                flex: 6,
-                child: Container(
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(30),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x1F2A1B12),
-                        blurRadius: 34,
-                        offset: Offset(0, -14),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 5,
-                        margin: const EdgeInsets.only(
-                          top: AppSpacing.md,
-                          bottom: AppSpacing.sm,
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    final bodyH = box.maxHeight;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          height: bodyH * 0.62,
+                          child: _buildSheet(product, price),
                         ),
-                        decoration: BoxDecoration(
-                          color: AppColors.divider,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
-                      Expanded(
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 220),
-                          transitionBuilder: (child, animation) =>
-                              FadeTransition(
-                                opacity: animation,
-                                child: SlideTransition(
-                                  position: Tween<Offset>(
-                                    begin: const Offset(0, 0.03),
-                                    end: Offset.zero,
-                                  ).animate(animation),
-                                  child: child,
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          top: 0,
+                          height: bodyH * 0.48,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onHorizontalDragStart: (_) => _dragDx = 0,
+                            onHorizontalDragUpdate: (details) {
+                              if (_swapping || siblings.length < 2) return;
+                              _dragDx += details.delta.dx;
+                              setState(
+                                () => _shift = (-_dragDx / _slotOffset).clamp(
+                                  -1.3,
+                                  1.3,
                                 ),
-                              ),
-                          child: _SheetContent(
-                            key: ValueKey(product.id),
-                            product: product,
-                            price: price,
-                            milk: _milk,
-                            shot: _shot,
-                            onMilk: (o) => setState(() => _milk = o),
-                            onShot: (o) => setState(() => _shot = o),
-                            onAdd: () => _addToCart(product),
-                            added: _added,
+                              );
+                            },
+                            onHorizontalDragEnd: (_) => _onDragEnd(siblings),
+                            onHorizontalDragCancel: () => _onDragEnd(siblings),
+                            child: _CarouselStage(
+                              siblings: siblings,
+                              index: _index!,
+                              shift: _shift,
+                              slotOffset: _slotOffset,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  /// Alt panel (HTML: s04-sheet): tutamak + ürün bilgileri.
+  Widget _buildSheet(Product product, double price) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x1F2A1B12),
+            blurRadius: 34,
+            offset: Offset(0, -14),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 44,
+            height: 5,
+            margin: const EdgeInsets.only(
+              top: AppSpacing.md,
+              bottom: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.divider,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.03),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              ),
+              child: _SheetContent(
+                key: ValueKey(product.id),
+                product: product,
+                price: price,
+                milk: _milk,
+                shot: _shot,
+                onMilk: (o) => setState(() => _milk = o),
+                onShot: (o) => setState(() => _shot = o),
+                onAdd: () => _addToCart(product),
+                added: _added,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -323,7 +345,7 @@ class _CarouselStage extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final artHeight = constraints.maxHeight * 0.92;
+        final artHeight = constraints.maxHeight * 0.94;
         final slots = <int>[-2, -1, 1, 2, 0]; // merkez en üstte çizilir
         final children = <Widget>[];
 
@@ -335,25 +357,34 @@ class _CarouselStage extends StatelessWidget {
               siblings.length;
           final p = rel - shift;
           final ap = p.abs();
-          final scale = 1 - 0.375 * math.min(ap, 1);
+          final t = math.min(ap, 1.0);
+          final scale = 1 - 0.42 * t;
           final opacity = ap <= 1
               ? 1 - 0.58 * ap
               : math.max(0.0, 0.42 * (2 - ap));
           if (opacity <= 0.02) continue;
 
+          // Düz kaydırma yerine 3B karusel: yanlar içe döner, biraz
+          // geri/aşağı kaçar ve hafifçe yatar.
+          final transform = Matrix4.identity()
+            ..setEntry(3, 2, 0.0011) // perspektif
+            ..translateByDouble(p * slotOffset, 26 * t, 0, 1)
+            ..rotateY((-0.52 * p).clamp(-0.85, 0.85))
+            ..rotateZ(0.05 * p.clamp(-1.3, 1.3))
+            ..scaleByDouble(scale, scale, 1, 1);
+
           children.add(
             Positioned.fill(
               child: Align(
-                child: Transform.translate(
-                  offset: Offset(p * slotOffset, 0),
-                  child: Transform.scale(
-                    scale: scale,
-                    child: Opacity(
-                      opacity: opacity.clamp(0.0, 1.0),
-                      child: _ProductArt(
-                        product: siblings[itemIndex],
-                        height: artHeight,
-                      ),
+                child: Transform(
+                  transform: transform,
+                  alignment: Alignment.center,
+                  child: Opacity(
+                    opacity: opacity.clamp(0.0, 1.0),
+                    child: _ProductArt(
+                      product: siblings[itemIndex],
+                      height: artHeight,
+                      focus: 1 - t,
                     ),
                   ),
                 ),
@@ -369,10 +400,48 @@ class _CarouselStage extends StatelessWidget {
 }
 
 class _ProductArt extends StatelessWidget {
-  const _ProductArt({required this.product, required this.height});
+  const _ProductArt({
+    required this.product,
+    required this.height,
+    this.focus = 1,
+  });
 
   final Product product;
   final double height;
+
+  /// 0 = yan yuva, 1 = merkez. Gölgenin koyuluğunu/yayılmasını belirler.
+  final double focus;
+
+  /// Ürünün altına yumuşak elips gölge koyar: nesne panelin üzerinde
+  /// havada asılı durur.
+  Widget _withShadow(Widget art) {
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          bottom: height * 0.02,
+          child: Container(
+            width: height * (0.30 + 0.10 * focus),
+            height: height * 0.055,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.all(
+                Radius.elliptical(height * 0.20, height * 0.028),
+              ),
+              gradient: RadialGradient(
+                colors: [
+                  Colors.black.withValues(alpha: 0.26 * focus),
+                  Colors.black.withValues(alpha: 0.0),
+                ],
+                stops: const [0.15, 1],
+              ),
+            ),
+          ),
+        ),
+        art,
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -392,19 +461,24 @@ class _ProductArt extends StatelessWidget {
         final dpr = MediaQuery.devicePixelRatioOf(context);
         return SizedBox(
           height: height,
-          child: CachedNetworkImage(
-            imageUrl: ApiEndpoints.mediaUrl(src),
-            fit: BoxFit.contain,
-            memCacheHeight: (height * dpr).round().clamp(1, 1000),
-            fadeInDuration: const Duration(milliseconds: 150),
-            placeholder: (_, _) => emoji,
-            errorWidget: (_, _, _) => emoji,
+          child: _withShadow(
+            CachedNetworkImage(
+              imageUrl: ApiEndpoints.mediaUrl(src),
+              fit: BoxFit.contain,
+              height: height,
+              memCacheHeight: (height * dpr).round().clamp(1, 1000),
+              fadeInDuration: const Duration(milliseconds: 150),
+              placeholder: (_, _) => emoji,
+              errorWidget: (_, _, _) => emoji,
+            ),
           ),
         );
       }
       return SizedBox(
         height: height,
-        child: Image.asset(src, fit: BoxFit.contain),
+        child: _withShadow(
+          Image.asset(src, fit: BoxFit.contain, height: height),
+        ),
       );
     }
     return SizedBox(
@@ -447,9 +521,11 @@ class _SheetContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
+      // Üst boşluk: panele taşan ürün görselinin altında kalsın diye
+      // fiyat/ad satırı aşağıdan başlar.
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xl,
-        AppSpacing.xs,
+        52,
         AppSpacing.xl,
         AppSpacing.xl,
       ),
