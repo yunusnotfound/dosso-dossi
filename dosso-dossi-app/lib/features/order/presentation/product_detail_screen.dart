@@ -255,7 +255,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                               slotOffset: _slotOffset,
                               // Dokunma alanından uzun: aradaki fark kadar
                               // panele taşar (havada asılı görünüm).
-                              artHeight: bodyH * 0.45,
+                              artHeight: bodyH * 0.50,
                             ),
                           ),
                         ),
@@ -542,7 +542,7 @@ class _SheetContent extends StatelessWidget {
       // fiyat/ad satırı aşağıdan başlar.
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xl,
-        52,
+        56,
         AppSpacing.xl,
         AppSpacing.xl,
       ),
