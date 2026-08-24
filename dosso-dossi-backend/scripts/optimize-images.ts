@@ -101,12 +101,25 @@ async function main() {
   let written = 0;
   let skipped = 0;
 
-  for (const file of fs.readdirSync(srcDir).filter((f) => /\.png$/i.test(f))) {
+  // Aynı ürünün hem tabaklı/fonlu hem "_kirpilmis" hali varsa tabaklı olan
+  // kullanılır: liste başına alınır (mükerrer kuralı ilkini seçer).
+  const files = fs
+    .readdirSync(srcDir)
+    .filter((f) => /\.png$/i.test(f))
+    .sort((a, b) => {
+      const ak = /kirpilmis/i.test(a) ? 1 : 0;
+      const bk = /kirpilmis/i.test(b) ? 1 : 0;
+      return ak - bk || a.localeCompare(b);
+    });
+
+  for (const file of files) {
     // macOS dosya adlarını NFD saklar; Türkçe harf haritası NFC bekler.
     // Bazı dışa aktarımlar başa zaman damgası ekler ("1787..._Ad.png").
     const base = file
       .replace(/\.png$/i, '')
       .replace(/^\d+_/, '')
+      // "Ad_kirpilmis.png" → "Ad": kırpılmış sürüm de ürün adıyla eşleşsin.
+      .replace(/[_-]?kirpilmis$/i, '')
       .normalize('NFC');
     const s = slug(base);
     if (SKIP.has(s)) {
