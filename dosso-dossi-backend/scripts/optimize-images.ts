@@ -61,6 +61,8 @@ const ALIASES: Record<string, string> = {
   'mango-eleganza': 'mango',
   'red-velvet': 'red-velvet-pasta',
   'cikolatali-cookie': 'sweet-cikolatali-cookie',
+  // Tabaklı partide Havuçlu Kek'in tek çekimi "46" ekiyle geliyor.
+  'havuc-lu-kek-46': 'havuclu-kek',
 };
 
 /// Mükerrer çekimler — kullanılmayacak dosyalar.
