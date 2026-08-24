@@ -37,7 +37,8 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'auth_user': jsonEncode({
         'phone': '5551112233',
-        'name': 'Berkay Demir',
+        // Uzun isim: selamlama satırının dar ekranda dayanıklılığını sınar.
+        'name': 'Abdurrahman Muhammed',
         'email': 'berkay@example.com',
       }),
     });

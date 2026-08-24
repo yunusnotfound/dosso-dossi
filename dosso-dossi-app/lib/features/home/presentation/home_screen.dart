@@ -82,17 +82,16 @@ class _GreetingHeader extends ConsumerWidget {
             children: [
               Text(formatDayHeader(now), style: AppTypography.bodySecondary),
               const SizedBox(height: 2),
-              // Uzun isimlerde satır kaymasın; sığmazsa küçülür.
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  firstName.isEmpty
-                      ? greetingFor(now)
-                      : '${greetingFor(now)}, $firstName',
-                  maxLines: 1,
-                  style: AppTypography.displayLarge,
-                ),
+              // Her ekran genişliğine kendiliğinden uyar: kısa isimlerde tek
+              // satır, uzun isimlerde ikinci satıra sarar (küçülterek okunmaz
+              // hale getirmez), taşacak kadar uzunsa kısaltır.
+              Text(
+                firstName.isEmpty
+                    ? greetingFor(now)
+                    : '${greetingFor(now)}, $firstName',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.displayLarge,
               ),
             ],
           ),
