@@ -70,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: AppColors.coffeeDark,
+        backgroundColor: AppColors.brandOrange,
         body: AnimatedBuilder(
           animation: Listenable.merge([_intro, _loop]),
           builder: (context, _) {
@@ -84,7 +84,10 @@ class _SplashScreenState extends State<SplashScreen>
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
                         radius: 1.0,
-                        colors: [Color(0xFF3B2B20), AppColors.coffeeDark],
+                        colors: [
+                          AppColors.brandOrangeLight,
+                          AppColors.brandOrange,
+                        ],
                       ),
                     ),
                   ),
@@ -100,7 +103,10 @@ class _SplashScreenState extends State<SplashScreen>
                       opacity: op * beanFade,
                       child: Transform.rotate(
                         angle: rot + 0.15 * math.sin(2 * math.pi * (loop + ph)),
-                        child: CoffeeBeanIcon(size: s, color: AppColors.gold),
+                        child: CoffeeBeanIcon(
+                          size: s,
+                          color: AppColors.textOnDark,
+                        ),
                       ),
                     ),
                   ),
@@ -191,7 +197,7 @@ class _SplashScreenState extends State<SplashScreen>
       child: Text(
         'COFFEE',
         style: AppTypography.sectionLabel.copyWith(
-          color: AppColors.goldOnDark,
+          color: AppColors.textOnDark,
           fontSize: 15,
           letterSpacing: 3 + 9 * v,
         ),
@@ -219,7 +225,8 @@ class _SplashScreenState extends State<SplashScreen>
                 scale: _seg(0.70 + i * 0.08, 0.82 + i * 0.08, Curves.elasticOut),
                 child: CoffeeBeanIcon(
                   size: 15,
-                  color: i == 1 ? AppColors.gold : AppColors.primary,
+                  // Ortadaki çekirdek kahve rengi, yanlar krem.
+                  color: i == 1 ? AppColors.coffeeDark : AppColors.textOnDark,
                 ),
               ),
             ),
@@ -247,7 +254,7 @@ class _RipplePainter extends CustomPainter {
       final paint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5
-        ..color = AppColors.primary
+        ..color = AppColors.textOnDark
             .withValues(alpha: (1 - p) * 0.30 * opacity);
       canvas.drawCircle(center, maxR * (0.62 + 0.38 * p), paint);
     }
@@ -272,7 +279,7 @@ class _ArcPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round
-      ..color = AppColors.goldOnDark;
+      ..color = AppColors.textOnDark;
     canvas.drawArc(
       rect.deflate(1.5),
       -math.pi / 2,

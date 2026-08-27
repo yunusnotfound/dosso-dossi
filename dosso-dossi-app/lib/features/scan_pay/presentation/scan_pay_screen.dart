@@ -81,7 +81,7 @@ class _ScanPayScreenState extends ConsumerState<ScanPayScreen> {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.page),
           children: [
-            Text('Tara & Öde', style: AppTypography.displayLarge),
+            Text('Tara & Öde', style: AppTypography.headline),
             const SizedBox(height: AppSpacing.lg),
             _SegmentedTabs(
               selected: _tab,

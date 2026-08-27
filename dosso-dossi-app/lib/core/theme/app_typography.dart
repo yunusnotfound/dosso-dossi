@@ -39,7 +39,13 @@ abstract final class AppTypography {
   static TextStyle get displayLarge =>
       _display(size: 30, weight: FontWeight.w800, height: 1.1);
 
-  /// Sayfa başlığı: "Profil", "Sepet (2)"
+  /// Ana sayfa selamlaması: "Günaydın, Elif".
+  /// Sekme başlıklarıyla ([headline]) aynı fontta; sadece daha iri ve
+  /// iki satıra sarabilsin diye satır yüksekliği sıkılaştırılmış.
+  static TextStyle get greeting =>
+      _base(size: 30, weight: FontWeight.w800, height: 1.1);
+
+  /// Sekme/sayfa başlığı: "Online Mağaza", "Sipariş", "Profil", "Sepet (2)"
   static TextStyle get headline => _base(size: 24, weight: FontWeight.w800);
 
   /// Büyük rakamlar: bakiye, damga sayacı

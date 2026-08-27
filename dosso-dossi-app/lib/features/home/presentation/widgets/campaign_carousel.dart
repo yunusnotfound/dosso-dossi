@@ -43,6 +43,9 @@ class CampaignCarousel extends ConsumerWidget {
                 assetPath: 'assets/images/kahve_ictikce_afis.jpg',
                 route: Routes.campaignKahve,
                 label: 'İçtikçe kazan kampanyası: 5 al, 1 hediye',
+                // Afiş 51x117 dikey: kartta üst blok (başlık + "5 kahve
+                // sizden / 1 kahve bizden") görünsün.
+                alignment: Alignment.topCenter,
               );
             }
             // Yükle Kazan: kartın kendisi afişin ta kendisi — üzerine yazı
@@ -69,7 +72,12 @@ class _AfisCard extends StatelessWidget {
     required this.assetPath,
     required this.route,
     required this.label,
+    this.alignment = Alignment.center,
   });
+
+  /// Afiş kart oranından uzunsa hangi kısmının görüneceği (uzun dikey
+  /// afişlerde başlığın kalması için üstten hizalanır).
+  final Alignment alignment;
 
   final String assetPath;
   final String route;
@@ -88,7 +96,11 @@ class _AfisCard extends StatelessWidget {
             width: _afisCardWidth,
             height: _carouselHeight,
             // Afiş 4:5, kart da 4:5 — cover kırpma yapmadan tam oturur.
-            child: Image.asset(assetPath, fit: BoxFit.cover),
+            child: Image.asset(
+              assetPath,
+              fit: BoxFit.cover,
+              alignment: alignment,
+            ),
           ),
         ),
       ),

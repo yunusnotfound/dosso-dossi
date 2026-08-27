@@ -91,7 +91,7 @@ class _GreetingHeader extends ConsumerWidget {
                     : '${greetingFor(now)}, $firstName',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: AppTypography.displayLarge,
+                style: AppTypography.greeting,
               ),
             ],
           ),

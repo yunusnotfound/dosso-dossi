@@ -68,10 +68,16 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
           slivers: [
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.page, AppSpacing.page, AppSpacing.page, 0),
+                  AppSpacing.page, AppSpacing.md, AppSpacing.page, 0),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  Text('Sipariş', style: AppTypography.displayLarge),
+                  // "Online Mağaza" sekmesiyle aynı başlık düzeni:
+                  // sayfanın üst ortasında, aynı font ve ölçüde.
+                  Text(
+                    'Sipariş',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.headline,
+                  ),
                   const SizedBox(height: AppSpacing.lg),
                   const _BranchSelector(),
                   const SizedBox(height: AppSpacing.md),

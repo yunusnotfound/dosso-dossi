@@ -13,9 +13,17 @@ abstract final class AppColors {
   /// Koyu kahve: damga kartı zemini, seçili kategori çipi, ana buton
   static const Color coffeeDark = Color(0xFF2E211A);
 
+  /// Marka turuncusu — PANTONE 179 PC (CMYK 0/79/100/0).
+  /// Açılış ekranının zemini.
+  static const Color brandOrange = Color(0xFFEF6024);
+
+  /// Zeminin merkezinde kullanılan bir tık açık tonu (radyal gradyan).
+  static const Color brandOrangeLight = Color(0xFFF4763D);
+
   // ── Zeminler ────────────────────────────────────────────────
-  /// Sayfa arka planı (krem)
-  static const Color background = Color(0xFFF3EDE2);
+  /// Sayfa arka planı — PANTONE 482 PC (CMYK 5/11/15/0).
+  /// Tüm sekmelerin zemini buradan gelir (scaffoldBackgroundColor + AppBar).
+  static const Color background = Color(0xFFEBE1DA);
 
   /// Kart / yüzey rengi
   static const Color surface = Color(0xFFFFFFFF);
@@ -24,7 +32,7 @@ abstract final class AppColors {
   static const Color surfaceTint = Color(0xFFF9E9DC);
 
   /// Arama çubuğu gibi gömük alanların zemini
-  static const Color surfaceSunken = Color(0xFFEDE5D8);
+  static const Color surfaceSunken = Color(0xFFE1D6CD);
 
   // ── Metin ───────────────────────────────────────────────────
   static const Color textPrimary = Color(0xFF1E1611);

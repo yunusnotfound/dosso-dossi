@@ -396,8 +396,9 @@ class _TierCard extends StatelessWidget {
         vertical: AppSpacing.lg,
         horizontal: AppSpacing.xxxl,
       ),
+      // Turuncu zeminde soluk kalmasın diye koyu kahve dolgu + krem yazı.
       decoration: BoxDecoration(
-        color: _gold.withValues(alpha: 0.16),
+        color: _orange500.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: _gold.withValues(alpha: 0.55)),
       ),
@@ -411,7 +412,7 @@ class _TierCard extends StatelessWidget {
           Text(
             '$gift hediye',
             style: AppTypography.bodySecondary.copyWith(
-              color: _onDark.withValues(alpha: 0.6),
+              color: _onDark.withValues(alpha: 0.85),
               fontSize: 13,
             ),
           ),
@@ -457,12 +458,15 @@ class _Bullet extends StatelessWidget {
 }
 
 // ── Afiş paleti: campaign_kahve_screen.dart ile aynı ──
-const _bgTop = Color(0xFF301D11);
-const _bgMid = Color(0xFF2A1B12);
-const _bgBottom = Color(0xFF20140C);
-const _orange400 = Color(0xFFF1832A);
-const _orange500 = Color(0xFFE86A10);
-const _orange600 = Color(0xFFC55408);
-const _gold = Color(0xFFD9A13B);
-const _gold300 = Color(0xFFE8BE68);
+// Afiş zemini marka turuncusu (PANTONE 179 PC). Zemin turuncu olduğu için
+// eski turuncu vurgular kaybolurdu: onların yerini koyu kahve, altının
+// yerini krem tonlar aldı — hepsi turuncu üzerinde yüksek kontrastlı.
+const _bgTop = Color(0xFFF4763D); // açık turuncu (üst)
+const _bgMid = Color(0xFFEF6024); // PANTONE 179 PC
+const _bgBottom = Color(0xFFD2531A); // koyu turuncu (alt)
+const _orange400 = Color(0xFF5A4030); // vurgu: açık kahve
+const _orange500 = Color(0xFF2E211A); // buton zemini: koyu kahve
+const _orange600 = Color(0xFF1E1611); // en koyu uç (gradyan/gölge)
+const _gold = Color(0xFFFFE7BE); // rozet/çember dolgusu: krem
+const _gold300 = Color(0xFFFFF4DE); // açık krem (ince vurgu)
 const _onDark = Color(0xFFFFF9F2);

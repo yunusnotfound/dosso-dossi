@@ -6,13 +6,13 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
-import '../../../../core/widgets/brand_artwork.dart';
 import '../../../../core/widgets/brand_logo.dart';
 import '../../../../routing/app_router.dart';
 import '../../../wallet/application/wallet_providers.dart';
 
 /// Ana sayfadaki Dosso Kart satırı: bakiye + Yükle + QR kısayolu.
-/// Zemininde marka görseli sağdan sola doğru beyaza karışarak durur.
+/// Zemini solda marka kremi (PANTONE 482 PC) başlayıp sağa doğru marka
+/// turuncusuna geçer; böylece soldaki metinlerin kontrastı hiç değişmez.
 class WalletCard extends ConsumerWidget {
   const WalletCard({super.key});
 
@@ -22,14 +22,27 @@ class WalletCard extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [AppColors.background, AppColors.brandOrange],
+          // Sol yarı düz krem kalır, geçiş sağ üçte birde olur.
+          stops: [0.52, 0.92],
+        ),
         borderRadius: BorderRadius.circular(AppRadius.md),
+        // Kremin sol ucu sayfa zeminiyle aynı renkte; kartın kutu olarak
+        // okunması bu gölgeye bağlı.
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F2A1B12),
+            blurRadius: 18,
+            offset: Offset(0, 6),
+          ),
+        ],
       ),
-      // Görselin köşeleri kartın yarıçapına uysun.
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          const Positioned.fill(child: _CardArtwork()),
           Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Row(
@@ -91,26 +104,6 @@ class WalletCard extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Kart zeminindeki marka görseli. Sağda tam renkte, sola doğru şeffaflaşarak
-/// beyaz zemine karışır; böylece soldaki metinlerin kontrastı hiç değişmez.
-class _CardArtwork extends StatelessWidget {
-  const _CardArtwork();
-
-  @override
-  Widget build(BuildContext context) {
-    return ShaderMask(
-      blendMode: BlendMode.dstIn,
-      shaderCallback: (rect) => const LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        colors: [Colors.transparent, Colors.white],
-        stops: [0.52, 0.92],
-      ).createShader(rect),
-      child: const BrandArtwork(),
     );
   }
 }
