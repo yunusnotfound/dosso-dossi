@@ -12,6 +12,7 @@ import '../../rewards/application/loyalty_providers.dart';
 import '../../wallet/application/wallet_providers.dart';
 import '../data/auth_repository.dart';
 import '../domain/app_user.dart';
+import 'guest_mode.dart';
 
 /// Oturum durumu: null = giriş yapılmamış.
 /// Cihaza kaydedilir; uygulama yeniden açıldığında oturum devam eder.
@@ -42,6 +43,7 @@ class AuthController extends AsyncNotifier<AppUser?> {
             refresh: result.refreshToken,
           );
     }
+    await ref.read(guestModeProvider.notifier).exit();
     await _persist(result.user);
     _resetUserScopedState();
   }

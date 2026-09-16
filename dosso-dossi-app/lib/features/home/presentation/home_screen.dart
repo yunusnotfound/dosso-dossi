@@ -8,6 +8,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../routing/app_router.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../auth/application/guest_mode.dart';
 import '../../branches/application/branch_providers.dart';
 import '../../campaigns/application/campaign_providers.dart';
 import 'widgets/campaign_carousel.dart';
@@ -20,8 +21,14 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Tablo durum çubuğunun arkasına kadar uzansın diye üst güvenli alan
+    // kapatılır; boşluk ListView padding'iyle telafi edilir.
+    final topInset = MediaQuery.paddingOf(context).top;
+    // Konuk kullanıcının cüzdanı yok: kart hiç gösterilmez.
+    final isGuest = ref.watch(guestModeProvider);
     return Scaffold(
       body: SafeArea(
+        top: false,
         child: RefreshIndicator(
           color: AppColors.primary,
           // Bakiye ve damga bilerek yenilenmiyor: simüle ödeme/damga
@@ -32,13 +39,42 @@ class HomeScreen extends ConsumerWidget {
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.page),
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.page,
+              topInset + AppSpacing.sm,
+              AppSpacing.page,
+              AppSpacing.page,
+            ),
             children: [
-              const _GreetingHeader(),
-              const SizedBox(height: AppSpacing.xl),
-              const StampCard(),
-              const SizedBox(height: AppSpacing.lg),
-              const WalletCard(),
+              // Damga kartının tablosu selamlama ve kartın ARKASINDA,
+              // yanlarda ekran kenarına kadar taşar; yukarı doğru erir.
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: -AppSpacing.page,
+                    right: -AppSpacing.page,
+                    // Ekranın tepesine kadar: durum çubuğunun arkasında da
+                    // tablo devam eder, üstte gri bir bant kalmaz.
+                    top: -(topInset + AppSpacing.sm),
+                    // Kartın altına da taşar; oradaki sönüm daha uzun sürer.
+                    bottom: -52,
+                    child: StampCardBleed(),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: const [
+                      _GreetingHeader(),
+                      SizedBox(height: AppSpacing.xl),
+                      StampCard(),
+                    ],
+                  ),
+                ],
+              ),
+              if (!isGuest) ...[
+                const SizedBox(height: AppSpacing.lg),
+                const WalletCard(),
+              ],
               const SizedBox(height: AppSpacing.xxl),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

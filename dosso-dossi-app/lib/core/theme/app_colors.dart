@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 abstract final class AppColors {
   // ── Marka renkleri ──────────────────────────────────────────
   /// Ana turuncu: butonlar, aktif sekme, vurgular
-  static const Color primary = Color(0xFFD9682A);
+  /// PANTONE 179 PC (CMYK 0/79/100/0) — [brandOrange] ile aynı.
+  static const Color primary = Color(0xFFEF6024);
 
-  /// Turuncu gradyan açık ucu (kart arka planları vb.)
-  static const Color primaryLight = Color(0xFFE68A4E);
+  /// Turuncu gradyan açık ucu. Markanın TEK turuncusu 179 PC olduğu için
+  /// [primary] ile aynı: gradyanlar ton değil, yalnızca doku farkı yapar.
+  static const Color primaryLight = Color(0xFFEF6024);
 
   /// Koyu kahve: damga kartı zemini, seçili kategori çipi, ana buton
   static const Color coffeeDark = Color(0xFF2E211A);
@@ -17,8 +19,9 @@ abstract final class AppColors {
   /// Açılış ekranının zemini.
   static const Color brandOrange = Color(0xFFEF6024);
 
-  /// Zeminin merkezinde kullanılan bir tık açık tonu (radyal gradyan).
-  static const Color brandOrangeLight = Color(0xFFF4763D);
+  /// Açılış zemininin merkez tonu; markanın tek turuncusu olduğu için
+  /// [brandOrange] ile aynı.
+  static const Color brandOrangeLight = Color(0xFFEF6024);
 
   // ── Zeminler ────────────────────────────────────────────────
   /// Sayfa arka planı — PANTONE 482 PC (CMYK 5/11/15/0).

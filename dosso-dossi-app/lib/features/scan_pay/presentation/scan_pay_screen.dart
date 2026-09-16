@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../auth/application/guest_mode.dart';
+import '../../auth/presentation/guest_gate.dart';
 import '../../../core/constants/app_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -76,10 +78,30 @@ class _ScanPayScreenState extends ConsumerState<ScanPayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Konuk kullanıcının cüzdanı ve QR kodu yok: sekme kilitli görünür.
+    if (ref.watch(guestModeProvider)) {
+      return const Scaffold(
+        body: SafeArea(
+          child: GuestLockedView(
+            title: 'Tara & Öde üyelere özel',
+            message: 'Kasada QR ile ödemek, bakiye yüklemek ve damga '
+                'kazanmak için giriş yap.',
+            action: 'QR ile ödemek',
+          ),
+        ),
+      );
+    }
     return Scaffold(
       body: SafeArea(
+        // Üst güvenli alan kapalı: içerik ekranın tepesine kadar uzanır.
+        top: false,
         child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.page),
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.page,
+            MediaQuery.paddingOf(context).top + AppSpacing.page,
+            AppSpacing.page,
+            AppSpacing.page,
+          ),
           children: [
             Text('Tara & Öde', style: AppTypography.headline),
             const SizedBox(height: AppSpacing.lg),

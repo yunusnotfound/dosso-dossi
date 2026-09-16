@@ -88,13 +88,13 @@
       "price": 150,
       "categoryId": "sicak-kahveler",
       "description": "Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.",
-      "imageUrl": "/media/products/filtre-kahve.webp?v=bc47e331",
+      "imageUrl": "/media/products/filtre-kahve.webp?v=69e334d9",
       "sizeMl": 410,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/filtre-kahve.webp?v=b4e1118e"
+      "gridImageUrl": "/media/products/grid/filtre-kahve.webp?v=9f9b86b1"
     },
     {
       "id": "mehmedi-mesari-filtre",
@@ -102,12 +102,13 @@
       "price": 170,
       "categoryId": "sicak-kahveler",
       "description": "Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/mehmedi-mesari-filtre.webp?v=8afde8d5",
       "sizeMl": 410,
       "stampMultiplier": 1,
       "isNew": true,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/mehmedi-mesari-filtre.webp?v=da59b95a"
     },
     {
       "id": "espresso",
@@ -115,12 +116,13 @@
       "price": 140,
       "categoryId": "sicak-kahveler",
       "description": "Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/espresso.webp?v=f0179747",
       "sizeMl": 60,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/espresso.webp?v=50017754"
     },
     {
       "id": "ristretto",
@@ -128,12 +130,13 @@
       "price": 140,
       "categoryId": "sicak-kahveler",
       "description": "Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/ristretto.webp?v=63168205",
       "sizeMl": 30,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/ristretto.webp?v=f853662f"
     },
     {
       "id": "cortado",
@@ -141,12 +144,13 @@
       "price": 150,
       "categoryId": "sicak-kahveler",
       "description": "Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/cortado.webp?v=f8977226",
       "sizeMl": 30,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/cortado.webp?v=f3803406"
     },
     {
       "id": "affogato",
@@ -154,12 +158,13 @@
       "price": 180,
       "categoryId": "sicak-kahveler",
       "description": "Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/affogato.webp?v=9c36475d",
       "sizeMl": 30,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/affogato.webp?v=1176005e"
     },
     {
       "id": "turk-kahvesi",
@@ -167,12 +172,13 @@
       "price": 140,
       "categoryId": "sicak-kahveler",
       "description": "Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/turk-kahvesi.webp?v=8c052b92",
       "sizeMl": 120,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/turk-kahvesi.webp?v=4efc4574"
     },
     {
       "id": "turk-kahvesi-buyuk",
@@ -193,13 +199,13 @@
       "price": 160,
       "categoryId": "sicak-kahveler",
       "description": "Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.",
-      "imageUrl": "/media/products/cafe-americano.webp?v=792d5507",
+      "imageUrl": "/media/products/cafe-americano.webp?v=59f819d0",
       "sizeMl": 410,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/cafe-americano.webp?v=4dfb3314"
+      "gridImageUrl": "/media/products/grid/cafe-americano.webp?v=d0ffe893"
     },
     {
       "id": "cappuccino",
@@ -207,12 +213,13 @@
       "price": 190,
       "categoryId": "sicak-kahveler",
       "description": "Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/cappuccino.webp?v=8849528e",
       "sizeMl": 410,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/cappuccino.webp?v=c0b2a2a2"
     },
     {
       "id": "caffe-latte",
@@ -220,13 +227,13 @@
       "price": 190,
       "categoryId": "sicak-kahveler",
       "description": "Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.",
-      "imageUrl": "/media/products/caffe-latte.webp?v=7ba01488",
+      "imageUrl": "/media/products/caffe-latte.webp?v=8f51825c",
       "sizeMl": 410,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": true,
       "hasOptions": true,
-      "gridImageUrl": "/media/products/grid/caffe-latte.webp?v=10267f5b"
+      "gridImageUrl": "/media/products/grid/caffe-latte.webp?v=f0544144"
     },
     {
       "id": "flat-white",
@@ -234,12 +241,13 @@
       "price": 190,
       "categoryId": "sicak-kahveler",
       "description": "Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/flat-white.webp?v=9840631b",
       "sizeMl": 410,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": true,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/flat-white.webp?v=09b12498"
     },
     {
       "id": "cafe-mocha",
@@ -247,12 +255,13 @@
       "price": 260,
       "categoryId": "aromali-kahveler",
       "description": "Ev yapımı şuruplarla hazırlanan imza kahve.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/cafe-mocha.webp?v=1905a179",
       "sizeMl": 410,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": true,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/cafe-mocha.webp?v=993bdf70"
     },
     {
       "id": "mocha-bianco",
@@ -260,13 +269,13 @@
       "price": 260,
       "categoryId": "aromali-kahveler",
       "description": "Ev yapımı şuruplarla hazırlanan imza kahve.",
-      "imageUrl": "/media/products/mocha-bianco.webp?v=2690e4ce",
+      "imageUrl": "/media/products/mocha-bianco.webp?v=6abcb55c",
       "sizeMl": 410,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": true,
-      "gridImageUrl": "/media/products/grid/mocha-bianco.webp?v=b597427b"
+      "gridImageUrl": "/media/products/grid/mocha-bianco.webp?v=64daf18d"
     },
     {
       "id": "caramel-macchiato",
@@ -274,12 +283,13 @@
       "price": 250,
       "categoryId": "aromali-kahveler",
       "description": "Ev yapımı şuruplarla hazırlanan imza kahve.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/caramel-macchiato.webp?v=792f2ba6",
       "sizeMl": 410,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": true,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/caramel-macchiato.webp?v=b3ff3c0a"
     },
     {
       "id": "latte-brulee",
@@ -287,12 +297,13 @@
       "price": 270,
       "categoryId": "aromali-kahveler",
       "description": "Ev yapımı şuruplarla hazırlanan imza kahve.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/latte-brulee.webp?v=d1f488ae",
       "sizeMl": 410,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/latte-brulee.webp?v=08fe2c87"
     },
     {
       "id": "spice-vaniglia-eleganza",
@@ -300,13 +311,13 @@
       "price": 270,
       "categoryId": "aromali-kahveler",
       "description": "Ev yapımı şuruplarla hazırlanan imza kahve.",
-      "imageUrl": "/media/products/spice-vaniglia-eleganza.webp?v=2ab34cc8",
+      "imageUrl": "/media/products/spice-vaniglia-eleganza.webp?v=06ffa92f",
       "sizeMl": 410,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": true,
-      "gridImageUrl": "/media/products/grid/spice-vaniglia-eleganza.webp?v=771e1540"
+      "gridImageUrl": "/media/products/grid/spice-vaniglia-eleganza.webp?v=98bb1710"
     },
     {
       "id": "cacao-royale",
@@ -314,12 +325,13 @@
       "price": 240,
       "categoryId": "sicak-cikolatalar",
       "description": "Yoğun çikolata, buharda ısıtılmış süt.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/cacao-royale.webp?v=57bbfa0e",
       "sizeMl": 410,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/cacao-royale.webp?v=b32c7d7c"
     },
     {
       "id": "cacao-bianco-royale",
@@ -327,12 +339,13 @@
       "price": 240,
       "categoryId": "sicak-cikolatalar",
       "description": "Yoğun çikolata, buharda ısıtılmış süt.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/cacao-bianco-royale.webp?v=f67e42d8",
       "sizeMl": 410,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/cacao-bianco-royale.webp?v=0f1bef91"
     },
     {
       "id": "cay-bardak",
@@ -340,12 +353,13 @@
       "price": 70,
       "categoryId": "caylar",
       "description": "Demleme ve latte çay çeşitleri.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/cay-bardak.webp?v=0f534176",
       "sizeMl": 240,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/cay-bardak.webp?v=212e5542"
     },
     {
       "id": "cay-fincan",
@@ -353,12 +367,13 @@
       "price": 90,
       "categoryId": "caylar",
       "description": "Demleme ve latte çay çeşitleri.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/cay-fincan.webp?v=56ae16cb",
       "sizeMl": 410,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/cay-fincan.webp?v=7fdea558"
     },
     {
       "id": "yaprak-cay",
@@ -366,12 +381,13 @@
       "price": 150,
       "categoryId": "caylar",
       "description": "Demleme ve latte çay çeşitleri.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/yaprak-cay.webp?v=343799c1",
       "sizeMl": 410,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/yaprak-cay.webp?v=04e25ff6"
     },
     {
       "id": "sahlep",
@@ -379,12 +395,13 @@
       "price": 220,
       "categoryId": "caylar",
       "description": "Demleme ve latte çay çeşitleri.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/sahlep.webp?v=f1585102",
       "sizeMl": 410,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/sahlep.webp?v=b28725ff"
     },
     {
       "id": "chai-tea-latte",
@@ -392,13 +409,13 @@
       "price": 240,
       "categoryId": "caylar",
       "description": "Demleme ve latte çay çeşitleri.",
-      "imageUrl": "/media/products/chai-tea-latte.webp?v=3e1f0946",
+      "imageUrl": "/media/products/chai-tea-latte.webp?v=f05bc5eb",
       "sizeMl": 410,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/chai-tea-latte.webp?v=88f5d41d"
+      "gridImageUrl": "/media/products/grid/chai-tea-latte.webp?v=68c32bfc"
     },
     {
       "id": "matcha-latte",
@@ -406,13 +423,13 @@
       "price": 240,
       "categoryId": "caylar",
       "description": "Demleme ve latte çay çeşitleri.",
-      "imageUrl": "/media/products/matcha-latte.webp?v=d130ac98",
+      "imageUrl": "/media/products/matcha-latte.webp?v=ce8cf808",
       "sizeMl": 410,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/matcha-latte.webp?v=b8874b71"
+      "gridImageUrl": "/media/products/grid/matcha-latte.webp?v=72faf9da"
     },
     {
       "id": "matcha-fragola-latte",
@@ -420,13 +437,13 @@
       "price": 270,
       "categoryId": "caylar",
       "description": "Demleme ve latte çay çeşitleri.",
-      "imageUrl": "/media/products/matcha-fragola-latte.webp?v=8ebd71b6",
+      "imageUrl": "/media/products/matcha-fragola-latte.webp?v=75f64943",
       "sizeMl": 410,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/matcha-fragola-latte.webp?v=97eb004f"
+      "gridImageUrl": "/media/products/grid/matcha-fragola-latte.webp?v=a4a36ae2"
     },
     {
       "id": "matcha-vaniglia-latte",
@@ -434,12 +451,13 @@
       "price": 270,
       "categoryId": "caylar",
       "description": "Demleme ve latte çay çeşitleri.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/matcha-vaniglia-latte.webp?v=593c26fa",
       "sizeMl": 410,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/matcha-vaniglia-latte.webp?v=88cb539c"
     },
     {
       "id": "cafe-freddo",
@@ -447,13 +465,13 @@
       "price": 180,
       "categoryId": "soguk-kahveler",
       "description": "Buz üzerine, ferahlatıcı soğuk kahve.",
-      "imageUrl": "/media/products/cafe-freddo.webp?v=6ec97ae4",
+      "imageUrl": "/media/products/cafe-freddo.webp?v=c69303c3",
       "sizeMl": 470,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": true,
       "hasOptions": true,
-      "gridImageUrl": "/media/products/grid/cafe-freddo.webp?v=9d5cac5e"
+      "gridImageUrl": "/media/products/grid/cafe-freddo.webp?v=661170c5"
     },
     {
       "id": "americano-freddo",
@@ -461,12 +479,13 @@
       "price": 180,
       "categoryId": "soguk-kahveler",
       "description": "Buz üzerine, ferahlatıcı soğuk kahve.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/americano-freddo.webp?v=aff6a0fc",
       "sizeMl": 470,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/americano-freddo.webp?v=61146289"
     },
     {
       "id": "latte-freddo",
@@ -474,13 +493,13 @@
       "price": 200,
       "categoryId": "soguk-kahveler",
       "description": "Buz üzerine, ferahlatıcı soğuk kahve.",
-      "imageUrl": "/media/products/latte-freddo.webp?v=985e3323",
+      "imageUrl": "/media/products/latte-freddo.webp?v=d74d7e04",
       "sizeMl": 470,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": true,
-      "gridImageUrl": "/media/products/grid/latte-freddo.webp?v=a5e3f1f3"
+      "gridImageUrl": "/media/products/grid/latte-freddo.webp?v=7e5ffb8e"
     },
     {
       "id": "dolce-mocha-freddo",
@@ -514,13 +533,13 @@
       "price": 260,
       "categoryId": "soguk-kahveler",
       "description": "Buz üzerine, ferahlatıcı soğuk kahve.",
-      "imageUrl": "/media/products/dolce-caramel-macchiato.webp?v=b42c7cea",
+      "imageUrl": "/media/products/dolce-caramel-macchiato.webp?v=16018634",
       "sizeMl": 470,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": true,
-      "gridImageUrl": "/media/products/grid/dolce-caramel-macchiato.webp?v=5bf94dbf"
+      "gridImageUrl": "/media/products/grid/dolce-caramel-macchiato.webp?v=9ab7af55"
     },
     {
       "id": "freddo-latte-brulee",
@@ -528,12 +547,13 @@
       "price": 280,
       "categoryId": "soguk-kahveler",
       "description": "Buz üzerine, ferahlatıcı soğuk kahve.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/freddo-latte-brulee.webp?v=ff75f3b2",
       "sizeMl": 470,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/freddo-latte-brulee.webp?v=759bb885"
     },
     {
       "id": "caramel-volt",
@@ -547,7 +567,7 @@
       "isNew": true,
       "isFeatured": false,
       "hasOptions": true,
-      "gridImageUrl": "/media/products/grid/caramel-volt.webp?v=b576d47b"
+      "gridImageUrl": "/media/products/grid/caramel-volt.webp?v=bf81cfd7"
     },
     {
       "id": "spice-vaniglia-eleganza-freddo",
@@ -646,13 +666,13 @@
       "price": 270,
       "categoryId": "soguk-cikolatali",
       "description": "Soğuk çikolata keyfi.",
-      "imageUrl": "/media/products/velvet-cacao.webp?v=5e15fb45",
+      "imageUrl": "/media/products/velvet-cacao.webp?v=e7dd98a1",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/velvet-cacao.webp?v=c8f5d846"
+      "gridImageUrl": "/media/products/grid/velvet-cacao.webp?v=7b34f45b"
     },
     {
       "id": "coco-bianca",
@@ -660,12 +680,13 @@
       "price": 270,
       "categoryId": "soguk-cikolatali",
       "description": "Soğuk çikolata keyfi.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/coco-bianca.webp?v=b683ec85",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/coco-bianca.webp?v=da397406"
     },
     {
       "id": "pink-velvet",
@@ -673,13 +694,13 @@
       "price": 270,
       "categoryId": "soguk-cikolatali",
       "description": "Soğuk çikolata keyfi.",
-      "imageUrl": "/media/products/pink-velvet.webp?v=f9afcff9",
+      "imageUrl": "/media/products/pink-velvet.webp?v=b8fa7db9",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": true,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/pink-velvet.webp?v=7618589f"
+      "gridImageUrl": "/media/products/grid/pink-velvet.webp?v=11d10b8e"
     },
     {
       "id": "oreo-crumble",
@@ -687,13 +708,13 @@
       "price": 270,
       "categoryId": "soguk-cikolatali",
       "description": "Soğuk çikolata keyfi.",
-      "imageUrl": "/media/products/oreo-crumble.webp?v=3056e6fb",
+      "imageUrl": "/media/products/oreo-crumble.webp?v=70807776",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/oreo-crumble.webp?v=1b31eec3"
+      "gridImageUrl": "/media/products/grid/oreo-crumble.webp?v=68eb3d9f"
     },
     {
       "id": "caramello",
@@ -707,7 +728,7 @@
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/caramello.webp?v=b810e5aa"
+      "gridImageUrl": "/media/products/grid/caramello.webp?v=c1eae5aa"
     },
     {
       "id": "banana-cacao",
@@ -715,12 +736,13 @@
       "price": 245,
       "categoryId": "soguk-cikolatali",
       "description": "Soğuk çikolata keyfi.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/banana-cacao.webp?v=e8718753",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/banana-cacao.webp?v=76831213"
     },
     {
       "id": "fragola-cacao",
@@ -728,12 +750,13 @@
       "price": 245,
       "categoryId": "soguk-cikolatali",
       "description": "Soğuk çikolata keyfi.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/fragola-cacao.webp?v=f22c94ae",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/fragola-cacao.webp?v=9cd77c43"
     },
     {
       "id": "mango",
@@ -741,13 +764,13 @@
       "price": 270,
       "categoryId": "soguk-meyveli",
       "description": "Taze meyveli, buz gibi.",
-      "imageUrl": "/media/products/mango.webp?v=719c9b11",
+      "imageUrl": "/media/products/mango.webp?v=35512259",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/mango.webp?v=815951d5"
+      "gridImageUrl": "/media/products/grid/mango.webp?v=89fa9a75"
     },
     {
       "id": "fragola",
@@ -755,12 +778,13 @@
       "price": 270,
       "categoryId": "soguk-meyveli",
       "description": "Taze meyveli, buz gibi.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/fragola.webp?v=51e7c5a9",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/fragola.webp?v=1601160b"
     },
     {
       "id": "wild-forest",
@@ -768,13 +792,13 @@
       "price": 270,
       "categoryId": "soguk-meyveli",
       "description": "Taze meyveli, buz gibi.",
-      "imageUrl": "/media/products/wild-forest.webp?v=6c6931fd",
+      "imageUrl": "/media/products/wild-forest.webp?v=ebe375b4",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/wild-forest.webp?v=dc76964b"
+      "gridImageUrl": "/media/products/grid/wild-forest.webp?v=14102fdb"
     },
     {
       "id": "passione-limone",
@@ -782,12 +806,13 @@
       "price": 240,
       "categoryId": "soguk-meyveli",
       "description": "Taze meyveli, buz gibi.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/passione-limone.webp?v=b6060d8b",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/passione-limone.webp?v=120a4ce8"
     },
     {
       "id": "fragola-limone",
@@ -808,12 +833,13 @@
       "price": 270,
       "categoryId": "soguk-meyveli",
       "description": "Taze meyveli, buz gibi.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/mango-smoothie.webp?v=8322d5ae",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/mango-smoothie.webp?v=257afa89"
     },
     {
       "id": "fragola-smoothie",
@@ -821,12 +847,13 @@
       "price": 270,
       "categoryId": "soguk-meyveli",
       "description": "Taze meyveli, buz gibi.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/fragola-smoothie.webp?v=f91531a4",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/fragola-smoothie.webp?v=628efe32"
     },
     {
       "id": "wild-forest-smoothie",
@@ -834,12 +861,13 @@
       "price": 270,
       "categoryId": "soguk-meyveli",
       "description": "Taze meyveli, buz gibi.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/wild-forest-smoothie.webp?v=03b0a859",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/wild-forest-smoothie.webp?v=2d85dfd1"
     },
     {
       "id": "casa-limone",
@@ -847,13 +875,13 @@
       "price": 170,
       "categoryId": "soguk-meyveli",
       "description": "Taze meyveli, buz gibi.",
-      "imageUrl": "/media/products/casa-limone.webp?v=0d3a69a9",
+      "imageUrl": "/media/products/casa-limone.webp?v=6a994bdb",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": true,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/casa-limone.webp?v=706a81f3"
+      "gridImageUrl": "/media/products/grid/casa-limone.webp?v=b62a5640"
     },
     {
       "id": "sole-lime",
@@ -861,13 +889,13 @@
       "price": 230,
       "categoryId": "soguk-meyveli",
       "description": "Taze meyveli, buz gibi.",
-      "imageUrl": "/media/products/sole-lime.webp?v=a807e26b",
+      "imageUrl": "/media/products/sole-lime.webp?v=cdf56dda",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/sole-lime.webp?v=3be03d60"
+      "gridImageUrl": "/media/products/grid/sole-lime.webp?v=c20e533f"
     },
     {
       "id": "berries-fresco",
@@ -875,13 +903,13 @@
       "price": 230,
       "categoryId": "soguk-meyveli",
       "description": "Taze meyveli, buz gibi.",
-      "imageUrl": "/media/products/berries-fresco.webp?v=41d4a191",
+      "imageUrl": "/media/products/berries-fresco.webp?v=aab10813",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/berries-fresco.webp?v=aa17b8bb"
+      "gridImageUrl": "/media/products/grid/berries-fresco.webp?v=71990c82"
     },
     {
       "id": "dragon-frutta",
@@ -889,13 +917,13 @@
       "price": 230,
       "categoryId": "soguk-meyveli",
       "description": "Taze meyveli, buz gibi.",
-      "imageUrl": "/media/products/dragon-frutta.webp?v=97fc10fc",
+      "imageUrl": "/media/products/dragon-frutta.webp?v=47837b1c",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/dragon-frutta.webp?v=be1da931"
+      "gridImageUrl": "/media/products/grid/dragon-frutta.webp?v=5ca71c55"
     },
     {
       "id": "mango-arancio",
@@ -903,13 +931,13 @@
       "price": 230,
       "categoryId": "soguk-meyveli",
       "description": "Taze meyveli, buz gibi.",
-      "imageUrl": "/media/products/mango-arancio.webp?v=3573e579",
+      "imageUrl": "/media/products/mango-arancio.webp?v=2ff50018",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/mango-arancio.webp?v=34d0bc20"
+      "gridImageUrl": "/media/products/grid/mango-arancio.webp?v=fd824cd5"
     },
     {
       "id": "su-uludag",
@@ -1352,7 +1380,7 @@
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/tereyagli-kruvasan.webp?v=262cf636"
+      "gridImageUrl": "/media/products/grid/tereyagli-kruvasan.webp?v=dc07f941"
     },
     {
       "id": "cikolatali-kruvasan",
@@ -1366,7 +1394,7 @@
       "isNew": false,
       "isFeatured": true,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/cikolatali-kruvasan.webp?v=b05351ea"
+      "gridImageUrl": "/media/products/grid/cikolatali-kruvasan.webp?v=65ccef96"
     },
     {
       "id": "danish-uzumlu",
@@ -1380,7 +1408,7 @@
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/danish-uzumlu.webp?v=c6481a2f"
+      "gridImageUrl": "/media/products/grid/danish-uzumlu.webp?v=cdb9eb81"
     },
     {
       "id": "newyork-roll-kruvasan-cikolatali",
@@ -1394,7 +1422,7 @@
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/newyork-roll-kruvasan-cikolatali.webp?v=b058d199"
+      "gridImageUrl": "/media/products/grid/newyork-roll-kruvasan-cikolatali.webp?v=47aa9ffb"
     },
     {
       "id": "newyork-roll-kruvasan-frambuazli",
@@ -1421,7 +1449,7 @@
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/newyork-roll-kruvasan-beyaz-cikolatali.webp?v=ba7ece55"
+      "gridImageUrl": "/media/products/grid/newyork-roll-kruvasan-beyaz-cikolatali.webp?v=1eb07551"
     },
     {
       "id": "newyork-roll-kruvasan-fistikli",
@@ -1448,7 +1476,7 @@
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/snickers-pasta.webp?v=963efa19"
+      "gridImageUrl": "/media/products/grid/snickers-pasta.webp?v=7a2e6386"
     },
     {
       "id": "visneli-brownie",
@@ -1456,13 +1484,13 @@
       "price": 260,
       "categoryId": "tatlilar",
       "description": "Günlük üretim, el yapımı tatlı.",
-      "imageUrl": "/media/products/visneli-brownie.webp?v=1bce6321",
+      "imageUrl": "/media/products/visneli-brownie.webp?v=fdf3dbf5",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/visneli-brownie.webp?v=18ca3944"
+      "gridImageUrl": "/media/products/grid/visneli-brownie.webp?v=df1ab869"
     },
     {
       "id": "beyaz-cikolatali-brownie",
@@ -1476,7 +1504,7 @@
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/beyaz-cikolatali-brownie.webp?v=49b3b6b6"
+      "gridImageUrl": "/media/products/grid/beyaz-cikolatali-brownie.webp?v=78afe370"
     },
     {
       "id": "mozaik-pasta",
@@ -1497,13 +1525,13 @@
       "price": 260,
       "categoryId": "tatlilar",
       "description": "Günlük üretim, el yapımı tatlı.",
-      "imageUrl": "/media/products/frambuazli-cheesecake.webp?v=030cd2b2",
+      "imageUrl": "/media/products/frambuazli-cheesecake.webp?v=9985560c",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": true,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/frambuazli-cheesecake.webp?v=ff2adcd2"
+      "gridImageUrl": "/media/products/grid/frambuazli-cheesecake.webp?v=0644403d"
     },
     {
       "id": "limonlu-cheesecake",
@@ -1511,13 +1539,13 @@
       "price": 260,
       "categoryId": "tatlilar",
       "description": "Günlük üretim, el yapımı tatlı.",
-      "imageUrl": "/media/products/limonlu-cheesecake.webp?v=93289695",
+      "imageUrl": "/media/products/limonlu-cheesecake.webp?v=a623551c",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/limonlu-cheesecake.webp?v=e84d35f4"
+      "gridImageUrl": "/media/products/grid/limonlu-cheesecake.webp?v=c1ed03b4"
     },
     {
       "id": "tiramisu",
@@ -1538,13 +1566,13 @@
       "price": 260,
       "categoryId": "tatlilar",
       "description": "Günlük üretim, el yapımı tatlı.",
-      "imageUrl": "/media/products/latte-pasta.webp?v=2ef8698c",
+      "imageUrl": "/media/products/latte-pasta.webp?v=30b1d08e",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/latte-pasta.webp?v=d3643e6f"
+      "gridImageUrl": "/media/products/grid/latte-pasta.webp?v=4b1e3238"
     },
     {
       "id": "profiterol-pasta",
@@ -1565,13 +1593,13 @@
       "price": 260,
       "categoryId": "tatlilar",
       "description": "Günlük üretim, el yapımı tatlı.",
-      "imageUrl": "/media/products/red-velvet-pasta.webp?v=55a31473",
+      "imageUrl": "/media/products/red-velvet-pasta.webp?v=1ad90fc3",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/red-velvet-pasta.webp?v=7d302248"
+      "gridImageUrl": "/media/products/grid/red-velvet-pasta.webp?v=8493e05e"
     },
     {
       "id": "magnolia-fistikli",
@@ -1579,13 +1607,13 @@
       "price": 290,
       "categoryId": "tatlilar",
       "description": "Günlük üretim, el yapımı tatlı.",
-      "imageUrl": "/media/products/magnolia-fistikli.webp?v=8399e3f9",
+      "imageUrl": "/media/products/magnolia-fistikli.webp?v=c2816dd1",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/magnolia-fistikli.webp?v=a66a2289"
+      "gridImageUrl": "/media/products/grid/magnolia-fistikli.webp?v=ec2704ba"
     },
     {
       "id": "magnolia-visneli",
@@ -1606,13 +1634,13 @@
       "price": 290,
       "categoryId": "tatlilar",
       "description": "Günlük üretim, el yapımı tatlı.",
-      "imageUrl": "/media/products/magnolia-mangolu.webp?v=1a834a71",
+      "imageUrl": "/media/products/magnolia-mangolu.webp?v=ca010c9d",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/magnolia-mangolu.webp?v=33928cac"
+      "gridImageUrl": "/media/products/grid/magnolia-mangolu.webp?v=276309bd"
     },
     {
       "id": "magnolia-lotus",
@@ -1678,7 +1706,7 @@
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/elmali-crumble.webp?v=1efa2c69"
+      "gridImageUrl": "/media/products/grid/elmali-crumble.webp?v=1061bff2"
     },
     {
       "id": "kestaneli-crumble",
@@ -1712,12 +1740,13 @@
       "price": 390,
       "categoryId": "tatlilar",
       "description": "Günlük üretim, el yapımı tatlı.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/siyah-beyaz-waffle.webp?v=39c85e08",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/siyah-beyaz-waffle.webp?v=0ea9f893"
     },
     {
       "id": "cilekli-cikolata-waffle",
@@ -1803,13 +1832,13 @@
       "price": 130,
       "categoryId": "kek-kurabiye",
       "description": "Günlük üretim, el yapımı.",
-      "imageUrl": "/media/products/sweet-cikolatali-cookie.webp?v=47464863",
+      "imageUrl": "/media/products/sweet-cikolatali-cookie.webp?v=48faa4fb",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/sweet-cikolatali-cookie.webp?v=cc65b8d8"
+      "gridImageUrl": "/media/products/grid/sweet-cikolatali-cookie.webp?v=38e0d45e"
     },
     {
       "id": "sweet-cookie",
@@ -1836,7 +1865,7 @@
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/mermer-kek.webp?v=f47d1921"
+      "gridImageUrl": "/media/products/grid/mermer-kek.webp?v=b6ae3b15"
     },
     {
       "id": "havuclu-kek",
@@ -1844,13 +1873,13 @@
       "price": 180,
       "categoryId": "kek-kurabiye",
       "description": "Günlük üretim, el yapımı.",
-      "imageUrl": "/media/products/havuclu-kek.webp?v=06ebce49",
+      "imageUrl": "/media/products/havuclu-kek.webp?v=f8e0e9f2",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/havuclu-kek.webp?v=831225ac"
+      "gridImageUrl": "/media/products/grid/havuclu-kek.webp?v=32e501cb"
     },
     {
       "id": "limonlu-kek",
@@ -1871,13 +1900,13 @@
       "price": 260,
       "categoryId": "kek-kurabiye",
       "description": "Günlük üretim, el yapımı.",
-      "imageUrl": "/media/products/glutensiz-havuclu-kek.webp?v=16da4a17",
+      "imageUrl": "/media/products/glutensiz-havuclu-kek.webp?v=a7b87125",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/glutensiz-havuclu-kek.webp?v=92b7287c"
+      "gridImageUrl": "/media/products/grid/glutensiz-havuclu-kek.webp?v=c2435d1a"
     },
     {
       "id": "glutensiz-mozaik-kek",
@@ -1891,7 +1920,7 @@
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/glutensiz-mozaik-kek.webp?v=1877dfb9"
+      "gridImageUrl": "/media/products/grid/glutensiz-mozaik-kek.webp?v=51d3d7e6"
     },
     {
       "id": "glutensiz-newyork-cookie",
@@ -1964,12 +1993,13 @@
       "price": 170,
       "categoryId": "kek-kurabiye",
       "description": "Günlük üretim, el yapımı.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/donut-cikolatali.webp?v=4dddc4c6",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/donut-cikolatali.webp?v=4287097d"
     },
     {
       "id": "donut-beyaz-cikolatali",
@@ -2035,7 +2065,7 @@
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/kajun-tavuklu-sandvic.webp?v=05d17acb"
+      "gridImageUrl": "/media/products/grid/kajun-tavuklu-sandvic.webp?v=67577ac7"
     },
     {
       "id": "kuru-domatesli-cevizli-mozzarella-sandvic",
@@ -2082,12 +2112,13 @@
       "price": 280,
       "categoryId": "sandvic-tost",
       "description": "Sipariş üzerine taze hazırlanır.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/panini-dana-jambon-sandvic.webp?v=6767bd8e",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/panini-dana-jambon-sandvic.webp?v=e0de53ff"
     },
     {
       "id": "panini-kahvalti-sandvic",
@@ -2095,12 +2126,13 @@
       "price": 240,
       "categoryId": "sandvic-tost",
       "description": "Sipariş üzerine taze hazırlanır.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/panini-kahvalti-sandvic.webp?v=2878e8b2",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/panini-kahvalti-sandvic.webp?v=8befd11e"
     },
     {
       "id": "panini-roastbeef-sandvic",
@@ -2108,12 +2140,13 @@
       "price": 290,
       "categoryId": "sandvic-tost",
       "description": "Sipariş üzerine taze hazırlanır.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/panini-roastbeef-sandvic.webp?v=4095bdcf",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/panini-roastbeef-sandvic.webp?v=a641ba70"
     },
     {
       "id": "las-vegas-uc-peynirli-bagel",
@@ -2121,13 +2154,13 @@
       "price": 190,
       "categoryId": "sandvic-tost",
       "description": "Sipariş üzerine taze hazırlanır.",
-      "imageUrl": "/media/products/las-vegas-uc-peynirli-bagel.webp?v=89323dd6",
+      "imageUrl": "/media/products/las-vegas-uc-peynirli-bagel.webp?v=40bf0f9d",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/las-vegas-uc-peynirli-bagel.webp?v=c16b8e04"
+      "gridImageUrl": "/media/products/grid/las-vegas-uc-peynirli-bagel.webp?v=ac4fd632"
     },
     {
       "id": "kare-mozzarella-sandvic",
@@ -2135,13 +2168,13 @@
       "price": 195,
       "categoryId": "sandvic-tost",
       "description": "Sipariş üzerine taze hazırlanır.",
-      "imageUrl": "/media/products/kare-mozzarella-sandvic.webp?v=27299b5e",
+      "imageUrl": "/media/products/kare-mozzarella-sandvic.webp?v=f80ece61",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/kare-mozzarella-sandvic.webp?v=7163a366"
+      "gridImageUrl": "/media/products/grid/kare-mozzarella-sandvic.webp?v=1652dc5b"
     },
     {
       "id": "panini-izgara-tavuklu-sandvic",
@@ -2149,13 +2182,13 @@
       "price": 265,
       "categoryId": "sandvic-tost",
       "description": "Sipariş üzerine taze hazırlanır.",
-      "imageUrl": "/media/products/panini-izgara-tavuklu-sandvic.webp?v=4afcfea8",
+      "imageUrl": "/media/products/panini-izgara-tavuklu-sandvic.webp?v=b625e6eb",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/panini-izgara-tavuklu-sandvic.webp?v=7b3427d0"
+      "gridImageUrl": "/media/products/grid/panini-izgara-tavuklu-sandvic.webp?v=f8806137"
     },
     {
       "id": "panini-hindi-fume-sandvic",
@@ -2163,13 +2196,13 @@
       "price": 245,
       "categoryId": "sandvic-tost",
       "description": "Sipariş üzerine taze hazırlanır.",
-      "imageUrl": "/media/products/panini-hindi-fume-sandvic.webp?v=90ca06fc",
+      "imageUrl": "/media/products/panini-hindi-fume-sandvic.webp?v=eb28fc63",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/panini-hindi-fume-sandvic.webp?v=3cb970c7"
+      "gridImageUrl": "/media/products/grid/panini-hindi-fume-sandvic.webp?v=f3999a80"
     },
     {
       "id": "cikolata-sutlu-bitter-beyaz",
@@ -2853,13 +2886,13 @@
       "price": 230,
       "categoryId": "atistirmalik",
       "description": "Yanında götürmelik atıştırmalık.",
-      "imageUrl": "/media/products/macaron-6-li.webp?v=af6ab295",
+      "imageUrl": "/media/products/macaron-6-li.webp?v=a8e4df6f",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
       "hasOptions": false,
-      "gridImageUrl": "/media/products/grid/macaron-6-li.webp?v=a0a3edf2"
+      "gridImageUrl": "/media/products/grid/macaron-6-li.webp?v=53ff8489"
     },
     {
       "id": "blend-harman-kahveler-250-gr",
@@ -2906,12 +2939,13 @@
       "price": 150,
       "categoryId": "cekirdek",
       "description": "Evinde Dosso Dossi keyfi — taze kavrulmuş çekirdek.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/turk-kahvesi-100-gr.webp?v=65b19ab0",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/turk-kahvesi-100-gr.webp?v=d39ef157"
     },
     {
       "id": "turk-kahvesi-250-gr",
@@ -2919,12 +2953,13 @@
       "price": 350,
       "categoryId": "cekirdek",
       "description": "Evinde Dosso Dossi keyfi — taze kavrulmuş çekirdek.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/turk-kahvesi-250-gr.webp?v=65b19ab0",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/turk-kahvesi-250-gr.webp?v=d39ef157"
     },
     {
       "id": "turk-kahvesi-500-gr",
@@ -2932,12 +2967,13 @@
       "price": 650,
       "categoryId": "cekirdek",
       "description": "Evinde Dosso Dossi keyfi — taze kavrulmuş çekirdek.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/turk-kahvesi-500-gr.webp?v=65b19ab0",
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/turk-kahvesi-500-gr.webp?v=d39ef157"
     },
     {
       "id": "termos-turuncu-500-ml",

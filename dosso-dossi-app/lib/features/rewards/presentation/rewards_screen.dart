@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/coffee_bean_icon.dart';
+import '../../../core/widgets/mini_brand_cup.dart';
 import '../application/loyalty_providers.dart';
 import '../domain/loyalty_status.dart';
 
@@ -217,7 +218,9 @@ class _StampDot extends StatelessWidget {
               ),
       ),
       child: isRewardSlot
-          ? Icon(Icons.card_giftcard, size: 20, color: iconColor)
+          // Ödül halkası: hediye ikonu yerine logolu marka bardağı; ödül
+          // henüz açılmadığı için koyu zeminde soluk durur.
+          ? const Opacity(opacity: 0.6, child: MiniBrandCup(height: 30))
           : CoffeeBeanIcon(size: 20, color: iconColor),
     );
   }

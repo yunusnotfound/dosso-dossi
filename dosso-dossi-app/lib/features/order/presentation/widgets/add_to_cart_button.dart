@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../auth/presentation/guest_gate.dart';
 import '../../application/cart_controller.dart';
 import '../../domain/cart.dart';
 import '../../domain/menu.dart';
@@ -35,6 +36,8 @@ class _AddToCartButtonState extends ConsumerState<AddToCartButton> {
   }
 
   void _add() {
+    // Konuk sipariş veremez: giriş istemi açılır, sepete eklenmez.
+    if (blockedForGuest(context, ref, action: 'Sipariş vermek')) return;
     ref.read(cartProvider.notifier).add(CartItem(
           product: widget.product,
           milk: ProductOptions.defaultMilk,

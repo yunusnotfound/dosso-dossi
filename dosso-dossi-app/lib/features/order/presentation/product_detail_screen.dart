@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../auth/presentation/guest_gate.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -112,6 +113,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       : product.price;
 
   void _addToCart(Product product) {
+    // Konuk sipariş veremez: giriş istemi açılır.
+    if (blockedForGuest(context, ref, action: 'Sipariş vermek')) return;
     ref
         .read(cartProvider.notifier)
         .add(CartItem(product: product, milk: _milk, shot: _shot));

@@ -48,16 +48,18 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: AppSpacing.xxxl),
+        // Üst güvenli alan kapalı: içerik ekranın tepesine kadar uzanır.
+        top: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Başlık: ortada sayfa adı, sağda favoriler + sepet.
             // İki yanda eşit genişlik ayrılır ki başlık gerçekten ortalansın
             // ve sepet rozeti kırpılmadan sığsın.
             Padding(
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 AppSpacing.page,
-                AppSpacing.md,
+                MediaQuery.paddingOf(context).top + AppSpacing.md,
                 AppSpacing.page,
                 AppSpacing.sm,
               ),
@@ -127,8 +129,6 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                   horizontal: AppSpacing.page,
                 ),
                 children: const [
-                  _TermosBanner(),
-                  SizedBox(width: AppSpacing.md),
                   _BeansBanner(),
                 ],
               ),
@@ -169,52 +169,46 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            // Ürünler
-            products.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(AppSpacing.xxxl),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, _) => Padding(
-                padding: const EdgeInsets.all(AppSpacing.xxxl),
-                child: Center(
+            // Kaydırılan tek alan: ürün ızgarası.
+            Expanded(
+              child: products.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(
                   child: Text(
                     'Mağaza yüklenemedi',
                     style: AppTypography.bodySecondary,
                   ),
                 ),
-              ),
-              data: (list) {
-                final filtered = _filter(list);
-                if (filtered.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.all(AppSpacing.xxxl),
-                    child: Center(
+                data: (list) {
+                  final filtered = _filter(list);
+                  if (filtered.isEmpty) {
+                    return Center(
                       child: Text(
                         'Sonuç bulunamadı',
                         style: AppTypography.bodySecondary,
                       ),
+                    );
+                  }
+                  return GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.page,
+                      0,
+                      AppSpacing.page,
+                      AppSpacing.xxxl,
                     ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: AppSpacing.md,
+                          crossAxisSpacing: AppSpacing.md,
+                          childAspectRatio: 0.58,
+                        ),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) =>
+                        _ShopProductCard(product: filtered[index]),
                   );
-                }
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.page,
-                  ),
-                  child: GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    mainAxisSpacing: AppSpacing.md,
-                    crossAxisSpacing: AppSpacing.md,
-                    childAspectRatio: 0.58,
-                    children: [
-                      for (final product in filtered)
-                        _ShopProductCard(product: product),
-                    ],
-                  ),
-                );
-              },
+                },
+              ),
             ),
           ],
         ),
@@ -249,60 +243,7 @@ class _HeaderIcon extends StatelessWidget {
   }
 }
 
-/// Afiş 1: koyu zeminde yeni termoslar.
-class _TermosBanner extends StatelessWidget {
-  const _TermosBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 300,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.coffeeDark,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Yeni Termoslar\nSeni Bekliyor',
-                  style: AppTypography.title.copyWith(
-                    color: AppColors.textOnDark,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  '4 renk · 500 ml',
-                  style: AppTypography.badge.copyWith(
-                    color: AppColors.goldOnDark,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Image.asset(
-            'assets/images/termos_pembe.png',
-            height: 110,
-            fit: BoxFit.contain,
-          ),
-          Image.asset(
-            'assets/images/termos_yesil.png',
-            height: 96,
-            fit: BoxFit.contain,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Afiş 2: altın zeminde çekirdek kahveler.
+/// Afiş: altın zeminde çekirdek kahveler.
 class _BeansBanner extends StatelessWidget {
   const _BeansBanner();
 

@@ -81,13 +81,15 @@ class _BranchMapScreenState extends ConsumerState<BranchMapScreen> {
 
     return Scaffold(
       body: SafeArea(
+        // Üst güvenli alan kapalı: harita/başlık ekranın tepesine kadar uzanır.
+        top: false,
         child: Column(
           children: [
             // Başlık: ortada sayfa adı, sağda harita/liste geçişi.
             Padding(
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 AppSpacing.page,
-                AppSpacing.md,
+                MediaQuery.paddingOf(context).top + AppSpacing.md,
                 AppSpacing.page,
                 AppSpacing.sm,
               ),

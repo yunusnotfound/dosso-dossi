@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -6,20 +7,21 @@ import '../../../core/constants/app_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/widgets/brand_logo.dart';
 import '../../../core/widgets/coffee_bean_icon.dart';
+import '../../../core/widgets/mini_brand_cup.dart';
 import '../../../routing/app_router.dart';
+import '../application/guest_mode.dart';
 
 /// Uygulama tanıtımı — girişten önceki kaydırmalı karşılama akışı.
 /// Her sayfa bir özelliği anlatır: QR ile ödeme, damga, hediye.
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _controller = PageController();
   int _index = 0;
 
@@ -55,6 +57,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   bool get _isLast => _index == _pages.length - 1;
 
+  /// Üye olmadan devam: konuk moduna geçip ana sayfayı açar.
+  Future<void> _continueAsGuest() async {
+    await ref.read(guestModeProvider.notifier).enter();
+    if (mounted) context.go(Routes.home);
+  }
+
   void _next() {
     if (_isLast) {
       context.go(Routes.login);
@@ -70,7 +78,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     return Scaffold(
-      backgroundColor: AppColors.coffeeDark,
+      // Zemin marka kremi (PANTONE 482 PC).
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
           PageView.builder(
@@ -81,7 +90,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               data: _pages[i],
               buttonLabel: i == _pages.length - 1 ? 'Telefonla Devam Et' : 'Devam',
               onNext: _next,
-              onSkip: () => context.go(Routes.login),
+              onSkip: _continueAsGuest,
             ),
           ),
           // Sayfa noktaları: kaydırmadan etkilenmesin diye sabit katmanda.
@@ -146,7 +155,7 @@ class _OnboardingPage extends StatelessWidget {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     return Column(
       children: [
-        // Üst bölüm: koyu zemin üzerinde illüstrasyon.
+        // Üst bölüm: krem zemin üzerinde illüstrasyon.
         Expanded(
           child: SafeArea(
             bottom: false,
@@ -164,7 +173,9 @@ class _OnboardingPage extends StatelessWidget {
                         height: 300,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.05),
+                          // Aydınlık zeminde halka beyazla kaybolur; kahve
+                          // tonunun en soluk hâli kullanılır.
+                          color: AppColors.coffeeDark.withValues(alpha: 0.05),
                         ),
                       ),
                       data.illustration,
@@ -228,7 +239,7 @@ class _OnboardingPage extends StatelessWidget {
                   ),
                   textStyle: AppTypography.button,
                 ),
-                child: const Text('Atla'),
+                child: const Text('Üye olmadan devam et'),
               ),
             ],
           ),
@@ -444,11 +455,8 @@ class _StampIllustration extends StatelessWidget {
                       shape: BoxShape.circle,
                       color: AppColors.gold,
                     ),
-                    child: const Icon(
-                      Icons.card_giftcard,
-                      size: 18,
-                      color: AppColors.onGold,
-                    ),
+                    // Ödül halkası: elle çizilmiş bardağın küçük hâli.
+                    child: const MiniBrandCup(height: 26),
                   ),
                 ],
               ),
@@ -478,9 +486,13 @@ class _GiftIllustration extends StatelessWidget {
             child: _BrandCup(height: 180),
           ),
           Positioned(
-            left: 48,
-            bottom: 22,
-            child: _GiftBox(size: 110),
+            left: 34,
+            bottom: 14,
+            child: Image.asset(
+              'assets/images/onboarding_hediye_kutusu.png',
+              width: 140,
+              fit: BoxFit.contain,
+            ),
           ),
           const Positioned(
             left: 60,
@@ -498,158 +510,24 @@ class _GiftIllustration extends StatelessWidget {
   }
 }
 
-class _GiftBox extends StatelessWidget {
-  const _GiftBox({required this.size});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final ribbon = size * 0.16;
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        alignment: Alignment.topCenter,
-        children: [
-          // Gövde
-          Positioned(
-            top: size * 0.26,
-            left: size * 0.06,
-            right: size * 0.06,
-            bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(size * 0.10),
-              ),
-            ),
-          ),
-          // Kapak
-          Positioned(
-            top: size * 0.16,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: size * 0.16,
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(size * 0.06),
-              ),
-            ),
-          ),
-          // Dikey kurdele
-          Positioned(
-            top: size * 0.16,
-            bottom: 0,
-            child: Container(width: ribbon, color: AppColors.gold),
-          ),
-          // Fiyonk
-          Positioned(
-            top: 0,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Transform.rotate(
-                  angle: -0.5,
-                  child: _bowLoop(),
-                ),
-                SizedBox(width: size * 0.02),
-                Transform.rotate(
-                  angle: 0.5,
-                  child: _bowLoop(),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _bowLoop() => Container(
-        width: size * 0.24,
-        height: size * 0.16,
-        decoration: BoxDecoration(
-          color: AppColors.gold,
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-        ),
-      );
-}
-
-/// Kapaklı karton bardak; gövdesindeki bandın üstünde marka logosu taşır.
+/// Marka bardağı: turuncu kapaklı, logolu gerçek ürün fotoğrafı.
+/// Genişlik, görselin kendi en/boy oranından (471×725) türetilir.
 class _BrandCup extends StatelessWidget {
   const _BrandCup({required this.height});
+
+  static const _aspect = 471 / 725;
 
   final double height;
 
   @override
   Widget build(BuildContext context) {
-    final width = height * 0.74;
-    return SizedBox(
-      width: width,
+    return Image.asset(
+      'assets/images/onboarding_bardak.png',
       height: height,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned.fill(child: CustomPaint(painter: _CupPainter())),
-          // Logo, banda basılı damga gibi bardağın ortasında.
-          Positioned(
-            top: height * 0.44,
-            child: BrandLogo(size: width * 0.52),
-          ),
-        ],
-      ),
+      width: height * _aspect,
+      fit: BoxFit.contain,
+      // Retina'da yeniden boyutlandırma maliyetini düşürür.
+      cacheHeight: (height * 3).round(),
     );
   }
-}
-
-class _CupPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    // Kapak: üst kubbe + geniş kenar.
-    final lidPaint = Paint()..color = AppColors.primary;
-    canvas.drawRRect(
-      RRect.fromRectAndCorners(
-        Rect.fromLTRB(w * 0.14, h * 0.02, w * 0.86, h * 0.12),
-        topLeft: Radius.circular(w * 0.08),
-        topRight: Radius.circular(w * 0.08),
-      ),
-      lidPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTRB(w * 0.02, h * 0.10, w * 0.98, h * 0.185),
-        Radius.circular(w * 0.04),
-      ),
-      Paint()
-        ..color = Color.lerp(AppColors.primary, AppColors.coffeeDark, 0.25)!,
-    );
-
-    // Gövde: alta doğru daralan, alt köşeleri yuvarlatılmış karton bardak.
-    final body = Path()
-      ..moveTo(w * 0.07, h * 0.185)
-      ..lineTo(w * 0.93, h * 0.185)
-      ..lineTo(w * 0.81, h * 0.955)
-      ..quadraticBezierTo(w * 0.80, h, w * 0.74, h)
-      ..lineTo(w * 0.26, h)
-      ..quadraticBezierTo(w * 0.20, h, w * 0.19, h * 0.955)
-      ..close();
-    canvas.drawPath(body, Paint()..color = const Color(0xFFFBF6EC));
-
-    // Bant (kraft şerit): gövde şekliyle kırpılır, logo bunun üstüne oturur.
-    canvas.save();
-    canvas.clipPath(body);
-    canvas.drawRect(
-      Rect.fromLTRB(0, h * 0.42, w, h * 0.80),
-      Paint()..color = AppColors.gold,
-    );
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_CupPainter oldDelegate) => false;
 }

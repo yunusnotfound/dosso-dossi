@@ -29,7 +29,7 @@ class ProductImage extends StatelessWidget {
   final Color background;
 
   /// true ise (sadece sipariş grid'i) varsa kare vitrin fotoğrafı
-  /// [Product.gridImage] kutuyu kenardan kenara doldurur (cover).
+  /// [Product.gridImage] kullanılır; kırpılmadan kutuya sığdırılır.
   final bool preferGrid;
 
   /// Ağ görselinin bellekte decode edileceği azami genişlik (fiziksel px).
@@ -46,15 +46,22 @@ class ProductImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final grid = product.gridImage;
     if (preferGrid && grid != null) {
-      return CachedNetworkImage(
-        imageUrl: ApiEndpoints.mediaUrl(grid),
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        memCacheWidth: memCacheWidth,
-        fadeInDuration: const Duration(milliseconds: 150),
-        placeholder: (_, _) => _emoji(),
-        errorWidget: (_, _, _) => _emoji(),
+      // Vitrin kareleri artık şeffaf ürün çekimleri: cover ile doldurmak
+      // geniş kadrajlı olanları (kulplu kupalar) kenarlardan kırpıyordu.
+      // contain hepsini aynı ölçekte, kırpmadan kutuya oturtur.
+      return Container(
+        color: Colors.white,
+        alignment: Alignment.center,
+        child: CachedNetworkImage(
+          imageUrl: ApiEndpoints.mediaUrl(grid),
+          fit: BoxFit.contain,
+          width: double.infinity,
+          height: double.infinity,
+          memCacheWidth: memCacheWidth,
+          fadeInDuration: const Duration(milliseconds: 150),
+          placeholder: (_, _) => _emoji(),
+          errorWidget: (_, _, _) => _emoji(),
+        ),
       );
     }
     if (product.images.isEmpty) return _emoji();

@@ -461,9 +461,10 @@ class _Bullet extends StatelessWidget {
 // Afiş zemini marka turuncusu (PANTONE 179 PC). Zemin turuncu olduğu için
 // eski turuncu vurgular kaybolurdu: onların yerini koyu kahve, altının
 // yerini krem tonlar aldı — hepsi turuncu üzerinde yüksek kontrastlı.
-const _bgTop = Color(0xFFF4763D); // açık turuncu (üst)
-const _bgMid = Color(0xFFEF6024); // PANTONE 179 PC
-const _bgBottom = Color(0xFFD2531A); // koyu turuncu (alt)
+// Markanın tek turuncusu PANTONE 179 PC; zemin ton geçişi yapmaz.
+const _bgTop = Color(0xFFEF6024);
+const _bgMid = Color(0xFFEF6024);
+const _bgBottom = Color(0xFFEF6024);
 const _orange400 = Color(0xFF5A4030); // vurgu: açık kahve
 const _orange500 = Color(0xFF2E211A); // buton zemini: koyu kahve
 const _orange600 = Color(0xFF1E1611); // en koyu uç (gradyan/gölge)

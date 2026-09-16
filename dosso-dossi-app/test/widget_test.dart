@@ -22,10 +22,28 @@ void main() {
     await tester.pumpWidget(await _buildApp({}));
     await tester.pumpAndSettle();
 
-    // Kaydırmalı tanıtımın ilk sayfası: QR adımı + Devam/Atla butonları.
+    // Kaydırmalı tanıtımın ilk sayfası: QR adımı + Devam/konuk butonları.
     expect(find.text('QR Okut & Öde'), findsOneWidget);
     expect(find.text('Devam'), findsOneWidget);
-    expect(find.text('Atla'), findsOneWidget);
+    expect(find.text('Üye olmadan devam et'), findsOneWidget);
+  });
+
+  testWidgets('Üye olmadan devam edilince konuk olarak gezilir',
+      (tester) async {
+    await tester.pumpWidget(await _buildApp({}));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Üye olmadan devam et'));
+    await tester.pumpAndSettle();
+
+    // Ana sayfa açılır; damga kartının yerinde giriş çağrısı durur.
+    expect(find.text('Ana Sayfa'), findsWidgets);
+    expect(find.text('Damga biriktirmeye başla'), findsOneWidget);
+
+    // Hesaba bağlı sekme kilitli.
+    await tester.tap(find.text('Tara & Öde').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Tara & Öde üyelere özel'), findsOneWidget);
   });
 
   testWidgets('Oturum varsa ana sayfa ve alt menü gösterilir', (tester) async {
@@ -113,7 +131,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('175,50'), findsOneWidget);
     expect(find.text('4/5', findRichText: true), findsOneWidget);
-    expect(find.textContaining('Kullanılabilir ikramın: 1'), findsOneWidget);
+    // İkram sayısı artık damga kartında yazmıyor (İkramlarım sayfasında var).
   });
 
   testWidgets('İsmi eksik kullanıcı isim ekranına yönlenir', (tester) async {

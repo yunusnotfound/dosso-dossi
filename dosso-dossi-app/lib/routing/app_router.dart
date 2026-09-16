@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/application/auth_controller.dart';
+import '../features/auth/application/guest_mode.dart';
 import '../features/auth/domain/app_user.dart';
 import '../features/auth/presentation/name_screen.dart';
 import '../features/auth/presentation/onboarding_screen.dart';
@@ -88,6 +89,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(authState.dispose);
   ref.listen(authControllerProvider, (_, next) => authState.value = next);
 
+  // Konuk modu: üye olmadan gezme. Değişince yönlendirme yeniden çalışır.
+  final guest = ValueNotifier<bool>(ref.read(guestModeProvider));
+  ref.onDispose(guest.dispose);
+  ref.listen(guestModeProvider, (_, next) => guest.value = next);
+
   // Açılış animasyonu bitene kadar splash'te kal (oturum anında yüklense bile).
   final splashHold =
       ValueNotifier<bool>(ref.read(splashHoldProvider).isLoading);
@@ -96,7 +102,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: Routes.home,
-    refreshListenable: Listenable.merge([authState, splashHold]),
+    refreshListenable: Listenable.merge([authState, splashHold, guest]),
     redirect: (context, state) {
       final auth = authState.value;
       final location = state.matchedLocation;
@@ -111,8 +117,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       final user = auth.value;
 
-      // Giriş yapılmamış → onboarding'e.
+      // Giriş yapılmamış → onboarding'e. Konuk ise uygulamada serbest gezer;
+      // yalnızca açılış/tanıtım ekranlarından ana sayfaya alınır (giriş
+      // ekranlarına kendi isteğiyle gidebilmeli).
       if (user == null) {
+        if (guest.value) {
+          return location == Routes.splash || location == Routes.onboarding
+              ? Routes.home
+              : null;
+        }
         return onAuthRoute && location != Routes.splash
             ? null
             : Routes.onboarding;
