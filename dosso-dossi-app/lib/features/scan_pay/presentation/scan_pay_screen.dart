@@ -387,11 +387,11 @@ class _QrCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
+              // Flexible: dar ekranlarda tek satıra sığmayınca alta kayar.
               Flexible(
                 child: Text(
                   'Kasada okutun · Kod $secondsLeft sn içinde yenilenir',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                   style: AppTypography.bodySecondary.copyWith(fontSize: 13),
                 ),
               ),

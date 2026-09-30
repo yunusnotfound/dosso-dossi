@@ -20,7 +20,7 @@ abstract final class AppTheme {
           onPrimary: Colors.white,
           onSurface: AppColors.textPrimary,
         ),
-        textTheme: GoogleFonts.baloo2TextTheme().apply(
+        textTheme: GoogleFonts.poppinsTextTheme().apply(
           bodyColor: AppColors.textPrimary,
           displayColor: AppColors.textPrimary,
         ),

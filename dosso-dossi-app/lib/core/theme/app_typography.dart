@@ -6,14 +6,14 @@ import 'app_colors.dart';
 /// Yazı tipi sistemi. Fontu değiştirmek için sadece [_base] fonksiyonunu düzenle.
 abstract final class AppTypography {
   /// Tüm stillerin türediği temel font.
-  /// Görsellerdeki yuvarlak hatlı görünüm için "Baloo 2" kullanılıyor.
+  /// Uygulama genelinde "Poppins" kullanılıyor.
   static TextStyle _base({
     double size = 15,
     FontWeight weight = FontWeight.w500,
     Color color = AppColors.textPrimary,
     double? height,
   }) =>
-      GoogleFonts.baloo2(
+      GoogleFonts.poppins(
         fontSize: size,
         fontWeight: weight,
         color: color,
