@@ -51,7 +51,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   double _dragDx = 0;
   bool _swapping = false;
 
-  int? _index;
+  late String _selectedProductId;
   ProductOption _milk = ProductOptions.defaultMilk;
   ProductOption _shot = ProductOptions.defaultShot;
 
@@ -62,6 +62,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   @override
   void initState() {
     super.initState();
+    _selectedProductId = widget.productId;
     _controller.addListener(() {
       final anim = _shiftAnimation;
       if (anim != null) setState(() => _shift = anim.value);
@@ -92,13 +93,21 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       return;
     }
     final dir = _shift > 0 ? 1 : -1;
+    final index = siblings.indexWhere((p) => p.id == _selectedProductId);
+    if (index < 0) {
+      _animateShiftTo(0);
+      return;
+    }
+    // Menü yenilenirken sıra değişse de kaydırılan ürün aynı kalır.
+    final nextId =
+        siblings[(index + dir + siblings.length) % siblings.length].id;
     _swapping = true;
     _animateShiftTo(
       dir.toDouble(),
       onDone: () {
         if (!mounted) return;
         setState(() {
-          _index = (_index! + dir + siblings.length) % siblings.length;
+          _selectedProductId = nextId;
           _shift = 0;
           _milk = ProductOptions.defaultMilk;
           _shot = ProductOptions.defaultShot;
@@ -130,6 +139,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     final productsAsync = ref.watch(menuProductsProvider);
 
     return productsAsync.when(
+      skipError: true,
+      skipLoadingOnReload: true,
       loading: () => const Scaffold(
         backgroundColor: AppColors.primary,
         body: Center(child: CircularProgressIndicator(color: Colors.white)),
@@ -141,24 +152,24 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
         ),
       ),
       data: (all) {
-        final initial = all.where((p) => p.id == widget.productId).toList();
-        if (initial.isEmpty) {
+        final selected = all.where((p) => p.id == _selectedProductId).toList();
+        if (selected.isEmpty) {
           return Scaffold(
             appBar: AppBar(),
             body: Center(
               child: Text(
-                'Ürün bulunamadı',
+                'Bu ürün şu anda satışta değil',
                 style: AppTypography.bodySecondary,
               ),
             ),
           );
         }
         // Kaydırma listesi: aynı kategorideki ürünler, menü sırasıyla.
+        final product = selected.first;
         final siblings = all
-            .where((p) => p.categoryId == initial.first.categoryId)
+            .where((p) => p.categoryId == product.categoryId)
             .toList(growable: false);
-        _index ??= siblings.indexWhere((p) => p.id == widget.productId);
-        final product = siblings[_index!];
+        final index = siblings.indexWhere((p) => p.id == _selectedProductId);
         final price = _priceFor(product);
 
         return Scaffold(
@@ -253,7 +264,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                             onHorizontalDragCancel: () => _onDragEnd(siblings),
                             child: _CarouselStage(
                               siblings: siblings,
-                              index: _index!,
+                              index: index,
                               shift: _shift,
                               slotOffset: _slotOffset,
                               // Dokunma alanından uzun: aradaki fark kadar

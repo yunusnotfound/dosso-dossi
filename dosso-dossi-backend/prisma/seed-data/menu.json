@@ -186,12 +186,13 @@
       "price": 170,
       "categoryId": "sicak-kahveler",
       "description": "Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/turk-kahvesi.webp?v=8c052b92",
       "sizeMl": 240,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/turk-kahvesi.webp?v=4efc4574"
     },
     {
       "id": "cafe-americano",
@@ -507,12 +508,13 @@
       "price": 270,
       "categoryId": "soguk-kahveler",
       "description": "Buz üzerine, ferahlatıcı soğuk kahve.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/dolce-mocha-freddo.webp?v=a06e26ed",
       "sizeMl": 470,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/dolce-mocha-freddo.webp?v=d9753043"
     },
     {
       "id": "bianco-mocha-freddo",
@@ -520,12 +522,13 @@
       "price": 270,
       "categoryId": "soguk-kahveler",
       "description": "Buz üzerine, ferahlatıcı soğuk kahve.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/bianco-mocha-freddo.webp?v=86bc9121",
       "sizeMl": 470,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/bianco-mocha-freddo.webp?v=d8c8231a"
     },
     {
       "id": "dolce-caramel-macchiato",
@@ -575,12 +578,13 @@
       "price": 290,
       "categoryId": "soguk-kahveler",
       "description": "Buz üzerine, ferahlatıcı soğuk kahve.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/spice-vaniglia-eleganza-freddo.webp?v=cd97562f",
       "sizeMl": 470,
       "stampMultiplier": 1,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": true
+      "hasOptions": true,
+      "gridImageUrl": "/media/products/grid/spice-vaniglia-eleganza-freddo.webp?v=eea988f3"
     },
     {
       "id": "chai-tea-latte-freddo",
@@ -820,12 +824,13 @@
       "price": 240,
       "categoryId": "soguk-meyveli",
       "description": "Taze meyveli, buz gibi.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/fragola-limone.webp?v=dead52fa",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/fragola-limone.webp?v=f23f9b80"
     },
     {
       "id": "mango-smoothie",

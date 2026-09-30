@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/brand_logo.dart';
 import '../../../core/widgets/coffee_bean_icon.dart';
 
@@ -22,7 +21,7 @@ final splashHoldProvider = FutureProvider<void>((ref) {
 
 /// Oturum kontrolü sırasında ve açılışta gösterilen marka animasyonu:
 /// dalga halkaları içinde beliren logo, çizilen altın çember,
-/// yukarı süzülen kahve çekirdekleri ve marka yazısı.
+/// yukarı süzülen kahve çekirdekleri; merkezde yalnızca logo.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -32,12 +31,14 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late final AnimationController _intro =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 2600))
-        ..forward();
-  late final AnimationController _loop =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))
-        ..repeat();
+  late final AnimationController _intro = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2600),
+  )..forward();
+  late final AnimationController _loop = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  )..repeat();
 
   @override
   void dispose() {
@@ -96,7 +97,8 @@ class _SplashScreenState extends State<SplashScreen>
                 for (final (x, y, s, ph, rot, op) in _beans)
                   Positioned(
                     left: x * size.width - s / 2,
-                    top: y * size.height -
+                    top:
+                        y * size.height -
                         s / 2 -
                         10 * math.sin(2 * math.pi * (loop + ph)),
                     child: Opacity(
@@ -110,20 +112,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                   ),
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildLogo(loop),
-                      const SizedBox(height: 28),
-                      _buildTitle(),
-                      const SizedBox(height: 10),
-                      _buildSubtitle(),
-                      const SizedBox(height: 40),
-                      _buildLoaderBeans(loop),
-                    ],
-                  ),
-                ),
+                Center(child: _buildLogo(loop)),
               ],
             );
           },
@@ -146,10 +135,7 @@ class _SplashScreenState extends State<SplashScreen>
           // Kahve damlası dalgası: dışa yayılan halkalar
           CustomPaint(
             size: const Size.square(260),
-            painter: _RipplePainter(
-              progress: loop,
-              opacity: _seg(0.35, 0.7),
-            ),
+            painter: _RipplePainter(progress: loop, opacity: _seg(0.35, 0.7)),
           ),
           // Logonun çevresine çizilen altın çember
           CustomPaint(
@@ -162,76 +148,11 @@ class _SplashScreenState extends State<SplashScreen>
             angle: (1 - _seg(0.12, 0.60, Curves.easeOutCubic)) * -0.5,
             child: Transform.scale(
               scale: entry * breath,
-              child: Opacity(
-                opacity: fade,
-                child: const BrandLogo(size: 148),
-              ),
+              child: Opacity(opacity: fade, child: const BrandLogo(size: 148)),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildTitle() {
-    final v = _seg(0.50, 0.72, Curves.easeOutCubic);
-    return Opacity(
-      opacity: v,
-      child: Transform.translate(
-        offset: Offset(0, (1 - v) * 26),
-        child: Text(
-          'Dosso Dossi',
-          style: AppTypography.displayLarge.copyWith(
-            color: AppColors.textOnDark,
-            fontSize: 36,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSubtitle() {
-    final v = _seg(0.60, 0.84, Curves.easeOutCubic);
-    return Opacity(
-      opacity: v,
-      child: Text(
-        'COFFEE',
-        style: AppTypography.sectionLabel.copyWith(
-          color: AppColors.textOnDark,
-          fontSize: 15,
-          letterSpacing: 3 + 9 * v,
-        ),
-      ),
-    );
-  }
-
-  /// Yükleme göstergesi: sırayla beliren, ritimle zıplayan 3 çekirdek.
-  Widget _buildLoaderBeans(double loop) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < 3; i++)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Transform.translate(
-              offset: Offset(
-                0,
-                -4 *
-                    math.sin(2 * math.pi * (loop * 2 - i * 0.18))
-                        .clamp(0.0, 1.0) *
-                    _seg(0.9, 1.0),
-              ),
-              child: Transform.scale(
-                scale: _seg(0.70 + i * 0.08, 0.82 + i * 0.08, Curves.elasticOut),
-                child: CoffeeBeanIcon(
-                  size: 15,
-                  // Ortadaki çekirdek kahve rengi, yanlar krem.
-                  color: i == 1 ? AppColors.coffeeDark : AppColors.textOnDark,
-                ),
-              ),
-            ),
-          ),
-      ],
     );
   }
 }
@@ -254,8 +175,9 @@ class _RipplePainter extends CustomPainter {
       final paint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5
-        ..color = AppColors.textOnDark
-            .withValues(alpha: (1 - p) * 0.30 * opacity);
+        ..color = AppColors.textOnDark.withValues(
+          alpha: (1 - p) * 0.30 * opacity,
+        );
       canvas.drawCircle(center, maxR * (0.62 + 0.38 * p), paint);
     }
   }

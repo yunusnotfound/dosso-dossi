@@ -35,16 +35,16 @@ class CartItem {
   String get mergeKey => '${product.id}|${milk.name}|${shot.name}';
 
   CartItem copyWith({
+    Product? product,
     ProductOption? milk,
     ProductOption? shot,
     int? quantity,
-  }) =>
-      CartItem(
-        product: product,
-        milk: milk ?? this.milk,
-        shot: shot ?? this.shot,
-        quantity: quantity ?? this.quantity,
-      );
+  }) => CartItem(
+    product: product ?? this.product,
+    milk: milk ?? this.milk,
+    shot: shot ?? this.shot,
+    quantity: quantity ?? this.quantity,
+  );
 }
 
 /// Sepetin tamamı + kampanya kodu ve ikram kullanımı durumu.
@@ -54,6 +54,7 @@ class CartState {
     this.promoCode,
     this.discountRate = 0,
     this.useFreeDrink = false,
+    this.catalogNotice,
   });
 
   final List<CartItem> items;
@@ -64,6 +65,9 @@ class CartState {
 
   /// İkram hakkı bu siparişte kullanılsın mı
   final bool useFreeDrink;
+
+  /// Explains live price changes or unavailable items removed from this cart.
+  final String? catalogNotice;
 
   int get count => items.fold(0, (sum, item) => sum + item.quantity);
   double get subtotal => items.fold(0, (sum, item) => sum + item.total);
@@ -89,19 +93,22 @@ class CartState {
   }
 
   int get stampsEarned => items.fold(
-      0, (sum, item) => sum + item.product.stampMultiplier * item.quantity);
+    0,
+    (sum, item) => sum + item.product.stampMultiplier * item.quantity,
+  );
 
   CartState copyWith({
     List<CartItem>? items,
     String? promoCode,
     double? discountRate,
     bool? useFreeDrink,
+    String? catalogNotice,
     bool clearPromo = false,
-  }) =>
-      CartState(
-        items: items ?? this.items,
-        promoCode: clearPromo ? null : (promoCode ?? this.promoCode),
-        discountRate: clearPromo ? 0 : (discountRate ?? this.discountRate),
-        useFreeDrink: useFreeDrink ?? this.useFreeDrink,
-      );
+  }) => CartState(
+    items: items ?? this.items,
+    promoCode: clearPromo ? null : (promoCode ?? this.promoCode),
+    discountRate: clearPromo ? 0 : (discountRate ?? this.discountRate),
+    useFreeDrink: useFreeDrink ?? this.useFreeDrink,
+    catalogNotice: catalogNotice ?? this.catalogNotice,
+  );
 }

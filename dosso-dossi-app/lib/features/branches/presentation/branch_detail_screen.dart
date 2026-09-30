@@ -28,6 +28,8 @@ class BranchDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Mağaza Detay'), centerTitle: true),
       body: branches.when(
+        skipError: true,
+        skipLoadingOnReload: true,
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text('Şube yüklenemedi', style: AppTypography.bodySecondary),
@@ -184,7 +186,9 @@ class _BranchDetailBody extends ConsumerWidget {
               // etiketler yer kalmazsa kısalır.
               const Row(
                 children: [
-                  Expanded(child: _Feature(icon: Icons.wifi, label: 'Wi-Fi')),
+                  Expanded(
+                    child: _Feature(icon: Icons.wifi, label: 'Wi-Fi'),
+                  ),
                   Expanded(
                     child: _Feature(icon: Icons.storefront, label: 'Gel-Al'),
                   ),

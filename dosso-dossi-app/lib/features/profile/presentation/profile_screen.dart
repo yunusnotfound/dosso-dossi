@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/scrollable_page_scaffold.dart';
 import '../../../routing/app_router.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/application/guest_mode.dart';
@@ -29,198 +30,190 @@ class ProfileScreen extends ConsumerWidget {
     final orders = ref.watch(ordersProvider);
     final favoritesCount = ref.watch(favoritesProvider).length;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profil')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.page),
+    return ScrollablePageScaffold(
+      title: 'Profil',
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundColor: AppColors.primary,
-                  child: isGuest
-                      ? const Icon(
-                          Icons.person_outline,
-                          color: Colors.white,
-                          size: 30,
-                        )
-                      : Text(
-                          initialsOf(user?.name ?? ''),
-                          style: AppTypography.headline.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
-                ),
-                const SizedBox(width: AppSpacing.lg),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isGuest ? 'Konuk' : (user?.name ?? ''),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.headline,
+            CircleAvatar(
+              radius: 32,
+              backgroundColor: AppColors.primary,
+              child: isGuest
+                  ? const Icon(
+                      Icons.person_outline,
+                      color: Colors.white,
+                      size: 30,
+                    )
+                  : Text(
+                      initialsOf(user?.name ?? ''),
+                      style: AppTypography.headline.copyWith(
+                        color: Colors.white,
                       ),
-                      Text(
-                        isGuest
-                            ? 'Üye değilsin — sipariş ve damga kapalı'
-                            : (user != null && user.email.isNotEmpty
-                                  ? user.email
-                                  : '+90 ${user?.phone ?? ''}'),
-                        style: AppTypography.bodySecondary,
-                      ),
-                      if (loyalty != null) ...[
-                        const SizedBox(height: AppSpacing.sm),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.md,
-                            vertical: AppSpacing.xs,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.gold,
-                            borderRadius: BorderRadius.circular(AppRadius.pill),
-                          ),
-                          child: Text(
-                            '☕ ${loyalty.stamps}/${loyalty.target} damga · ikrama ${loyalty.remaining} kahve',
-                            style: AppTypography.badge.copyWith(
-                              fontSize: 12,
-                              color: AppColors.onGold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
+                    ),
             ),
-            if (isGuest) ...[
-              const SizedBox(height: AppSpacing.xl),
-              FilledButton(
-                onPressed: () => showGuestSignInSheet(
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isGuest ? 'Konuk' : (user?.name ?? ''),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.headline,
+                  ),
+                  Text(
+                    isGuest
+                        ? 'Üye değilsin — sipariş ve damga kapalı'
+                        : (user != null && user.email.isNotEmpty
+                              ? user.email
+                              : '+90 ${user?.phone ?? ''}'),
+                    style: AppTypography.bodySecondary,
+                  ),
+                  if (loyalty != null) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.gold,
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                      ),
+                      child: Text(
+                        '☕ ${loyalty.stamps}/${loyalty.target} damga · ikrama ${loyalty.remaining} kahve',
+                        style: AppTypography.badge.copyWith(
+                          fontSize: 12,
+                          color: AppColors.onGold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (isGuest) ...[
+          const SizedBox(height: AppSpacing.xl),
+          FilledButton(
+            onPressed: () => showGuestSignInSheet(
+              context,
+              ref,
+              action: 'Hesabını kullanmak',
+            ),
+            child: const Text('Giriş yap / Üye ol'),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.xxl),
+        if (!isGuest)
+          _Section(
+            label: 'HESAP',
+            rows: [
+              _RowData(
+                icon: Icons.person_outline,
+                title: 'Kişisel Bilgiler',
+                onTap: () => context.push(Routes.personalInfo),
+              ),
+              _RowData(
+                icon: Icons.notifications_outlined,
+                title: 'Bildirim Tercihleri',
+                onTap: () => context.push(Routes.notificationPrefs),
+              ),
+            ],
+          ),
+        if (!isGuest)
+          _Section(
+            label: 'ÖDEME',
+            rows: [
+              _RowData(
+                icon: Icons.account_balance_wallet_outlined,
+                title: 'Dosso Kart',
+                trailing: wallet == null ? null : formatTl(wallet.balance),
+                onTap: () => context.go(Routes.scanPay),
+              ),
+              _RowData(
+                icon: Icons.credit_card,
+                title: 'Kayıtlı Kartlar',
+                trailing: wallet == null ? null : 'Visa •${wallet.cardLast4}',
+                onTap: () => context.push(Routes.savedCards),
+              ),
+            ],
+          ),
+        if (!isGuest)
+          _Section(
+            label: 'SİPARİŞLER',
+            rows: [
+              _RowData(
+                icon: Icons.schedule,
+                title: 'Geçmiş Siparişler',
+                trailing: orders.isEmpty
+                    ? null
+                    : '${formatDayMonth(orders.first.createdAt)} · ${formatTl(orders.first.total)}',
+                onTap: () => context.push(Routes.orderHistory),
+              ),
+              _RowData(
+                icon: Icons.favorite_outline,
+                title: 'Favorilerim',
+                trailing: favoritesCount == 0 ? null : '$favoritesCount',
+                onTap: () => context.push(Routes.favorites),
+              ),
+            ],
+          ),
+        _Section(
+          label: 'DİĞER',
+          rows: [
+            if (!isGuest)
+              _RowData(
+                icon: Icons.card_giftcard,
+                title: 'Hediye Gönder',
+                onTap: () => context.push(Routes.gift),
+              ),
+            _RowData(
+              icon: Icons.storefront_outlined,
+              title: 'Mağazalar',
+              // Artık alt bardaki sekme: push değil, sekmeye geç.
+              onTap: () => context.go(Routes.branchList),
+            ),
+            _RowData(
+              icon: Icons.help_outline,
+              title: 'Yardım & SSS',
+              onTap: () => context.push(Routes.faq),
+            ),
+            _RowData(
+              icon: Icons.shield_outlined,
+              title: 'KVKK ve Gizlilik',
+              onTap: () => context.push(Routes.kvkk),
+            ),
+            if (isGuest)
+              _RowData(
+                icon: Icons.login,
+                title: 'Giriş yap / Üye ol',
+                onTap: () => showGuestSignInSheet(
                   context,
                   ref,
                   action: 'Hesabını kullanmak',
                 ),
-                child: const Text('Giriş yap / Üye ol'),
+              )
+            else
+              _RowData(
+                icon: Icons.logout,
+                title: 'Çıkış Yap',
+                danger: true,
+                onTap: () => ref.read(authControllerProvider.notifier).logout(),
               ),
-            ],
-            const SizedBox(height: AppSpacing.xxl),
-            if (!isGuest)
-              _Section(
-                label: 'HESAP',
-                rows: [
-                  _RowData(
-                    icon: Icons.person_outline,
-                    title: 'Kişisel Bilgiler',
-                    onTap: () => context.push(Routes.personalInfo),
-                  ),
-                  _RowData(
-                    icon: Icons.notifications_outlined,
-                    title: 'Bildirim Tercihleri',
-                    onTap: () => context.push(Routes.notificationPrefs),
-                  ),
-                ],
-              ),
-            if (!isGuest)
-              _Section(
-                label: 'ÖDEME',
-                rows: [
-                  _RowData(
-                    icon: Icons.account_balance_wallet_outlined,
-                    title: 'Dosso Kart',
-                    trailing: wallet == null ? null : formatTl(wallet.balance),
-                    onTap: () => context.go(Routes.scanPay),
-                  ),
-                  _RowData(
-                    icon: Icons.credit_card,
-                    title: 'Kayıtlı Kartlar',
-                    trailing: wallet == null
-                        ? null
-                        : 'Visa •${wallet.cardLast4}',
-                    onTap: () => context.push(Routes.savedCards),
-                  ),
-                ],
-              ),
-            if (!isGuest)
-              _Section(
-                label: 'SİPARİŞLER',
-                rows: [
-                  _RowData(
-                    icon: Icons.schedule,
-                    title: 'Geçmiş Siparişler',
-                    trailing: orders.isEmpty
-                        ? null
-                        : '${formatDayMonth(orders.first.createdAt)} · ${formatTl(orders.first.total)}',
-                    onTap: () => context.push(Routes.orderHistory),
-                  ),
-                  _RowData(
-                    icon: Icons.favorite_outline,
-                    title: 'Favorilerim',
-                    trailing: favoritesCount == 0 ? null : '$favoritesCount',
-                    onTap: () => context.push(Routes.favorites),
-                  ),
-                ],
-              ),
-            _Section(
-              label: 'DİĞER',
-              rows: [
-                if (!isGuest)
-                  _RowData(
-                    icon: Icons.card_giftcard,
-                    title: 'Hediye Gönder',
-                    onTap: () => context.push(Routes.gift),
-                  ),
-                _RowData(
-                  icon: Icons.storefront_outlined,
-                  title: 'Mağazalar',
-                  // Artık alt bardaki sekme: push değil, sekmeye geç.
-                  onTap: () => context.go(Routes.branchList),
-                ),
-                _RowData(
-                  icon: Icons.help_outline,
-                  title: 'Yardım & SSS',
-                  onTap: () => context.push(Routes.faq),
-                ),
-                _RowData(
-                  icon: Icons.shield_outlined,
-                  title: 'KVKK ve Gizlilik',
-                  onTap: () => context.push(Routes.kvkk),
-                ),
-                if (isGuest)
-                  _RowData(
-                    icon: Icons.login,
-                    title: 'Giriş yap / Üye ol',
-                    onTap: () => showGuestSignInSheet(
-                      context,
-                      ref,
-                      action: 'Hesabını kullanmak',
-                    ),
-                  )
-                else
-                  _RowData(
-                    icon: Icons.logout,
-                    title: 'Çıkış Yap',
-                    danger: true,
-                    onTap: () =>
-                        ref.read(authControllerProvider.notifier).logout(),
-                  ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Center(
-              child: Text(
-                'Dosso Dossi v1.0.0',
-                style: AppTypography.bodySecondary.copyWith(fontSize: 13),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
           ],
         ),
-      ),
+        const SizedBox(height: AppSpacing.lg),
+        Center(
+          child: Text(
+            'Dosso Dossi v1.0.0',
+            style: AppTypography.bodySecondary.copyWith(fontSize: 13),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+      ],
     );
   }
 }

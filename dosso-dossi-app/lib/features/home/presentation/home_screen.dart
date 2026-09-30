@@ -12,6 +12,7 @@ import '../../auth/application/guest_mode.dart';
 import '../../branches/application/branch_providers.dart';
 import '../../campaigns/application/campaign_providers.dart';
 import 'widgets/campaign_carousel.dart';
+import 'widgets/load_rewards_banner.dart';
 import 'widgets/stamp_card.dart';
 import 'widgets/wallet_card.dart';
 
@@ -29,6 +30,7 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         top: false,
+        bottom: false,
         child: RefreshIndicator(
           color: AppColors.primary,
           // Bakiye ve damga bilerek yenilenmiyor: simüle ödeme/damga
@@ -43,7 +45,7 @@ class HomeScreen extends ConsumerWidget {
               AppSpacing.page,
               topInset + AppSpacing.sm,
               AppSpacing.page,
-              AppSpacing.page,
+              AppSpacing.page + MediaQuery.paddingOf(context).bottom,
             ),
             children: [
               // Damga kartının tablosu selamlama ve kartın ARKASINDA,
@@ -75,6 +77,8 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.lg),
                 const WalletCard(),
               ],
+              const SizedBox(height: AppSpacing.lg),
+              const LoadRewardsBanner(),
               const SizedBox(height: AppSpacing.xxl),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -82,10 +86,7 @@ class HomeScreen extends ConsumerWidget {
                   Text('SANA ÖZEL', style: AppTypography.sectionLabel),
                   GestureDetector(
                     onTap: () => context.push(Routes.campaigns),
-                    child: Text(
-                      'Tümü',
-                      style: AppTypography.bodySecondary,
-                    ),
+                    child: Text('Tümü', style: AppTypography.bodySecondary),
                   ),
                 ],
               ),
@@ -107,8 +108,9 @@ class _GreetingHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).value;
     final now = DateTime.now();
-    final firstName =
-        user == null || user.name.isEmpty ? '' : user.name.split(' ').first;
+    final firstName = user == null || user.name.isEmpty
+        ? ''
+        : user.name.split(' ').first;
 
     return Row(
       children: [

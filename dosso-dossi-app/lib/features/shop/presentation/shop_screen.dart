@@ -6,7 +6,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/widgets/coffee_bean_icon.dart';
 import '../../../core/widgets/product_image.dart';
 import '../../../routing/app_router.dart';
 import '../../favorites/application/favorites_controller.dart';
@@ -30,6 +29,22 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
 
   String _query = '';
   String _categoryId = 'merch';
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _selectCategory(String id) {
+    _searchController.clear();
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _categoryId = id;
+      _query = '';
+    });
+  }
 
   List<Product> _filter(List<Product> products) {
     final query = _query.trim().toLowerCase();
@@ -50,6 +65,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
       body: SafeArea(
         // Üst güvenli alan kapalı: içerik ekranın tepesine kadar uzanır.
         top: false,
+        bottom: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -109,6 +125,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
               child: TextField(
+                controller: _searchController,
                 decoration: const InputDecoration(
                   hintText: 'Mağazada ara',
                   prefixIcon: Icon(
@@ -128,14 +145,28 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.page,
                 ),
-                children: const [
-                  _BeansBanner(),
+                children: [
+                  _CoffeeBanner(
+                    assetPath: 'assets/images/shop_coffee_origins.png',
+                    label:
+                        'Dünyadan seç, evinde demle. Kolombiya, Kenya ve Nikaragua. Kahveleri keşfet.',
+                    onTap: () => _selectCategory('cekirdek'),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  _CoffeeBanner(
+                    assetPath: 'assets/images/shop_coffee_ritual.png',
+                    label:
+                        'Kahve keyfi, senin usulün. Türk Kahvesi ve Mehmedi Meşari. Ürünleri incele.',
+                    onTap: () => _selectCategory('cekirdek'),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
             // Kategori sekmeleri (alt çizgili)
             categories.when(
+              skipError: true,
+              skipLoadingOnReload: true,
               loading: () => const SizedBox(height: 40),
               error: (e, _) => const SizedBox.shrink(),
               data: (list) => Padding(
@@ -158,10 +189,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                               selected:
                                   category.id == _categoryId &&
                                   _query.trim().isEmpty,
-                              onTap: () => setState(() {
-                                _categoryId = category.id;
-                                _query = '';
-                              }),
+                              onTap: () => _selectCategory(category.id),
                             ),
                           ),
                   ],
@@ -172,6 +200,8 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
             // Kaydırılan tek alan: ürün ızgarası.
             Expanded(
               child: products.when(
+                skipError: true,
+                skipLoadingOnReload: true,
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(
                   child: Text(
@@ -190,11 +220,11 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                     );
                   }
                   return GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(
+                    padding: EdgeInsets.fromLTRB(
                       AppSpacing.page,
                       0,
                       AppSpacing.page,
-                      AppSpacing.xxxl,
+                      AppSpacing.xxxl + MediaQuery.paddingOf(context).bottom,
                     ),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
@@ -243,43 +273,35 @@ class _HeaderIcon extends StatelessWidget {
   }
 }
 
-/// Afiş: altın zeminde çekirdek kahveler.
-class _BeansBanner extends StatelessWidget {
-  const _BeansBanner();
+/// Onaylanan 2:1 afiş; tamamına dokunarak kahve koleksiyonu açılır.
+class _CoffeeBanner extends StatelessWidget {
+  const _CoffeeBanner({
+    required this.assetPath,
+    required this.label,
+    required this.onTap,
+  });
+
+  final String assetPath;
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 300,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.gold,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Taze Kavrulmuş\nÇekirdekler',
-                  style: AppTypography.title.copyWith(
-                    color: AppColors.onGold,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Evinde Dosso Dossi keyfi',
-                  style: AppTypography.badge.copyWith(color: AppColors.onGold),
-                ),
-              ],
-            ),
+    return Semantics(
+      button: true,
+      label: label,
+      child: SizedBox(
+        width: 300,
+        child: Material(
+          color: AppColors.campaignBackground,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          clipBehavior: Clip.antiAlias,
+          child: Ink.image(
+            image: AssetImage(assetPath),
+            fit: BoxFit.contain,
+            child: InkWell(onTap: onTap),
           ),
-          const CoffeeBeanIcon(size: 84, color: AppColors.onGold),
-        ],
+        ),
       ),
     );
   }

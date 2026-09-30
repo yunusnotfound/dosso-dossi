@@ -119,7 +119,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Sepet (1)'), findsOneWidget);
     expect(find.textContaining('kazanacaksın'), findsOneWidget);
-    await tester.tap(find.textContaining('Dosso Kart ile Öde'));
+    await tester.tap(find.textContaining('Dosso Dossi Kart ile Öde'));
     await tester.pumpAndSettle();
 
     // Onay ekranı: sipariş no + 1 damga (kahve kategorisi)

@@ -111,7 +111,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   Text('Sepetin boş', style: AppTypography.title),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'Menüden bir şeyler ekle',
+                    cart.catalogNotice ?? 'Menüden bir şeyler ekle',
                     style: AppTypography.bodySecondary,
                   ),
                 ],
@@ -124,7 +124,19 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     child: ListView(
                       padding: const EdgeInsets.all(AppSpacing.page),
                       children: [
+                        if (cart.catalogNotice != null)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.md,
+                            ),
+                            child: Text(
+                              cart.catalogNotice!,
+                              style: AppTypography.bodySecondary,
+                            ),
+                          ),
                         branch.when(
+                          skipError: true,
+                          skipLoadingOnReload: true,
                           loading: () => const SizedBox.shrink(),
                           error: (e, _) => const SizedBox.shrink(),
                           data: (b) => _BranchCard(
@@ -283,7 +295,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           : FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                'Dosso Kart ile Öde · ${formatTl(cart.total)}',
+                                'Dosso Dossi Kart ile Öde · ${formatTl(cart.total)}',
                                 maxLines: 1,
                               ),
                             ),
@@ -339,12 +351,23 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: () {
-                      ref
-                          .read(cartProvider.notifier)
-                          .updateAt(
-                            index,
-                            item.copyWith(milk: milk, shot: shot),
-                          );
+                      // A live menu update may have removed/reordered rows
+                      // while this sheet was open. Keep the latest product.
+                      final items = ref.read(cartProvider).items;
+                      final currentIndex = items.indexWhere(
+                        (current) => current.mergeKey == item.mergeKey,
+                      );
+                      if (currentIndex >= 0) {
+                        ref
+                            .read(cartProvider.notifier)
+                            .updateAt(
+                              currentIndex,
+                              items[currentIndex].copyWith(
+                                milk: milk,
+                                shot: shot,
+                              ),
+                            );
+                      }
                       Navigator.of(context).pop();
                     },
                     child: const Text('Güncelle'),

@@ -39,9 +39,23 @@ lib/
 
 ## Çalıştırma
 
+İlk kurulumda `dart_defines.example.json` dosyasını `dart_defines.json` olarak
+kopyalayıp `MAPBOX_TOKEN` değerini doldurun. Bu yerel dosya Git'e eklenmez.
+Çalıştırma betiği ayar dosyasını otomatik yükler; harita mock modunda da bu
+yapılandırmayı kullanır.
+
 ```bash
 flutter pub get
-flutter run
+./tool/run.sh
+./tool/run.sh -t lib/main_preview.dart --dart-define=USE_MOCKS=true
+```
+
+`flutter run` seçeneklerini betiğe doğrudan ekleyebilirsiniz. Yayın
+derlemelerinde de aynı ayar dosyasını aktarın:
+
+```bash
+flutter build apk --dart-define-from-file=dart_defines.json
+flutter build ios --dart-define-from-file=dart_defines.json
 ```
 
 Test ve analiz:

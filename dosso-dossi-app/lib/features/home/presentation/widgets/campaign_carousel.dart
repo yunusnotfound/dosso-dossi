@@ -8,6 +8,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../routing/app_router.dart';
 import '../../../campaigns/application/campaign_providers.dart';
 import '../../../campaigns/domain/campaign.dart';
+import 'load_rewards_campaign_card.dart';
 
 /// Afiş kartları 4:5 dikey oranda; carousel yüksekliği buna göre seçildi ki
 /// afiş kırpılmadan bütün olarak görünsün.
@@ -23,6 +24,8 @@ class CampaignCarousel extends ConsumerWidget {
     final campaigns = ref.watch(campaignsProvider);
 
     return campaigns.when(
+      skipError: true,
+      skipLoadingOnReload: true,
       loading: () => const SizedBox(
         height: 180,
         child: Center(child: CircularProgressIndicator()),
@@ -48,13 +51,11 @@ class CampaignCarousel extends ConsumerWidget {
                 alignment: Alignment.topCenter,
               );
             }
-            // Yükle Kazan: kartın kendisi afişin ta kendisi — üzerine yazı
-            // basılmıyor, afişte zaten var. Dokununca tam ekran açılır.
+            // Hediye kutusundan açılan yeni ekranın aynı görsel ve metinleri.
             if (campaign.id == 'yukle-kazan') {
-              return const _AfisCard(
-                assetPath: 'assets/images/yukle_kazan_afis.jpg',
-                route: Routes.campaignYukleKazan,
-                label: 'Yükle Kazan kampanyası: ilk yüklemene 5 kahve hediye',
+              return const LoadRewardsCampaignCard(
+                width: _afisCardWidth,
+                height: _carouselHeight,
               );
             }
             return _CampaignCard(campaign: campaign);

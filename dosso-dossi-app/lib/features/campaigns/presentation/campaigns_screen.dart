@@ -47,12 +47,16 @@ class CampaignsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             campaigns.when(
+              skipError: true,
+              skipLoadingOnReload: true,
               loading: () => const Padding(
                 padding: EdgeInsets.all(AppSpacing.xxl),
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (e, _) => Text('Kampanyalar yüklenemedi',
-                  style: AppTypography.bodySecondary),
+              error: (e, _) => Text(
+                'Kampanyalar yüklenemedi',
+                style: AppTypography.bodySecondary,
+              ),
               data: (list) => Column(
                 children: [
                   for (final campaign in list) ...[
@@ -142,8 +146,9 @@ class _TextCampaignCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           Text(
             campaign.description,
-            style: AppTypography.bodySecondary
-                .copyWith(color: AppColors.textOnDarkMuted),
+            style: AppTypography.bodySecondary.copyWith(
+              color: AppColors.textOnDarkMuted,
+            ),
           ),
         ],
       ),

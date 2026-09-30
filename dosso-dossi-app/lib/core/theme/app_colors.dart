@@ -28,6 +28,9 @@ abstract final class AppColors {
   /// Tüm sekmelerin zemini buradan gelir (scaffoldBackgroundColor + AppBar).
   static const Color background = Color(0xFFEBE1DA);
 
+  /// Yükle-Kazan referansındaki açık, sıcak krem zemin.
+  static const Color campaignBackground = Color(0xFFFBF8F2);
+
   /// Kart / yüzey rengi
   static const Color surface = Color(0xFFFFFFFF);
 

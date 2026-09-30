@@ -43,8 +43,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _PageData(
       title: 'Arkadaşına Hediye Et',
       description:
-          'Sevdiklerine uygulamadan kahve gönder; hediye kodunu kasada '
-          'okutsun, ikramını alsın.',
+          'Sevdiklerine kahve gönder. Hediyelerini kullanmak için '
+          'kendi telefon numaralarıyla uygulamaya giriş yapsınlar.',
       illustration: const _GiftIllustration(),
     ),
   ];

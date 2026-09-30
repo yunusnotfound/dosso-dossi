@@ -51,22 +51,28 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
     return Scaffold(
       floatingActionButton: cartCount == 0
           ? null
-          : Badge(
-              label: Text('$cartCount'),
-              backgroundColor: AppColors.coffeeDark,
-              offset: const Offset(-4, 4),
-              child: FloatingActionButton(
-                onPressed: () => context.push(Routes.cart),
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: const CircleBorder(),
-                child: const Icon(Icons.shopping_bag_outlined),
+          : Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.paddingOf(context).bottom,
+              ),
+              child: Badge(
+                label: Text('$cartCount'),
+                backgroundColor: AppColors.coffeeDark,
+                offset: const Offset(-4, 4),
+                child: FloatingActionButton(
+                  onPressed: () => context.push(Routes.cart),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: const CircleBorder(),
+                  child: const Icon(Icons.shopping_bag_outlined),
+                ),
               ),
             ),
       body: SafeArea(
         // Üst güvenli alan kapalı: başlık durum çubuğunun arkasına kadar
         // uzansın, tepede kesik bir bant kalmasın.
         top: false,
+        bottom: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -104,6 +110,8 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   categories.when(
+                    skipError: true,
+                    skipLoadingOnReload: true,
                     loading: () => const SizedBox(height: 44),
                     error: (e, _) => const SizedBox.shrink(),
                     data: (list) => _CategoryChips(
@@ -121,6 +129,8 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
             // Kaydırılan tek alan: ürün ızgarası.
             Expanded(
               child: products.when(
+                skipError: true,
+                skipLoadingOnReload: true,
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(
                   child: Text(
@@ -139,11 +149,12 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                     );
                   }
                   return GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(
+                    padding: EdgeInsets.fromLTRB(
                       AppSpacing.page,
                       0,
                       AppSpacing.page,
-                      AppSpacing.xxxl * 2,
+                      AppSpacing.xxxl * 2 +
+                          MediaQuery.paddingOf(context).bottom,
                     ),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
@@ -175,6 +186,8 @@ class _BranchSelector extends ConsumerWidget {
     final branch = ref.watch(activeBranchProvider);
 
     return branch.when(
+      skipError: true,
+      skipLoadingOnReload: true,
       loading: () => const SizedBox(height: 72),
       error: (e, _) => const SizedBox.shrink(),
       data: (b) => GestureDetector(
@@ -234,6 +247,7 @@ class _BranchSelector extends ConsumerWidget {
 void showBranchPicker(BuildContext context, WidgetRef ref) {
   showModalBottomSheet<void>(
     context: context,
+    useRootNavigator: true,
     backgroundColor: AppColors.background,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
@@ -253,6 +267,8 @@ void showBranchPicker(BuildContext context, WidgetRef ref) {
                 Text('Şube Seç', style: AppTypography.headline),
                 const SizedBox(height: AppSpacing.lg),
                 branches.when(
+                  skipError: true,
+                  skipLoadingOnReload: true,
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Text(

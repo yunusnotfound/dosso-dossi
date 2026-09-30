@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/widgets/scrollable_column.dart';
+import '../../../core/widgets/scrollable_page_scaffold.dart';
 import '../../auth/application/auth_controller.dart';
 
 /// Ad ve e-posta düzenleme. Telefon değişimi API fazında (SMS doğrulama gerekir).
@@ -62,50 +62,58 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).value;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Kişisel Bilgiler')),
-      body: SafeArea(
-        child: ScrollableColumn(
-          padding: const EdgeInsets.all(AppSpacing.page),
-          children: [
-            Text('AD SOYAD', style: AppTypography.sectionLabel),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              controller: _nameController,
-              textCapitalization: TextCapitalization.words,
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text('E-POSTA', style: AppTypography.sectionLabel),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(hintText: 'ornek@eposta.com'),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text('TELEFON', style: AppTypography.sectionLabel),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              enabled: false,
-              decoration: InputDecoration(hintText: '+90 ${user?.phone ?? ''}'),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Telefon numarası değişikliği için müşteri hizmetleriyle iletişime geç.',
-              style: AppTypography.bodySecondary.copyWith(fontSize: 12),
-            ),
-            const Spacer(),
-            FilledButton(
-              onPressed: _nameController.text.trim().length >= 2 && !_saving
-                  ? _save
-                  : null,
-              child: const Text('Kaydet'),
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
+    return ScrollablePageScaffold.slivers(
+      title: 'Kişisel Bilgiler',
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('AD SOYAD', style: AppTypography.sectionLabel),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: _nameController,
+                textCapitalization: TextCapitalization.words,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Text('E-POSTA', style: AppTypography.sectionLabel),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(hintText: 'ornek@eposta.com'),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Text('TELEFON', style: AppTypography.sectionLabel),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                enabled: false,
+                decoration: InputDecoration(
+                  hintText: '+90 ${user?.phone ?? ''}',
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Telefon numarası değişikliği için müşteri hizmetleriyle iletişime geç.',
+                style: AppTypography.bodySecondary.copyWith(fontSize: 12),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              const Spacer(),
+              FilledButton(
+                onPressed: _nameController.text.trim().length >= 2 && !_saving
+                    ? _save
+                    : null,
+                child: const Text('Kaydet'),
+              ),
+              SizedBox(
+                height: MediaQuery.paddingOf(context).bottom + AppSpacing.page,
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

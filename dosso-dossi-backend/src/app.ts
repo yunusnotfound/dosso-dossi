@@ -14,6 +14,7 @@ import { loyaltyRouter } from './features/loyalty/loyalty.routes.js';
 import { meRouter } from './features/me/me.routes.js';
 import { menuRouter } from './features/menu/menu.routes.js';
 import { ordersRouter } from './features/orders/orders.routes.js';
+import { syncRouter } from './features/sync/sync.routes.js';
 import { posRouter } from './features/pos/pos.routes.js';
 import { walletRouter } from './features/wallet/wallet.routes.js';
 import { kerzzWebhooksRouter } from './features/webhooks/kerzz.routes.js';
@@ -73,6 +74,7 @@ export function createApp(): express.Express {
   app.use('/menu', menuRouter);
   app.use('/branches', branchesRouter);
   app.use('/campaigns', campaignsRouter); // validate-code kendi içinde auth'lu
+  app.use('/sync', syncRouter);
   app.use('/webhooks/kerzz', posAuth('POS_WEBHOOK_SECRET'), kerzzWebhooksRouter);
   app.use(
     '/webhooks/payment',

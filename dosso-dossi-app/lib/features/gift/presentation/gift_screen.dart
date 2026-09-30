@@ -7,6 +7,11 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/error_feedback.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/product_image.dart';
+import '../../../core/widgets/scrollable_page_scaffold.dart';
+import '../../auth/application/auth_controller.dart';
+import '../../auth/application/guest_mode.dart';
+import '../../auth/presentation/guest_gate.dart';
 import '../../order/application/menu_providers.dart';
 import '../../order/domain/menu.dart';
 import '../application/gift_controller.dart';
@@ -53,6 +58,8 @@ class _GiftScreenState extends ConsumerState<GiftScreen> {
     final amount = _giftAmount;
     final label = _giftLabel;
     if (amount == null || label == null) return;
+    final isDrink = _tab == 0;
+    FocusScope.of(context).unfocus();
 
     setState(() => _sending = true);
     try {
@@ -66,7 +73,7 @@ class _GiftScreenState extends ConsumerState<GiftScreen> {
               date: DateTime.now(),
               note: _noteController.text.trim(),
             ),
-            type: _tab == 0 ? 'drink' : 'balance',
+            type: isDrink ? 'drink' : 'balance',
             productId: _selectedDrink?.id,
           );
       if (!mounted) return;
@@ -79,7 +86,7 @@ class _GiftScreenState extends ConsumerState<GiftScreen> {
         );
         return;
       }
-      _showSuccess(label);
+      _showSuccess(label, isDrink: isDrink);
       _phoneController.clear();
       _noteController.clear();
       setState(() => _selectedDrink = null);
@@ -90,26 +97,28 @@ class _GiftScreenState extends ConsumerState<GiftScreen> {
     }
   }
 
-  void _showSuccess(String label) {
+  void _showSuccess(String label, {required bool isDrink}) {
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (context) => SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.xxl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('🎁', style: TextStyle(fontSize: 56)),
               const SizedBox(height: AppSpacing.md),
-              Text('Hediyen yolda!', style: AppTypography.headline),
+              Text('Hediye gönderildi!', style: AppTypography.headline),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                '$label hediyesi alıcıya SMS ile iletilecek. '
-                'Hediye kodu kasada okutulda kullanılır. (Simülasyon)',
+                '$label hediyesini kullanmak için alıcının Dosso Dossi Coffee '
+                'uygulamasına gönderdiğin telefon numarasıyla giriş yapması gerekiyor. '
+                '${isDrink ? 'Kahve hediyesi İkramlarım bölümüne eklenir ve sipariş verirken kullanılır.' : 'Hediye bakiye Dosso Dossi Kart hesabına eklenir ve uygulama üzerinden kullanılır.'}',
                 textAlign: TextAlign.center,
                 style: AppTypography.bodySecondary,
               ),
@@ -130,144 +139,167 @@ class _GiftScreenState extends ConsumerState<GiftScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isGuest = ref.watch(guestModeProvider);
+    final auth = ref.watch(authControllerProvider);
+    if (isGuest || (!auth.isLoading && auth.value == null)) {
+      return const ScrollablePageScaffold.slivers(
+        title: 'Hediye',
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: GuestLockedView(
+              title: 'Hediyeler hesabına özel',
+              message:
+                  'Hediye göndermek ve kullanmak için Dosso Dossi Coffee '
+                  'uygulamasında giriş yapman gerekiyor.',
+              action: 'Hediye göndermek ve kullanmak',
+            ),
+          ),
+        ],
+      );
+    }
+    if (auth.isLoading) {
+      return const ScrollablePageScaffold.slivers(
+        title: 'Hediye',
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ],
+      );
+    }
     final gifts = ref.watch(giftControllerProvider);
     final amount = _giftAmount;
 
-    return Scaffold(
-      // Sekme değil, üste açılan sayfa: AppBar yalnızca geri oku sağlar.
-      appBar: AppBar(toolbarHeight: 48),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.page,
-            0,
-            AppSpacing.page,
-            AppSpacing.page,
-          ),
-          children: [
-            Text('Hediye', style: AppTypography.displayLarge),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Arkadaşına kahve ısmarla ya da bakiye gönder — anında SMS ile ulaşsın.',
-              style: AppTypography.bodySecondary,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _SegmentedTabs(
-              selected: _tab,
-              onChanged: (i) => setState(() => _tab = i),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text('KİME', style: AppTypography.sectionLabel),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(10),
-              ],
-              decoration: const InputDecoration(
-                prefixText: '+90  ',
-                hintText: '5XX XXX XX XX',
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            if (_tab == 0) ...[
-              Text('HANGİ KAHVE', style: AppTypography.sectionLabel),
-              const SizedBox(height: AppSpacing.md),
-              _DrinkPicker(
-                selected: _selectedDrink,
-                onSelected: (p) => setState(() => _selectedDrink = p),
-              ),
-            ] else ...[
-              Text('TUTAR', style: AppTypography.sectionLabel),
-              const SizedBox(height: AppSpacing.md),
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: [
-                  for (final value in _amounts)
-                    GestureDetector(
-                      onTap: () => setState(() => _selectedAmount = value),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xl,
-                          vertical: AppSpacing.md,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _selectedAmount == value
-                              ? AppColors.coffeeDark
-                              : AppColors.surface,
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                        ),
-                        child: Text(
-                          '${value.toStringAsFixed(0)} ₺',
-                          style: AppTypography.body.copyWith(
-                            color: _selectedAmount == value
-                                ? AppColors.textOnDark
-                                : AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-            const SizedBox(height: AppSpacing.xl),
-            Text('NOT (İSTEĞE BAĞLI)', style: AppTypography.sectionLabel),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: _noteController,
-              maxLength: 80,
-              decoration: const InputDecoration(
-                hintText: 'Örn. Bu kahve benden, iyi gelsin ☕',
-                counterText: '',
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            FilledButton(
-              onPressed: _phoneValid && amount != null && !_sending
-                  ? _send
-                  : null,
-              child: _sending
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(
-                      amount == null
-                          ? 'Hediye Gönder'
-                          : 'Hediye Gönder · ${formatTl(amount)}',
-                    ),
-            ),
-            if (gifts.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.xxl),
-              Text('GÖNDERİLEN HEDİYELER', style: AppTypography.sectionLabel),
-              const SizedBox(height: AppSpacing.md),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Column(
-                  children: [
-                    for (var i = 0; i < gifts.length; i++) ...[
-                      if (i > 0) const Divider(indent: AppSpacing.lg),
-                      _GiftRow(gift: gifts[i]),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.xl),
-          ],
+    return ScrollablePageScaffold(
+      title: 'Hediye',
+      titleStyle: AppTypography.displayLarge,
+      children: [
+        Text(
+          'Arkadaşına kahve ısmarla ya da bakiye gönder. '
+          'Hediyeyi kullanmak için uygulama gerekir.',
+          style: AppTypography.bodySecondary,
         ),
-      ),
+        const SizedBox(height: AppSpacing.lg),
+        _SegmentedTabs(
+          selected: _tab,
+          onChanged: (i) => setState(() => _tab = i),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Text('KİME', style: AppTypography.sectionLabel),
+        const SizedBox(height: AppSpacing.md),
+        TextField(
+          controller: _phoneController,
+          keyboardType: TextInputType.phone,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ],
+          decoration: const InputDecoration(
+            prefixText: '+90  ',
+            hintText: '5XX XXX XX XX',
+          ),
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          'Alıcı, hediyesini kullanmak için uygulamaya bu numarayla '
+          'giriş yapmalı. Henüz hesabı yoksa hediyesi giriş yapana kadar bekler.',
+          style: AppTypography.bodySecondary.copyWith(fontSize: 13),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        if (_tab == 0) ...[
+          Text('HANGİ KAHVE', style: AppTypography.sectionLabel),
+          const SizedBox(height: AppSpacing.md),
+          _DrinkPicker(
+            selected: _selectedDrink,
+            onSelected: (p) => setState(() => _selectedDrink = p),
+          ),
+        ] else ...[
+          Text('TUTAR', style: AppTypography.sectionLabel),
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              for (final value in _amounts)
+                GestureDetector(
+                  onTap: () => setState(() => _selectedAmount = value),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xl,
+                      vertical: AppSpacing.md,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _selectedAmount == value
+                          ? AppColors.coffeeDark
+                          : AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    child: Text(
+                      '${value.toStringAsFixed(0)} ₺',
+                      style: AppTypography.body.copyWith(
+                        color: _selectedAmount == value
+                            ? AppColors.textOnDark
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: AppSpacing.xl),
+        Text('NOT (İSTEĞE BAĞLI)', style: AppTypography.sectionLabel),
+        const SizedBox(height: AppSpacing.md),
+        TextField(
+          controller: _noteController,
+          maxLength: 80,
+          decoration: const InputDecoration(
+            hintText: 'Örn. Bu kahve benden, iyi gelsin ☕',
+            counterText: '',
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        FilledButton(
+          onPressed: _phoneValid && amount != null && !_sending ? _send : null,
+          child: _sending
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  amount == null
+                      ? 'Hediye Gönder'
+                      : 'Hediye Gönder · ${formatTl(amount)}',
+                ),
+        ),
+        if (gifts.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xxl),
+          Text('GÖNDERİLEN HEDİYELER', style: AppTypography.sectionLabel),
+          const SizedBox(height: AppSpacing.md),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Column(
+              children: [
+                for (var i = 0; i < gifts.length; i++) ...[
+                  if (i > 0) const Divider(indent: AppSpacing.lg),
+                  _GiftRow(gift: gifts[i]),
+                ],
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.xl),
+      ],
     );
   }
 }
@@ -325,6 +357,8 @@ class _DrinkPicker extends ConsumerWidget {
     final products = ref.watch(menuProductsProvider);
 
     return products.when(
+      skipError: true,
+      skipLoadingOnReload: true,
       loading: () => const SizedBox(
         height: 120,
         child: Center(child: CircularProgressIndicator()),
@@ -336,7 +370,7 @@ class _DrinkPicker extends ConsumerWidget {
             .where((p) => p.stampMultiplier > 0)
             .toList(growable: false);
         return SizedBox(
-          height: 138,
+          height: 164,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: drinks.length,
@@ -362,7 +396,19 @@ class _DrinkPicker extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(drink.emoji, style: const TextStyle(fontSize: 26)),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        child: SizedBox(
+                          width: 72,
+                          height: 72,
+                          child: ProductImage(
+                            product: drink,
+                            preferGrid: true,
+                            emojiSize: 32,
+                            memCacheWidth: 240,
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: AppSpacing.xs),
                       // Flexible: iki satıra sarkan isimler kartı taşıramaz.
                       Flexible(
