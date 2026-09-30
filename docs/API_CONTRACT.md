@@ -12,6 +12,27 @@ kendiliğinden mock modunda çalışır).
 - **Tarihler:** ISO 8601 UTC
 - **Geliştirme OTP'si:** kod sunucu konsoluna yazılır; `OTP_DEV_MODE=true` iken `111111` her zaman geçer
 
+## Panel değişikliklerinin uygulamaya yansıması
+
+`GET /sync/revisions` kimlik doğrulaması gerektirmeden
+`{ "menu", "branches", "campaigns", "loyalty", "wallet", "orders" }`
+alanlarında opak sürüm değerleri döndürür (`Cache-Control: no-store`).
+Yalnız tamamlanmış, audit kaydı bulunan panel işlemleri sürümü değiştirir;
+müşteri bilgileri veya audit içerikleri paylaşılmaz.
+
+Gerçek API modunda uygulama ön plandayken üç saniyede bir bu küçük yanıtı
+kontrol eder ve yalnız değişen alanın mevcut API verilerini yeniler. Arka
+planda kontrol durur; açılışta ve ön plana dönüşte tüm alanlar yenilenir.
+Hatalı yenilemeler tekrar denenir, mevcut menü görünümü korunur. Ürün
+değişiklikleri grid, açık detay ve sepete yansır; satıştan kaldırılan ürünler
+sepetten bilgilendirme ile çıkarılır. Kişisel veriler yalnız giriş yapan
+kullanıcının mevcut yetkili endpoint'lerinden alınır.
+
+Bu mekanizma API'den okunan verileri yeniler; uygulamadaki sabit seçenek
+listelerini veya görsele gömülü kampanya metinlerini sunucudan yönetilebilir
+hale getirmez. Audit dışından doğrudan SQL/seed ile yapılan değişiklikler
+ön plana dönüşteki tam yenilemede alınır.
+
 ## 1. Kimlik (auth) — `features/auth/data/auth_repository.dart`
 
 | Metot | Endpoint | Açıklama |
@@ -105,8 +126,10 @@ Sunucu: bakiye düşer, damga/ikram işler, siparişi şubenin Kerzz POS'una ile
 
 | Metot | Endpoint | Açıklama |
 |---|---|---|
-| POST | `/gifts` | `{ "recipientPhone", "type": "drink"\|"balance", "productId"?, "amount"?, "note" }` → alıcıya SMS kodu |
+| POST | `/gifts` | `{ "recipientPhone", "type": "drink"\|"balance", "productId"?, "amount"?, "note" }` → alıcının telefonuna bağlı uygulama hesabına hediye |
 | GET | `/gifts` | Gönderilen hediyeler |
+
+Hediyeler yalnızca uygulamada, alıcı telefon numarası doğrulanarak giriş yapılan hesap üzerinden kullanılır. Kayıtlı alıcının kahve hediyesi ikram hakkına, bakiye hediyesi cüzdanına eklenir; henüz hesabı olmayan alıcının hediyesi aynı numarayla giriş yapana kadar bekler. SMS yalnızca bilgilendirme/giriş davetidir ve kullanım kodu içermez. Hediye koduyla veya misafir olarak kullanım uç noktası yoktur. `redeemed` durumu hesaba aktarımı belirtir; kahvenin ya da bakiyenin harcandığı anlamına gelmez. Geliştirme ortamındaki SMS sağlayıcısı mesajı yalnızca loglar; gerçek SMS teslimatı için sağlayıcı entegrasyonu gerekir.
 
 ## 9. Bildirim tercihleri — `features/profile/application/notification_prefs.dart`
 

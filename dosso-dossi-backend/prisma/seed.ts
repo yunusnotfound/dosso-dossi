@@ -25,6 +25,7 @@ interface MenuData {
     categoryId: string;
     description: string;
     imageUrl: string | null;
+    gridImageUrl?: string | null;
     sizeMl: number;
     stampMultiplier: number;
     isNew: boolean;

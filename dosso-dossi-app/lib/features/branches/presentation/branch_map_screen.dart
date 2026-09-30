@@ -56,21 +56,54 @@ class _BranchMapScreenState extends ConsumerState<BranchMapScreen> {
   void _openBranchSheet(Branch branch) {
     showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (sheetContext) => _BranchSheet(
-        branch: branch,
-        onDetail: () {
-          Navigator.pop(sheetContext);
-          context.push(Routes.branchDetailPath(branch.id));
-        },
-        onOrder: () {
-          ref.read(selectedBranchProvider.notifier).select(branch);
-          Navigator.pop(sheetContext);
-          context.go(Routes.order);
-        },
+      builder: (sheetContext) => Consumer(
+        builder: (context, ref, _) => ref
+            .watch(branchesProvider)
+            .when(
+              skipError: true,
+              skipLoadingOnReload: true,
+              loading: () => const Padding(
+                padding: EdgeInsets.all(AppSpacing.xxl),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (_, _) => Padding(
+                padding: const EdgeInsets.all(AppSpacing.xxl),
+                child: Text(
+                  'Şube yüklenemedi',
+                  style: AppTypography.bodySecondary,
+                ),
+              ),
+              data: (branches) {
+                final matches = branches.where((b) => b.id == branch.id);
+                if (matches.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.all(AppSpacing.xxl),
+                    child: Text(
+                      'Şube bulunamadı',
+                      style: AppTypography.bodySecondary,
+                    ),
+                  );
+                }
+                final current = matches.first;
+                return _BranchSheet(
+                  branch: current,
+                  onDetail: () {
+                    Navigator.pop(sheetContext);
+                    this.context.push(Routes.branchDetailPath(current.id));
+                  },
+                  onOrder: () {
+                    ref.read(selectedBranchProvider.notifier).select(current);
+                    Navigator.pop(sheetContext);
+                    this.context.go(Routes.order);
+                  },
+                );
+              },
+            ),
       ),
     );
   }
@@ -81,13 +114,16 @@ class _BranchMapScreenState extends ConsumerState<BranchMapScreen> {
 
     return Scaffold(
       body: SafeArea(
+        // Üst güvenli alan kapalı: harita/başlık ekranın tepesine kadar uzanır.
+        top: false,
+        bottom: false,
         child: Column(
           children: [
             // Başlık: ortada sayfa adı, sağda harita/liste geçişi.
             Padding(
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 AppSpacing.page,
-                AppSpacing.md,
+                MediaQuery.paddingOf(context).top + AppSpacing.md,
                 AppSpacing.page,
                 AppSpacing.sm,
               ),
@@ -95,10 +131,15 @@ class _BranchMapScreenState extends ConsumerState<BranchMapScreen> {
                 children: [
                   const SizedBox(width: 72),
                   Expanded(
-                    child: Text(
-                      'Mağazalar',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.headline,
+                    // Dar ekranda başlık sarmak yerine sığacak kadar küçülür.
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Mağazalar',
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        style: AppTypography.headline,
+                      ),
                     ),
                   ),
                   SizedBox(
@@ -130,6 +171,8 @@ class _BranchMapScreenState extends ConsumerState<BranchMapScreen> {
             ),
             Expanded(
               child: branches.when(
+                skipError: true,
+                skipLoadingOnReload: true,
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(
                   child: Text(
@@ -148,6 +191,36 @@ class _BranchMapScreenState extends ConsumerState<BranchMapScreen> {
   }
 
   Widget _buildMap(List<Branch> list) {
+    // Anahtar verilmeden derlenmiş uygulama yetkisiz karo istekleri göndermesin.
+    if (AppConfig.mapboxToken.trim().isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.page),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.map_outlined,
+                size: 48,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'Harita şu anda kullanılamıyor.',
+                textAlign: TextAlign.center,
+                style: AppTypography.body,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              FilledButton(
+                onPressed: () => setState(() => _showList = true),
+                child: const Text('Şubeleri listele'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final located = list.where((b) => b.lat != 0 && b.lng != 0).toList();
     final query = _query.trim().toLowerCase();
     final results = query.isEmpty
@@ -210,7 +283,12 @@ class _BranchMapScreenState extends ConsumerState<BranchMapScreen> {
             Align(
               alignment: Alignment.bottomRight,
               child: Container(
-                margin: const EdgeInsets.all(AppSpacing.xs),
+                margin: EdgeInsets.fromLTRB(
+                  AppSpacing.xs,
+                  AppSpacing.xs,
+                  AppSpacing.xs,
+                  AppSpacing.xs + MediaQuery.paddingOf(context).bottom,
+                ),
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.sm,
                   vertical: 2,

@@ -6,26 +6,27 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/coffee_bean_icon.dart';
+import '../../../../core/widgets/mini_brand_cup.dart';
 import '../../../../routing/app_router.dart';
+import '../../../auth/application/guest_mode.dart';
+import '../../../auth/presentation/guest_gate.dart';
 import '../../../rewards/application/loyalty_providers.dart';
 import '../../../rewards/domain/loyalty_status.dart';
 import '../../../rewards/presentation/loyalty_how_it_works_sheet.dart';
 
-/// Ana sayfadaki koyu zeminli damga kartı: 3/5 ilerleme + damga rozetleri.
+/// Ana sayfadaki damga kartı: tablo arka planı + 3/5 ilerleme + damga rozetleri.
 class StampCard extends ConsumerWidget {
   const StampCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Konuk kullanıcının damgası yok: kartın yerinde giriş çağrısı durur.
+    if (ref.watch(guestModeProvider)) {
+      return _shell(const _GuestStampContent());
+    }
     final loyalty = ref.watch(loyaltyStatusProvider);
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: AppColors.coffeeDark,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      child: loyalty.when(
+    return _shell(
+      loyalty.when(
         loading: () => const SizedBox(
           height: 140,
           child: Center(
@@ -37,20 +38,71 @@ class StampCard extends ConsumerWidget {
           child: Center(
             child: Text(
               'Damga bilgisi yüklenemedi',
-              style: AppTypography.body.copyWith(color: AppColors.textOnDark),
+              style: AppTypography.body.copyWith(color: AppColors.textPrimary),
             ),
           ),
         ),
-        data: (status) => _StampContent(status: status),
+        data: (status) => LoyaltyStampContent(
+          status: status,
+          onRewardsPressed: () => context.push(Routes.rewards),
+        ),
       ),
+    );
+  }
+
+  /// Damgalar doğrudan tablo üzerinde durur; yalnızca iç boşluk korunur.
+  Widget _shell(Widget child) {
+    return Padding(padding: const EdgeInsets.all(AppSpacing.xl), child: child);
+  }
+}
+
+/// Konuk kullanıcıya damga kartının yerinde gösterilen giriş çağrısı.
+class _GuestStampContent extends ConsumerWidget {
+  const _GuestStampContent();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Damga biriktirmeye başla',
+          style: AppTypography.title.copyWith(color: const Color(0xFF120B06)),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Üye ol, her kahvende damga kazan; 5. kahven bizden.',
+          style: AppTypography.body.copyWith(color: const Color(0xFF120B06)),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: FilledButton(
+            onPressed: () =>
+                showGuestSignInSheet(context, ref, action: 'Damga biriktirmek'),
+            child: const Text('Giriş yap / Üye ol'),
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _StampContent extends StatelessWidget {
-  const _StampContent({required this.status});
+/// Ana sayfa ve İkramlarım ekranının ortak damga düzeni.
+class LoyaltyStampContent extends StatelessWidget {
+  const LoyaltyStampContent({
+    super.key,
+    required this.status,
+    this.onRewardsPressed,
+  });
 
   final LoyaltyStatus status;
+
+  /// Yalnızca ana sayfada alt eylem şeridi gösterilir.
+  final VoidCallback? onRewardsPressed;
+
+  /// Canlı tablo zemininde yazı rengi: neredeyse siyah kahve.
+  static const Color _muted = Color(0xFF120B06);
 
   @override
   Widget build(BuildContext context) {
@@ -58,71 +110,67 @@ class _StampContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text.rich(
-                    TextSpan(
-                      text: '${status.stamps}',
-                      style: AppTypography.numberLarge
-                          .copyWith(color: AppColors.textOnDark),
-                      children: [
-                        TextSpan(
-                          text: '/${status.target}',
-                          style: AppTypography.title
-                              .copyWith(color: AppColors.textOnDarkMuted),
-                        ),
-                      ],
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: AppColors.surface,
+                    shape: BoxShape.circle,
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text.rich(
+                      TextSpan(
+                        text: '${status.stamps}',
+                        children: [
+                          TextSpan(
+                            text: '/${status.target}',
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        ],
+                      ),
+                      style: AppTypography.title.copyWith(
+                        fontSize: 20,
+                        height: 1,
+                        color: AppColors.primary,
+                      ),
+                      maxLines: 1,
+                      textAlign: TextAlign.center,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text.rich(
-                    TextSpan(
-                      text: 'İkram içeceğine ',
-                      style: AppTypography.bodySecondary
-                          .copyWith(color: AppColors.textOnDarkMuted),
-                      children: [
-                        TextSpan(
-                          text: '${status.remaining} kahve',
-                          style:
-                              AppTypography.body.copyWith(color: AppColors.gold),
-                        ),
-                        const TextSpan(text: ' kaldı'),
-                      ],
-                    ),
-                  ),
-                  if (status.freeDrinks > 0) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      'Kullanılabilir ikramın: ${status.freeDrinks} ☕',
-                      style: AppTypography.badge.copyWith(color: AppColors.gold),
-                    ),
-                  ],
-                ],
+                ),
               ),
             ),
             Container(
               width: 44,
               height: 44,
               alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
+              decoration: const BoxDecoration(
+                color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.card_giftcard,
-                  size: 22, color: AppColors.goldOnDark),
+              child: const Icon(
+                Icons.card_giftcard,
+                size: 22,
+                color: AppColors.primary,
+              ),
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.xl),
-        // FittedBox: dar ekranlarda damga dizisi taşmak yerine küçülür.
+        // Damgalar ayrı beyaz dairelerde; dar ekranda birlikte küçülür.
         FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: List.generate(status.target, (i) {
               final isLast = i == status.target - 1;
               final earned = i < status.stamps;
@@ -136,49 +184,83 @@ class _StampContent extends StatelessWidget {
             }),
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        Row(
-          children: [
-            Flexible(
-              child: OutlinedButton(
-                onPressed: () => context.push(Routes.rewards),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textOnDark,
-                  side:
-                      BorderSide(color: Colors.white.withValues(alpha: 0.35)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xl,
-                    vertical: AppSpacing.md,
-                  ),
-                ),
-                child: Text(
-                  'İkramlarım',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style:
-                      AppTypography.body.copyWith(color: AppColors.textOnDark),
-                ),
-              ),
+        if (onRewardsPressed != null) ...[
+          const SizedBox(height: AppSpacing.xl),
+          // Ana sayfa: iki eylem tek beyaz hapın içinde, ortada ayraç.
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
-            const SizedBox(width: AppSpacing.sm),
-            Flexible(
-              child: TextButton(
-                onPressed: () =>
-                    showLoyaltyHowItWorksSheet(context, status.target),
-                child: Text(
-                  'Nasıl çalışır?',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.body
-                      .copyWith(color: AppColors.textOnDarkMuted),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: TextButton.icon(
+                    onPressed: onRewardsPressed,
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.md,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.card_giftcard,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
+                    label: Text(
+                      'İkramlarım',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.body.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                Container(width: 1, height: 22, color: AppColors.divider),
+                Flexible(
+                  child: TextButton(
+                    onPressed: () =>
+                        showLoyaltyHowItWorksSheet(context, status.target),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.md,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Nasıl çalışır?',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.body.copyWith(color: _muted),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        const Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: AppColors.textPrimary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ],
     );
   }
@@ -192,30 +274,74 @@ class _StampDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = earned
-        ? Colors.white
-        : isRewardSlot
-            ? AppColors.goldOnDark
-            : AppColors.stampInactive;
+    // Her damga ayrı beyaz dairede; kazanılan çekirdek turuncu,
+    // bekleyen çekirdek soluk kahve.
+    final iconColor = earned ? AppColors.primary : const Color(0xFFB08968);
     return Container(
-      width: 40,
-      height: 40,
+      width: 44,
+      height: 44,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        color: earned ? AppColors.primary : Colors.transparent,
-        border: earned
-            ? null
-            : Border.all(
-                width: 1.5,
-                color: isRewardSlot
-                    ? AppColors.goldOnDark
-                    : AppColors.stampInactive,
-              ),
+        color: AppColors.surface,
       ),
       child: isRewardSlot
-          ? Icon(Icons.card_giftcard, size: 18, color: iconColor)
+          // Ödül halkası: logolu marka bardağı — ödül henüz açılmadığı için
+          // (isRewardSlot yalnızca kazanılmamış son kutuda true) soluk.
+          ? const Opacity(opacity: 0.45, child: MiniBrandCup(height: 28))
           : CoffeeBeanIcon(size: 18, color: iconColor),
+    );
+  }
+}
+
+/// Damga kartının tablosunun sayfaya taşan hâli. Ana sayfada selamlama ve
+/// kartın ARKASINDA çizilir; yanlarda ekran kenarına kadar uzanır, yukarı
+/// doğru eriyerek zemine karışır.
+class StampCardBleed extends StatelessWidget {
+  const StampCardBleed({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      // Bulanıklık yok: görsel net, kenarlar saydamlaşarak zemine karışır.
+      // Köşe yuvarlatma yok; yumuşaklık yalnızca geçişlerden geliyor.
+      child: ClipRect(
+        child: ShaderMask(
+          // Yanlar: kenarlara doğru erir.
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (rect) => const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              Colors.transparent,
+              Colors.white,
+              Colors.white,
+              Colors.transparent,
+            ],
+            stops: [0.0, 0.09, 0.91, 1.0],
+          ).createShader(rect),
+          child: ShaderMask(
+            // Dikey: üstte tamamen erir, altta yumuşak biter.
+            blendMode: BlendMode.dstIn,
+            shaderCallback: (rect) => const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.transparent,
+                Colors.white,
+                Colors.white,
+                Colors.transparent,
+              ],
+              stops: [0.0, 0.07, 0.89, 1.0],
+            ).createShader(rect),
+            child: Image.asset(
+              'assets/images/damga_karti_arka_plan.jpg',
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

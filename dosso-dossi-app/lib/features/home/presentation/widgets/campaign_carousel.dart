@@ -8,6 +8,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../routing/app_router.dart';
 import '../../../campaigns/application/campaign_providers.dart';
 import '../../../campaigns/domain/campaign.dart';
+import 'load_rewards_campaign_card.dart';
 
 /// Afiş kartları 4:5 dikey oranda; carousel yüksekliği buna göre seçildi ki
 /// afiş kırpılmadan bütün olarak görünsün.
@@ -23,6 +24,8 @@ class CampaignCarousel extends ConsumerWidget {
     final campaigns = ref.watch(campaignsProvider);
 
     return campaigns.when(
+      skipError: true,
+      skipLoadingOnReload: true,
       loading: () => const SizedBox(
         height: 180,
         child: Center(child: CircularProgressIndicator()),
@@ -43,15 +46,16 @@ class CampaignCarousel extends ConsumerWidget {
                 assetPath: 'assets/images/kahve_ictikce_afis.jpg',
                 route: Routes.campaignKahve,
                 label: 'İçtikçe kazan kampanyası: 5 al, 1 hediye',
+                // Afiş 51x117 dikey: kartta üst blok (başlık + "5 kahve
+                // sizden / 1 kahve bizden") görünsün.
+                alignment: Alignment.topCenter,
               );
             }
-            // Yükle Kazan: kartın kendisi afişin ta kendisi — üzerine yazı
-            // basılmıyor, afişte zaten var. Dokununca tam ekran açılır.
+            // Hediye kutusundan açılan yeni ekranın aynı görsel ve metinleri.
             if (campaign.id == 'yukle-kazan') {
-              return const _AfisCard(
-                assetPath: 'assets/images/yukle_kazan_afis.jpg',
-                route: Routes.campaignYukleKazan,
-                label: 'Yükle Kazan kampanyası: ilk yüklemene 5 kahve hediye',
+              return const LoadRewardsCampaignCard(
+                width: _afisCardWidth,
+                height: _carouselHeight,
               );
             }
             return _CampaignCard(campaign: campaign);
@@ -69,7 +73,12 @@ class _AfisCard extends StatelessWidget {
     required this.assetPath,
     required this.route,
     required this.label,
+    this.alignment = Alignment.center,
   });
+
+  /// Afiş kart oranından uzunsa hangi kısmının görüneceği (uzun dikey
+  /// afişlerde başlığın kalması için üstten hizalanır).
+  final Alignment alignment;
 
   final String assetPath;
   final String route;
@@ -88,7 +97,11 @@ class _AfisCard extends StatelessWidget {
             width: _afisCardWidth,
             height: _carouselHeight,
             // Afiş 4:5, kart da 4:5 — cover kırpma yapmadan tam oturur.
-            child: Image.asset(assetPath, fit: BoxFit.cover),
+            child: Image.asset(
+              assetPath,
+              fit: BoxFit.cover,
+              alignment: alignment,
+            ),
           ),
         ),
       ),

@@ -21,6 +21,8 @@ class BranchListBody extends ConsumerWidget {
     final active = ref.watch(activeBranchProvider).value;
 
     return branches.when(
+      skipError: true,
+      skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
         child: Text('Şubeler yüklenemedi', style: AppTypography.bodySecondary),
@@ -31,7 +33,12 @@ class BranchListBody extends ConsumerWidget {
           cities.putIfAbsent(branch.city, () => []).add(branch);
         }
         return ListView(
-          padding: const EdgeInsets.all(AppSpacing.page),
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.page,
+            AppSpacing.page,
+            AppSpacing.page,
+            AppSpacing.page + MediaQuery.paddingOf(context).bottom,
+          ),
           children: [
             for (final entry in cities.entries) ...[
               Text(entry.key.toUpperCase(), style: AppTypography.sectionLabel),

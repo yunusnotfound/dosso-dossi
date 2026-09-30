@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/scrollable_page_scaffold.dart';
 import '../../../routing/app_router.dart';
 import '../../order/application/order_providers.dart';
 
@@ -17,88 +18,93 @@ class OrderHistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final orders = ref.watch(ordersProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Geçmiş Siparişler')),
-      body: orders.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('🧾', style: TextStyle(fontSize: 56)),
-                  const SizedBox(height: AppSpacing.md),
-                  Text('Henüz siparişin yok', style: AppTypography.title),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    'İlk siparişini Sipariş sekmesinden ver',
-                    style: AppTypography.bodySecondary,
+    return ScrollablePageScaffold.slivers(
+      title: 'Geçmiş Siparişler',
+      slivers: [
+        orders.isEmpty
+            ? SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🧾', style: TextStyle(fontSize: 56)),
+                      const SizedBox(height: AppSpacing.md),
+                      Text('Henüz siparişin yok', style: AppTypography.title),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'İlk siparişini Sipariş sekmesinden ver',
+                        style: AppTypography.bodySecondary,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.page),
-              itemCount: orders.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-              itemBuilder: (context, index) {
-                final order = orders[index];
-                return GestureDetector(
-                  onTap: order.isActive
-                      ? () => context.push(Routes.orderTrackingPath(order.id))
-                      : null,
-                  child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(order.id, style: AppTypography.title),
-                            const Spacer(),
-                            if (order.isActive) ...[
-                              Text(
-                                order.status == 'preparing'
-                                    ? 'Hazırlanıyor'
-                                    : 'Alındı',
-                                style: AppTypography.badge.copyWith(
-                                  color: AppColors.primary,
+                ),
+              )
+            : SliverList.separated(
+                itemCount: orders.length,
+                separatorBuilder: (_, _) =>
+                    const SizedBox(height: AppSpacing.md),
+                itemBuilder: (context, index) {
+                  final order = orders[index];
+                  return GestureDetector(
+                    onTap: order.isActive
+                        ? () => context.push(Routes.orderTrackingPath(order.id))
+                        : null,
+                    child: Container(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(order.id, style: AppTypography.title),
+                              const Spacer(),
+                              if (order.isActive) ...[
+                                Text(
+                                  order.status == 'preparing'
+                                      ? 'Hazırlanıyor'
+                                      : 'Alındı',
+                                  style: AppTypography.badge.copyWith(
+                                    color: AppColors.primary,
+                                  ),
                                 ),
+                                const SizedBox(width: AppSpacing.sm),
+                              ],
+                              Text(
+                                formatTl(order.total),
+                                style: AppTypography.title,
                               ),
-                              const SizedBox(width: AppSpacing.sm),
                             ],
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(order.itemsLabel, style: AppTypography.body),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            '${order.branchName} · ${formatDayMonth(order.createdAt)} · ${order.pickupLabel}',
+                            style: AppTypography.bodySecondary.copyWith(
+                              fontSize: 13,
+                            ),
+                          ),
+                          if (order.stampsEarned > 0) ...[
+                            const SizedBox(height: AppSpacing.sm),
                             Text(
-                              formatTl(order.total),
-                              style: AppTypography.title,
+                              '+${order.stampsEarned} damga kazanıldı',
+                              style: AppTypography.badge.copyWith(
+                                color: AppColors.primary,
+                              ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(order.itemsLabel, style: AppTypography.body),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          '${order.branchName} · ${formatDayMonth(order.createdAt)} · ${order.pickupLabel}',
-                          style: AppTypography.bodySecondary.copyWith(
-                            fontSize: 13,
-                          ),
-                        ),
-                        if (order.stampsEarned > 0) ...[
-                          const SizedBox(height: AppSpacing.sm),
-                          Text(
-                            '+${order.stampsEarned} damga kazanıldı',
-                            style: AppTypography.badge.copyWith(
-                              color: AppColors.primary,
-                            ),
-                          ),
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
+      ],
     );
   }
 }

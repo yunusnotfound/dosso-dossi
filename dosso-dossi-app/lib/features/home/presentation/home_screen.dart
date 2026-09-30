@@ -8,9 +8,11 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../routing/app_router.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../auth/application/guest_mode.dart';
 import '../../branches/application/branch_providers.dart';
 import '../../campaigns/application/campaign_providers.dart';
 import 'widgets/campaign_carousel.dart';
+import 'widgets/load_rewards_banner.dart';
 import 'widgets/stamp_card.dart';
 import 'widgets/wallet_card.dart';
 
@@ -20,8 +22,15 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Tablo durum çubuğunun arkasına kadar uzansın diye üst güvenli alan
+    // kapatılır; boşluk ListView padding'iyle telafi edilir.
+    final topInset = MediaQuery.paddingOf(context).top;
+    // Konuk kullanıcının cüzdanı yok: kart hiç gösterilmez.
+    final isGuest = ref.watch(guestModeProvider);
     return Scaffold(
       body: SafeArea(
+        top: false,
+        bottom: false,
         child: RefreshIndicator(
           color: AppColors.primary,
           // Bakiye ve damga bilerek yenilenmiyor: simüle ödeme/damga
@@ -32,13 +41,44 @@ class HomeScreen extends ConsumerWidget {
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.page),
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.page,
+              topInset + AppSpacing.sm,
+              AppSpacing.page,
+              AppSpacing.page + MediaQuery.paddingOf(context).bottom,
+            ),
             children: [
-              const _GreetingHeader(),
-              const SizedBox(height: AppSpacing.xl),
-              const StampCard(),
+              // Damga kartının tablosu selamlama ve kartın ARKASINDA,
+              // yanlarda ekran kenarına kadar taşar; yukarı doğru erir.
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: -AppSpacing.page,
+                    right: -AppSpacing.page,
+                    // Ekranın tepesine kadar: durum çubuğunun arkasında da
+                    // tablo devam eder, üstte gri bir bant kalmaz.
+                    top: -(topInset + AppSpacing.sm),
+                    // Kartın altına da taşar; oradaki sönüm daha uzun sürer.
+                    bottom: -52,
+                    child: StampCardBleed(),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: const [
+                      _GreetingHeader(),
+                      SizedBox(height: AppSpacing.xl),
+                      StampCard(),
+                    ],
+                  ),
+                ],
+              ),
+              if (!isGuest) ...[
+                const SizedBox(height: AppSpacing.lg),
+                const WalletCard(),
+              ],
               const SizedBox(height: AppSpacing.lg),
-              const WalletCard(),
+              const LoadRewardsBanner(),
               const SizedBox(height: AppSpacing.xxl),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -46,10 +86,7 @@ class HomeScreen extends ConsumerWidget {
                   Text('SANA ÖZEL', style: AppTypography.sectionLabel),
                   GestureDetector(
                     onTap: () => context.push(Routes.campaigns),
-                    child: Text(
-                      'Tümü',
-                      style: AppTypography.bodySecondary,
-                    ),
+                    child: Text('Tümü', style: AppTypography.bodySecondary),
                   ),
                 ],
               ),
@@ -71,8 +108,9 @@ class _GreetingHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).value;
     final now = DateTime.now();
-    final firstName =
-        user == null || user.name.isEmpty ? '' : user.name.split(' ').first;
+    final firstName = user == null || user.name.isEmpty
+        ? ''
+        : user.name.split(' ').first;
 
     return Row(
       children: [
@@ -82,11 +120,16 @@ class _GreetingHeader extends ConsumerWidget {
             children: [
               Text(formatDayHeader(now), style: AppTypography.bodySecondary),
               const SizedBox(height: 2),
+              // Her ekran genişliğine kendiliğinden uyar: kısa isimlerde tek
+              // satır, uzun isimlerde ikinci satıra sarar (küçülterek okunmaz
+              // hale getirmez), taşacak kadar uzunsa kısaltır.
               Text(
                 firstName.isEmpty
                     ? greetingFor(now)
                     : '${greetingFor(now)}, $firstName',
-                style: AppTypography.displayLarge,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.greeting,
               ),
             ],
           ),

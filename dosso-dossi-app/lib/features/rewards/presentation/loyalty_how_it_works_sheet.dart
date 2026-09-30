@@ -9,28 +9,34 @@ import '../../../core/theme/app_typography.dart';
 void showLoyaltyHowItWorksSheet(BuildContext context, int target) {
   showModalBottomSheet<void>(
     context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    useSafeArea: true,
     backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
     ),
-    builder: (context) => Padding(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Nasıl çalışır?', style: AppTypography.headline),
-          const SizedBox(height: AppSpacing.xl),
-          const _Step(number: 1, text: 'Kahveni uygulamayla öde'),
-          const _Step(number: 2, text: 'Her kahve 1 damga kazandırır'),
-          _Step(number: 3, text: '$target damga = 1 ikram içecek'),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            'İkram içeceğin, dilediğin boyda tek bir el yapımı içecek için geçerlidir.',
-            style: AppTypography.bodySecondary,
-          ),
-          const SizedBox(height: AppSpacing.md),
-        ],
+    builder: (context) => SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Nasıl çalışır?', style: AppTypography.headline),
+            const SizedBox(height: AppSpacing.xl),
+            const _Step(number: 1, text: 'Kahveni uygulamayla öde'),
+            const _Step(number: 2, text: 'Her kahve 1 damga kazandırır'),
+            _Step(number: 3, text: '$target damga = 1 ikram içecek'),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'İkram içeceğin, dilediğin boyda tek bir el yapımı içecek için geçerlidir.',
+              style: AppTypography.bodySecondary,
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+        ),
       ),
     ),
   );

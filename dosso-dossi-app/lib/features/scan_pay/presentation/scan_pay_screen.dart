@@ -4,8 +4,11 @@ import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../auth/application/guest_mode.dart';
+import '../../auth/presentation/guest_gate.dart';
 import '../../../core/constants/app_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -13,6 +16,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/brand_artwork.dart';
 import '../../../core/widgets/brand_logo.dart';
+import '../../../routing/app_router.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../rewards/application/loyalty_providers.dart';
 import '../../wallet/application/wallet_providers.dart';
@@ -21,7 +25,9 @@ import '../../wallet/domain/wallet.dart';
 
 /// Tara & Öde: kasada okutulan QR/barkod + bakiye yükleme.
 class ScanPayScreen extends ConsumerStatefulWidget {
-  const ScanPayScreen({super.key});
+  const ScanPayScreen({super.key, this.initialTab = 0});
+
+  final int initialTab;
 
   @override
   ConsumerState<ScanPayScreen> createState() => _ScanPayScreenState();
@@ -38,6 +44,7 @@ class _ScanPayScreenState extends ConsumerState<ScanPayScreen> {
   @override
   void initState() {
     super.initState();
+    _tab = widget.initialTab;
     _refreshCode();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
@@ -50,6 +57,14 @@ class _ScanPayScreenState extends ConsumerState<ScanPayScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant ScanPayScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTab != widget.initialTab) {
+      _tab = widget.initialTab;
+    }
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
@@ -58,10 +73,12 @@ class _ScanPayScreenState extends ConsumerState<ScanPayScreen> {
   /// Kasa sisteminin (Kerzz POS) çözeceği tek kullanımlık ödeme kodu.
   /// Mock'ta yerel üretilir; API modunda sunucudan 60 sn'lik token alınır.
   Future<void> _refreshCode() async {
+    if (ref.read(guestModeProvider)) return;
     final phone = ref.read(authControllerProvider).value?.phone ?? '';
     try {
-      final token =
-          await ref.read(walletRepositoryProvider).createQrToken(phone);
+      final token = await ref
+          .read(walletRepositoryProvider)
+          .createQrToken(phone);
       if (!mounted) return;
       setState(() {
         _code = token.code;
@@ -76,16 +93,41 @@ class _ScanPayScreenState extends ConsumerState<ScanPayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Konuk kullanıcının cüzdanı ve QR kodu yok: sekme kilitli görünür.
+    if (ref.watch(guestModeProvider)) {
+      return const Scaffold(
+        body: SafeArea(
+          child: GuestLockedView(
+            title: 'Tara & Öde üyelere özel',
+            message:
+                'Kasada QR ile ödemek, bakiye yüklemek ve damga '
+                'kazanmak için giriş yap.',
+            action: 'QR ile ödemek',
+          ),
+        ),
+      );
+    }
     return Scaffold(
       body: SafeArea(
+        // Üst güvenli alan kapalı: içerik ekranın tepesine kadar uzanır.
+        top: false,
+        bottom: false,
         child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.page),
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.page,
+            MediaQuery.paddingOf(context).top + AppSpacing.page,
+            AppSpacing.page,
+            AppSpacing.page + MediaQuery.paddingOf(context).bottom,
+          ),
           children: [
-            Text('Tara & Öde', style: AppTypography.displayLarge),
+            Text('Tara & Öde', style: AppTypography.headline),
             const SizedBox(height: AppSpacing.lg),
             _SegmentedTabs(
               selected: _tab,
-              onChanged: (i) => setState(() => _tab = i),
+              onChanged: (i) {
+                setState(() => _tab = i);
+                context.go(i == 1 ? Routes.scanPayTopUp : Routes.scanPay);
+              },
             ),
             const SizedBox(height: AppSpacing.lg),
             if (_tab == 0) ...[
@@ -133,15 +175,14 @@ class _SegmentedTabs extends StatelessWidget {
                         color: AppColors.shadow,
                         blurRadius: 8,
                         offset: Offset(0, 2),
-                      )
+                      ),
                     ]
                   : null,
             ),
             child: Text(
               label,
               style: AppTypography.body.copyWith(
-                color:
-                    active ? AppColors.textPrimary : AppColors.textSecondary,
+                color: active ? AppColors.textPrimary : AppColors.textSecondary,
               ),
             ),
           ),
@@ -193,7 +234,7 @@ class _DossoCard extends ConsumerWidget {
               ),
             ),
           ),
-          // Üst banda ikinci bir perde: sağ üstteki beyaz "Dosso Kart"
+          // Üst banda ikinci bir perde: sağ üstteki beyaz "Dosso Dossi Kart"
           // yazısı okunur kalsın; kartın alt yarısı tam renkte kalır.
           Positioned.fill(
             child: DecoratedBox(
@@ -221,56 +262,65 @@ class _DossoCard extends ConsumerWidget {
 
   Widget _content(AsyncValue<Wallet> wallet) {
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const BrandLogo(size: 48),
+            const Spacer(),
+            Text(
+              'Dosso Dossi Kart',
+              style: AppTypography.body.copyWith(color: Colors.white),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        wallet.when(
+          loading: () => Text(
+            '••••',
+            style: AppTypography.body.copyWith(color: Colors.white),
+          ),
+          error: (e, _) => Text(
+            '—',
+            style: AppTypography.body.copyWith(color: Colors.white),
+          ),
+          data: (w) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const BrandLogo(size: 48),
-              const Spacer(),
               Text(
-                'Dosso Kart',
-                style: AppTypography.body.copyWith(color: Colors.white),
+                '••••  ${w.cardLast4}',
+                style: AppTypography.body.copyWith(
+                  color: Colors.white.withValues(alpha: 0.85),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    formatTl(w.balance),
+                    style: AppTypography.numberLarge.copyWith(
+                      color: Colors.white,
+                      fontSize: 30,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      'Bakiye',
+                      style: AppTypography.badge.copyWith(
+                        color: Colors.white.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-          wallet.when(
-            loading: () => Text('••••',
-                style: AppTypography.body.copyWith(color: Colors.white)),
-            error: (e, _) => Text('—',
-                style: AppTypography.body.copyWith(color: Colors.white)),
-            data: (w) => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '••••  ${w.cardLast4}',
-                  style: AppTypography.body
-                      .copyWith(color: Colors.white.withValues(alpha: 0.85)),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      formatTl(w.balance),
-                      style: AppTypography.numberLarge
-                          .copyWith(color: Colors.white, fontSize: 30),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text(
-                        'Bakiye',
-                        style: AppTypography.badge.copyWith(
-                            color: Colors.white.withValues(alpha: 0.85)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ]);
+        ),
+      ],
+    );
   }
 }
 
@@ -371,8 +421,10 @@ class _StampBanner extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           Text(
             'Her kahvede 1 damga · ${AppConfig.stampsPerReward} damga = 1 ikram',
-            style: AppTypography.bodySecondary
-                .copyWith(fontSize: 13, color: AppColors.primary),
+            style: AppTypography.bodySecondary.copyWith(
+              fontSize: 13,
+              color: AppColors.primary,
+            ),
           ),
         ],
       ),
@@ -397,8 +449,7 @@ class _QuickTopUpRow extends ConsumerWidget {
               style: OutlinedButton.styleFrom(
                 backgroundColor: AppColors.surface,
                 side: BorderSide.none,
-                padding:
-                    const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
@@ -417,11 +468,14 @@ class _QuickTopUpRow extends ConsumerWidget {
 
 /// Yükleme onayı — hızlı yükleme ve Bakiye Yükle sekmesi ortak kullanır.
 Future<void> confirmTopUp(
-    BuildContext context, WidgetRef ref, double amount) async {
-  final cardLast4 =
-      ref.read(walletProvider).value?.cardLast4 ?? '····';
+  BuildContext context,
+  WidgetRef ref,
+  double amount,
+) async {
+  final cardLast4 = ref.read(walletProvider).value?.cardLast4 ?? '····';
   final confirmed = await showModalBottomSheet<bool>(
     context: context,
+    useRootNavigator: true,
     backgroundColor: AppColors.background,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
@@ -461,7 +515,9 @@ Future<void> confirmTopUp(
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         backgroundColor: AppColors.danger,
-        content: Text('Yükleme başarısız. Bağlantını kontrol edip tekrar dene.'),
+        content: Text(
+          'Yükleme başarısız. Bağlantını kontrol edip tekrar dene.',
+        ),
       ),
     );
     return;
@@ -470,7 +526,9 @@ Future<void> confirmTopUp(
   // Kampanya bonusu sunucuda (mock'ta simülasyonla) hesaplanır.
   final bonusDrinks = result.bonusDrinks;
   if (bonusDrinks > 0 && AppConfig.useMocks) {
-    ref.read(loyaltyStatusProvider.notifier).addFreeDrinks(
+    ref
+        .read(loyaltyStatusProvider.notifier)
+        .addFreeDrinks(
           bonusDrinks,
           'Yükleme kampanyası — $bonusDrinks ikram kazanıldı',
         );
@@ -536,8 +594,10 @@ class _TopUpViewState extends ConsumerState<_TopUpView> {
               wallet.when(
                 loading: () => Text('...', style: AppTypography.title),
                 error: (e, _) => Text('—', style: AppTypography.title),
-                data: (w) => Text(formatTl(w.balance),
-                    style: AppTypography.title.copyWith(fontSize: 22)),
+                data: (w) => Text(
+                  formatTl(w.balance),
+                  style: AppTypography.title.copyWith(fontSize: 22),
+                ),
               ),
             ],
           ),
@@ -551,13 +611,19 @@ class _TopUpViewState extends ConsumerState<_TopUpView> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.card_giftcard, size: 18, color: AppColors.onGold),
+              const Icon(
+                Icons.card_giftcard,
+                size: 18,
+                color: AppColors.onGold,
+              ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
                   '${AppConfig.topUpBonusThreshold.toStringAsFixed(0)} ₺ ve üzeri yüklemeye ${AppConfig.topUpBonusDrinks} ikram kahve hediye!',
-                  style: AppTypography.badge
-                      .copyWith(fontSize: 13, color: AppColors.onGold),
+                  style: AppTypography.badge.copyWith(
+                    fontSize: 13,
+                    color: AppColors.onGold,
+                  ),
                 ),
               ),
             ],
@@ -578,10 +644,11 @@ class _TopUpViewState extends ConsumerState<_TopUpView> {
                 }),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xl, vertical: AppSpacing.md),
+                    horizontal: AppSpacing.xl,
+                    vertical: AppSpacing.md,
+                  ),
                   decoration: BoxDecoration(
-                    color: _selected == amount &&
-                            _customController.text.isEmpty
+                    color: _selected == amount && _customController.text.isEmpty
                         ? AppColors.coffeeDark
                         : AppColors.surface,
                     borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -589,8 +656,8 @@ class _TopUpViewState extends ConsumerState<_TopUpView> {
                   child: Text(
                     '${amount.toStringAsFixed(0)} ₺',
                     style: AppTypography.body.copyWith(
-                      color: _selected == amount &&
-                              _customController.text.isEmpty
+                      color:
+                          _selected == amount && _customController.text.isEmpty
                           ? AppColors.textOnDark
                           : AppColors.textPrimary,
                     ),
@@ -608,8 +675,11 @@ class _TopUpViewState extends ConsumerState<_TopUpView> {
           ],
           decoration: const InputDecoration(
             hintText: 'Farklı tutar gir (₺)',
-            prefixIcon: Icon(Icons.edit_outlined,
-                size: 20, color: AppColors.textSecondary),
+            prefixIcon: Icon(
+              Icons.edit_outlined,
+              size: 20,
+              color: AppColors.textSecondary,
+            ),
           ),
           onChanged: (_) => setState(() {}),
         ),
@@ -630,8 +700,11 @@ class _TopUpViewState extends ConsumerState<_TopUpView> {
                   style: AppTypography.body,
                 ),
               ),
-              const Icon(Icons.check_circle,
-                  size: 20, color: AppColors.success),
+              const Icon(
+                Icons.check_circle,
+                size: 20,
+                color: AppColors.success,
+              ),
             ],
           ),
         ),

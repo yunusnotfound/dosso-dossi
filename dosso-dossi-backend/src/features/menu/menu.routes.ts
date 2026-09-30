@@ -29,6 +29,7 @@ menuRouter.get('/products', async (_req, res, next) => {
         categoryId: p.categoryId,
         description: p.description,
         imageUrl: p.imageUrl,
+        gridImageUrl: p.gridImageUrl,
         sizeMl: p.sizeMl,
         stampMultiplier: p.stampMultiplier,
         isNew: p.isNew,

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../auth/presentation/guest_gate.dart';
 import '../../application/cart_controller.dart';
 import '../../domain/cart.dart';
 import '../../domain/menu.dart';
@@ -35,6 +36,8 @@ class _AddToCartButtonState extends ConsumerState<AddToCartButton> {
   }
 
   void _add() {
+    // Konuk sipariş veremez: giriş istemi açılır, sepete eklenmez.
+    if (blockedForGuest(context, ref, action: 'Sipariş vermek')) return;
     ref.read(cartProvider.notifier).add(CartItem(
           product: widget.product,
           milk: ProductOptions.defaultMilk,
@@ -63,20 +66,26 @@ class _AddToCartButtonState extends ConsumerState<AddToCartButton> {
           border: Border.all(color: AppColors.primary, width: 1.4),
           borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_added) ...[
-              const Icon(Icons.check, size: 17, color: Colors.white),
-              const SizedBox(width: AppSpacing.xs),
-            ],
-            Text(
-              _added ? 'Sepete eklendi' : 'Sepete ekle',
-              style: AppTypography.body.copyWith(
-                color: _added ? Colors.white : AppColors.primary,
+        // Dar grid hücrelerinde "Sepete eklendi" sığmazsa kırpılmak
+        // yerine küçülür.
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_added) ...[
+                const Icon(Icons.check, size: 17, color: Colors.white),
+                const SizedBox(width: AppSpacing.xs),
+              ],
+              Text(
+                _added ? 'Sepete eklendi' : 'Sepete ekle',
+                maxLines: 1,
+                style: AppTypography.body.copyWith(
+                  color: _added ? Colors.white : AppColors.primary,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

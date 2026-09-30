@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/application/auth_controller.dart';
+import '../features/auth/application/guest_mode.dart';
 import '../features/auth/domain/app_user.dart';
 import '../features/auth/presentation/name_screen.dart';
 import '../features/auth/presentation/onboarding_screen.dart';
@@ -46,6 +47,7 @@ abstract final class Routes {
   // Ana sekmeler
   static const home = '/';
   static const scanPay = '/tara-ode';
+  static const scanPayTopUp = '/tara-ode?tab=yukle';
   static const order = '/siparis';
   static const shop = '/online-magaza';
   static const campaigns = '/kampanyalar';
@@ -83,24 +85,35 @@ abstract final class Routes {
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   // Oturum durumu değiştiğinde router yönlendirmeyi yeniden değerlendirir.
-  final authState =
-      ValueNotifier<AsyncValue<AppUser?>>(ref.read(authControllerProvider));
+  final authState = ValueNotifier<AsyncValue<AppUser?>>(
+    ref.read(authControllerProvider),
+  );
   ref.onDispose(authState.dispose);
   ref.listen(authControllerProvider, (_, next) => authState.value = next);
 
+  // Konuk modu: üye olmadan gezme. Değişince yönlendirme yeniden çalışır.
+  final guest = ValueNotifier<bool>(ref.read(guestModeProvider));
+  ref.onDispose(guest.dispose);
+  ref.listen(guestModeProvider, (_, next) => guest.value = next);
+
   // Açılış animasyonu bitene kadar splash'te kal (oturum anında yüklense bile).
-  final splashHold =
-      ValueNotifier<bool>(ref.read(splashHoldProvider).isLoading);
+  final splashHold = ValueNotifier<bool>(
+    ref.read(splashHoldProvider).isLoading,
+  );
   ref.onDispose(splashHold.dispose);
-  ref.listen(splashHoldProvider, (_, next) => splashHold.value = next.isLoading);
+  ref.listen(
+    splashHoldProvider,
+    (_, next) => splashHold.value = next.isLoading,
+  );
 
   return GoRouter(
     initialLocation: Routes.home,
-    refreshListenable: Listenable.merge([authState, splashHold]),
+    refreshListenable: Listenable.merge([authState, splashHold, guest]),
     redirect: (context, state) {
       final auth = authState.value;
       final location = state.matchedLocation;
-      final onAuthRoute = location == Routes.splash ||
+      final onAuthRoute =
+          location == Routes.splash ||
           location == Routes.onboarding ||
           location.startsWith(Routes.login);
 
@@ -111,8 +124,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       final user = auth.value;
 
-      // Giriş yapılmamış → onboarding'e.
+      // Giriş yapılmamış → onboarding'e. Konuk ise uygulamada serbest gezer;
+      // yalnızca açılış/tanıtım ekranlarından ana sayfaya alınır (giriş
+      // ekranlarına kendi isteğiyle gidebilmeli).
       if (user == null) {
+        if (guest.value) {
+          return location == Routes.splash || location == Routes.onboarding
+              ? Routes.home
+              : null;
+        }
         return onAuthRoute && location != Routes.splash
             ? null
             : Routes.onboarding;
@@ -216,10 +236,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.campaigns,
         builder: (context, state) => const CampaignsScreen(),
       ),
-      GoRoute(
-        path: Routes.faq,
-        builder: (context, state) => const FaqScreen(),
-      ),
+      GoRoute(path: Routes.faq, builder: (context, state) => const FaqScreen()),
       GoRoute(
         path: Routes.kvkk,
         builder: (context, state) => const KvkkScreen(),
@@ -233,36 +250,50 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, navigationShell) =>
             MainShell(navigationShell: navigationShell),
         branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: Routes.home,
-              builder: (context, state) => const HomeScreen(),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: Routes.scanPay,
-              builder: (context, state) => const ScanPayScreen(),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: Routes.order,
-              builder: (context, state) => const OrderScreen(),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: Routes.shop,
-              builder: (context, state) => const ShopScreen(),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: Routes.branchList,
-              builder: (context, state) => const BranchMapScreen(),
-            ),
-          ]),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.home,
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.scanPay,
+                builder: (context, state) => ScanPayScreen(
+                  initialTab: state.uri.queryParameters['tab'] == 'yukle'
+                      ? 1
+                      : 0,
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.order,
+                builder: (context, state) => const OrderScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.shop,
+                builder: (context, state) => const ShopScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.branchList,
+                builder: (context, state) => const BranchMapScreen(),
+              ),
+            ],
+          ),
         ],
       ),
     ],

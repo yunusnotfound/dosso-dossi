@@ -1,0 +1,42 @@
+{
+  "tool": "Built-in image_gen",
+  "status": "approved_selection",
+  "placement": "Online Mağaza / Taze Kavrulmuş Çekirdekler",
+  "aspect_ratio": "2:1",
+  "app_changed": true,
+  "variants": [
+    {
+      "name": "01-kokenleri-kesfet",
+      "image": "01-kokenleri-kesfet.png",
+      "references": [
+        "kolombiya.png",
+        "kenya.png",
+        "nıkaragua.png"
+      ],
+      "prompt": "Use case: ads-marketing, faithful product-photo compositing.\nCreate ONE finished premium Turkish ecommerce sales banner for the Dosso Dossi Coffee mobile app Online Mağaza section. Output a clean landscape bitmap EXACTLY 2:1 aspect ratio, ideally 2048x1024. This is concept 1 of 3, \"Kökenleri keşfet\": bright warm ivory editorial product photography with restrained decoration.\nInput images: image 1 is the actual Colombia 250 GR coffee pouch, image 2 Kenya 250 GR, image 3 Nicaragua 250 GR. Treat each as a product identity/compositing source, NOT a general style reference. Remove the original white margins and original room backgrounds cleanly. Preserve these exact real pouch shapes, printed label designs, round Dosso Dossi character logos, orange label strips, names, spelling and weights faithfully; do not invent/rebrand/redesign the packaging.\nComposition: mobile-readable horizontal advertising card. Left 43% quiet typography area, right 57% three original pouches arranged in a tasteful staggered group, all full silhouettes visible, Colombia slightly forward, Kenya and Nicaragua behind without hiding the brand or main product labels. Realistic same-size 250g pouches. On a low matte cream stone surface with soft contact shadows. Pale cream #FBF8F2 background, warm window light and one very faint diagonal natural shadow. Just 4 or 5 roasted coffee beans near the bases, no clutter.\nText VERBATIM with correct Turkish diacritics, large crisp typography, spacious margins:\nSmall brand line: \"DOSSO DOSSI COFFEE\"\nLarge bold headline on TWO lines: \"Dünyadan seç,\" / \"evinde demle.\"\nShort subline: \"Kolombiya · Kenya · Nikaragua\"\nA modest orange #EF6024 pill CTA: \"Kahveleri keşfet\" plus a simple right arrow.\nText dark coffee #2E211A. Large headline should remain legible when the whole banner is displayed at 300x150 pixels. Leave 6% internal safe area. Product photos occupy most of the banner height. Sophisticated calm retail art direction, lightly decorated, photoreal materials.\nNo added price, discount, award, certification, shipping claim, flavor claim, border, phone mockup, app UI, watermark, numbered concept label or extra advertising text. Produce the banner itself edge to edge.",
+      "approved": true,
+      "app_asset": "assets/images/shop_coffee_origins.png"
+    },
+    {
+      "name": "02-imza-harmanlar",
+      "image": "02-imza-harmanlar.png",
+      "references": [
+        "dosso-dossi-blend.png",
+        "special-espresso-blend.png"
+      ],
+      "prompt": "Use case: ads-marketing, faithful product-photo compositing.\nCreate ONE finished premium Turkish ecommerce sales banner for the Dosso Dossi Coffee mobile app Online Mağaza section. Output a clean landscape bitmap EXACTLY 2:1 aspect ratio, ideally 2048x1024. This is concept 2 of 3, \"İmza harmanlar\": elegant deep espresso-brown studio product photograph, refined and restrained, no flashy excess.\nInput images: image 1 is the actual Dosso Dossi Blend / Muhteşem Karışım 1000 GR pouch, image 2 the actual Special Espresso Blend / Özel Espresso Karışımı 1000 GR pouch. Treat these as exact product identity/compositing sources. Cleanly remove original white margins and original room backgrounds. Keep the original cream pouches, their actual rectangular labels, round character logos, orange-red details, names, spelling, weights and distinctive proportions. No redesigned or generic packaging. Retain natural package folds. Both are 1kg bags of similar size.\nComposition: left 44% for very legible restrained typography, right 56% for two prominently lit full-height pouches. Dosso Dossi Blend slightly forward at a subtle three-quarter angle matching its source photo, Special Espresso Blend upright behind and offset right, both brand and product names visible. Low dark walnut-toned display surface, soft spotlight with believable warm rim light on the cream bags and gentle contact shadows. Background deep coffee brown #2E211A, softly graduating to near-black coffee, one quiet thin burnt-orange architectural arc behind products. At most 4 roasted beans at the bases, no floating beans or theatrical effects.\nExact advertising copy, with Turkish spelling:\nSmall brand line: \"DOSSO DOSSI COFFEE\"\nLarge confident modern headline on TWO lines: \"Dosso Dossi\" / \"keyfi evinde.\"\nShort subline: \"Sana eşlik edecek harmanı seç.\"\nA small tasteful orange #EF6024 pill CTA: \"Harmanları incele\" with right arrow.\nCream typography. Main headline bold and clear at mobile size 300x150; short subline, generous spacing. Keep all important text and products at least 6% away from edges.\nThis should look like a real polished sales campaign using the supplied real coffee products. No price, percentage, discount, shipping promise, badges, invented flavor claims, glitter, smoke, gold luxury clichés, phone mockup, outer border, concept number or watermark. Output ONLY the full-bleed banner.",
+      "approved": false
+    },
+    {
+      "name": "03-kahve-ritueli",
+      "image": "03-kahve-ritueli.png",
+      "references": [
+        "türk-kahve.png",
+        "mehmedi-meşari.png"
+      ],
+      "prompt": "Use case: ads-marketing, faithful product-photo compositing.\nCreate ONE finished Turkish ecommerce coffee sales banner for Dosso Dossi Coffee mobile app Online Mağaza. EXACTLY 2:1 horizontal aspect ratio, ideally 2048x1024. This is concept 3 of 3, \"Kahve ritüeli\": inviting warm beige and muted terracotta lifestyle product photography, gently styled, with personality but not excessive decoration.\nImage 1 is the real TÜRK KAHVESİ / TURKISH COFFEE 250 G cream pouch with orange-red label; image 2 is the real MEHMEDİ MEŞARİ SELECT / MEHMEDİ MEŞARİ DENEYİMİ 250 GR cream pouch with beige label and orange vertical stripe. Use these actual products as compositing sources. Cleanly remove original margins/room backdrops. Preserve exact pouch silhouettes, original label artwork, character logos, product names and weights faithfully. Turkish Coffee is ground coffee, do NOT describe all products here as whole beans and do not redesign either bag.\nComposition distinct from a dark studio ad: warm sunlit tabletop scene, right 55% two original pouches standing side by side with slight depth and believable contact shadows, both fully visible. A very small plain ivory demitasse of Turkish coffee beside the front Turkish Coffee pouch, subtle folded linen at the extreme lower-right and just a few beans near the Mehmedi pouch, all subordinate to packages. Background warm beige #FBF8F2 with a single broad soft terracotta curved color shape behind products, not a busy pattern. Natural soft morning side light. No extra brands on the cup. Left 45% clean typography area.\nAdvertising text VERBATIM, accurate Turkish diacritics, no additional copy:\nSmall brand line: \"DOSSO DOSSI COFFEE\"\nLarge bold headline on TWO lines: \"Kahve keyfi,\" / \"senin usulün.\"\nShort subline: \"Favorini seç, keyfini demle.\"\nSmall orange #EF6024 pill CTA with dark or cream legible text: \"Ürünleri incele\" and right arrow.\nMain headline dark coffee #2E211A, bold contemporary sans-serif, highly readable in a 300x150 mobile placement; prioritize products and headline over decoration, 6% safe margins. Packaging print should match references including the correct dotted Turkish letters.\nDo not add discounts, prices, shipping promises, awards, product feature claims, floating objects, excessive steam, glitter, unrelated props, screen frame, app chrome, border, numbered concept label or watermark. Render ONE polished standalone full-bleed banner.",
+      "approved": true,
+      "app_asset": "assets/images/shop_coffee_ritual.png"
+    }
+  ]
+}

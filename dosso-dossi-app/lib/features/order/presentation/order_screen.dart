@@ -51,40 +51,67 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
     return Scaffold(
       floatingActionButton: cartCount == 0
           ? null
-          : Badge(
-              label: Text('$cartCount'),
-              backgroundColor: AppColors.coffeeDark,
-              offset: const Offset(-4, 4),
-              child: FloatingActionButton(
-                onPressed: () => context.push(Routes.cart),
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: const CircleBorder(),
-                child: const Icon(Icons.shopping_bag_outlined),
+          : Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.paddingOf(context).bottom,
+              ),
+              child: Badge(
+                label: Text('$cartCount'),
+                backgroundColor: AppColors.coffeeDark,
+                offset: const Offset(-4, 4),
+                child: FloatingActionButton(
+                  onPressed: () => context.push(Routes.cart),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: const CircleBorder(),
+                  child: const Icon(Icons.shopping_bag_outlined),
+                ),
               ),
             ),
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.page, AppSpacing.page, AppSpacing.page, 0),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  Text('Sipariş', style: AppTypography.displayLarge),
+        // Üst güvenli alan kapalı: başlık durum çubuğunun arkasına kadar
+        // uzansın, tepede kesik bir bant kalmasın.
+        top: false,
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Sabit başlık bloğu — şube, arama ve kategoriler her zaman
+            // erişilebilir kalsın diye ürünlerle birlikte kaymaz.
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                MediaQuery.paddingOf(context).top + AppSpacing.md,
+                AppSpacing.page,
+                AppSpacing.lg,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // "Online Mağaza" sekmesiyle aynı başlık düzeni:
+                  // sayfanın üst ortasında, aynı font ve ölçüde.
+                  Text(
+                    'Sipariş',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.headline,
+                  ),
                   const SizedBox(height: AppSpacing.lg),
                   const _BranchSelector(),
                   const SizedBox(height: AppSpacing.md),
                   TextField(
                     decoration: const InputDecoration(
                       hintText: 'Menüde ara',
-                      prefixIcon:
-                          Icon(Icons.search, color: AppColors.textSecondary),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     onChanged: (value) => setState(() => _query = value),
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   categories.when(
+                    skipError: true,
+                    skipLoadingOnReload: true,
                     loading: () => const SizedBox(height: 44),
                     error: (e, _) => const SizedBox.shrink(),
                     data: (list) => _CategoryChips(
@@ -96,50 +123,53 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                       }),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                ]),
+                ],
               ),
             ),
-            products.when(
-              loading: () => const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, _) => SliverFillRemaining(
-                child: Center(
-                  child: Text('Menü yüklenemedi',
-                      style: AppTypography.bodySecondary),
+            // Kaydırılan tek alan: ürün ızgarası.
+            Expanded(
+              child: products.when(
+                skipError: true,
+                skipLoadingOnReload: true,
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(
+                  child: Text(
+                    'Menü yüklenemedi',
+                    style: AppTypography.bodySecondary,
+                  ),
                 ),
-              ),
-              data: (list) {
-                final filtered = _filter(list);
-                if (filtered.isEmpty) {
-                  return SliverFillRemaining(
-                    child: Center(
-                      child: Text('Sonuç bulunamadı',
-                          style: AppTypography.bodySecondary),
+                data: (list) {
+                  final filtered = _filter(list);
+                  if (filtered.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'Sonuç bulunamadı',
+                        style: AppTypography.bodySecondary,
+                      ),
+                    );
+                  }
+                  return GridView.builder(
+                    padding: EdgeInsets.fromLTRB(
+                      AppSpacing.page,
+                      0,
+                      AppSpacing.page,
+                      AppSpacing.xxxl * 2 +
+                          MediaQuery.paddingOf(context).bottom,
                     ),
-                  );
-                }
-                return SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.page, 0,
-                      AppSpacing.page, AppSpacing.xxxl * 2),
-                  sliver: SliverGrid(
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: AppSpacing.md,
-                      crossAxisSpacing: AppSpacing.md,
-                      // "Sepete ekle" butonlu kartlara yer açar.
-                      childAspectRatio: 0.62,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) =>
-                          _ProductCard(product: filtered[index]),
-                      childCount: filtered.length,
-                    ),
-                  ),
-                );
-              },
+                          crossAxisCount: 2,
+                          mainAxisSpacing: AppSpacing.md,
+                          crossAxisSpacing: AppSpacing.md,
+                          // "Sepete ekle" butonlu kartlara yer açar.
+                          childAspectRatio: 0.62,
+                        ),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) =>
+                        _ProductCard(product: filtered[index]),
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -156,6 +186,8 @@ class _BranchSelector extends ConsumerWidget {
     final branch = ref.watch(activeBranchProvider);
 
     return branch.when(
+      skipError: true,
+      skipLoadingOnReload: true,
       loading: () => const SizedBox(height: 72),
       error: (e, _) => const SizedBox.shrink(),
       data: (b) => GestureDetector(
@@ -176,16 +208,21 @@ class _BranchSelector extends ConsumerWidget {
                   color: AppColors.surfaceTint,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.storefront_outlined,
-                    size: 22, color: AppColors.primary),
+                child: const Icon(
+                  Icons.storefront_outlined,
+                  size: 22,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Gel-Al · ${b.name.replaceFirst('Dosso Dossi ', '')}',
-                        style: AppTypography.body),
+                    Text(
+                      'Gel-Al · ${b.name.replaceFirst('Dosso Dossi ', '')}',
+                      style: AppTypography.body,
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       'Hazırlık ~${b.prepMinutes} dk · ${b.distanceLabel}',
@@ -194,8 +231,10 @@ class _BranchSelector extends ConsumerWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.keyboard_arrow_down,
-                  color: AppColors.textSecondary),
+              const Icon(
+                Icons.keyboard_arrow_down,
+                color: AppColors.textSecondary,
+              ),
             ],
           ),
         ),
@@ -208,6 +247,7 @@ class _BranchSelector extends ConsumerWidget {
 void showBranchPicker(BuildContext context, WidgetRef ref) {
   showModalBottomSheet<void>(
     context: context,
+    useRootNavigator: true,
     backgroundColor: AppColors.background,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
@@ -227,9 +267,14 @@ void showBranchPicker(BuildContext context, WidgetRef ref) {
                 Text('Şube Seç', style: AppTypography.headline),
                 const SizedBox(height: AppSpacing.lg),
                 branches.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Text('Şubeler yüklenemedi',
-                      style: AppTypography.bodySecondary),
+                  skipError: true,
+                  skipLoadingOnReload: true,
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Text(
+                    'Şubeler yüklenemedi',
+                    style: AppTypography.bodySecondary,
+                  ),
                   data: (list) => Column(
                     children: [
                       for (final branch in list)
@@ -343,7 +388,9 @@ class _CategoryChips extends StatelessWidget {
             onTap: () => onSelected(category.id),
             child: Container(
               padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.sm,
+              ),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: selected ? AppColors.coffeeDark : AppColors.surface,
@@ -352,8 +399,9 @@ class _CategoryChips extends StatelessWidget {
               child: Text(
                 category.name,
                 style: AppTypography.body.copyWith(
-                  color:
-                      selected ? AppColors.textOnDark : AppColors.textPrimary,
+                  color: selected
+                      ? AppColors.textOnDark
+                      : AppColors.textPrimary,
                 ),
               ),
             ),
@@ -388,7 +436,9 @@ class _ProductCard extends ConsumerWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                     child: SizedBox.expand(
-                      child: ProductImage(product: product),
+                      // Kare vitrin fotoğrafı (varsa) grid kutusunu kenardan
+                      // kenara doldurur; detay ekranı bundan etkilenmez.
+                      child: ProductImage(product: product, preferGrid: true),
                     ),
                   ),
                   if (product.stampMultiplier > 1)
@@ -457,7 +507,9 @@ class _ProductBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(AppRadius.pill),

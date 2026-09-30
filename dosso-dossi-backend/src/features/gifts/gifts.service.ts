@@ -73,8 +73,9 @@ export async function sendGift(senderId: string, input: SendGiftInput) {
 
   await smsProvider.send(
     recipientPhone,
-    `Dosso Dossi'den hediyeniz var: ${gift.label}. Kod: ${gift.redeemCode}. ` +
-      `Uygulamaya bu numarayla giriş yapınca hesabınıza tanımlanır.`,
+    `Dosso Dossi'den hediyeniz var: ${gift.label}. ` +
+      `Hediyenizi kullanmak için Dosso Dossi Coffee uygulamasına bu telefon numarasıyla giriş yapın. ` +
+      `Hediyeniz hesabınıza eklenir ve yalnızca uygulama üzerinden kullanılabilir.`,
   );
   return serializeGift(gift);
 }

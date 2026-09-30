@@ -138,6 +138,7 @@ export interface ProductInput {
   categoryId: string;
   description?: string;
   imageUrl?: string | null;
+  gridImageUrl?: string | null;
   sizeMl?: number;
   stampMultiplier?: number;
   isNew?: boolean;
@@ -160,6 +161,7 @@ export async function upsertProduct(req: Request, input: ProductInput) {
       categoryId: input.categoryId,
       description: input.description ?? '',
       imageUrl: input.imageUrl ?? null,
+      gridImageUrl: input.gridImageUrl,
       sizeMl: input.sizeMl ?? 0,
       stampMultiplier: input.stampMultiplier ?? 0,
       isNew: input.isNew ?? false,

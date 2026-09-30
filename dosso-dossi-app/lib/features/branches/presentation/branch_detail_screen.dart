@@ -28,6 +28,8 @@ class BranchDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Mağaza Detay'), centerTitle: true),
       body: branches.when(
+        skipError: true,
+        skipLoadingOnReload: true,
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text('Şube yüklenemedi', style: AppTypography.bodySecondary),
@@ -180,12 +182,17 @@ class _BranchDetailBody extends ConsumerWidget {
               const Divider(height: AppSpacing.xxxl),
               Text('Özellikler', style: AppTypography.title),
               const SizedBox(height: AppSpacing.lg),
+              // Üç özellik dar ekranda da sığsın: her biri eşit pay alır,
+              // etiketler yer kalmazsa kısalır.
               const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _Feature(icon: Icons.wifi, label: 'Wi-Fi'),
-                  _Feature(icon: Icons.storefront, label: 'Gel-Al'),
-                  _Feature(label: 'Damga Kazan'),
+                  Expanded(
+                    child: _Feature(icon: Icons.wifi, label: 'Wi-Fi'),
+                  ),
+                  Expanded(
+                    child: _Feature(icon: Icons.storefront, label: 'Gel-Al'),
+                  ),
+                  Expanded(child: _Feature(label: 'Damga Kazan')),
                 ],
               ),
             ],
@@ -269,8 +276,15 @@ class _Feature extends StatelessWidget {
               ? Icon(icon, size: 20, color: AppColors.primary)
               : const CoffeeBeanIcon(size: 20, color: AppColors.primary),
         ),
-        const SizedBox(width: AppSpacing.sm),
-        Text(label, style: AppTypography.body.copyWith(fontSize: 13)),
+        const SizedBox(width: AppSpacing.xs),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.body.copyWith(fontSize: 13),
+          ),
+        ),
       ],
     );
   }

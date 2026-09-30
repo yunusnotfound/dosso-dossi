@@ -25,6 +25,7 @@ class Product {
     this.isFeatured = false,
     this.hasOptions = true,
     this.images = const [],
+    this.gridImage,
   });
 
   final String id;
@@ -55,4 +56,8 @@ class Product {
   /// Ürün fotoğrafları (asset yolu). Boşsa emoji yer tutucu gösterilir.
   /// Birden fazla varsa detay ekranında kaydırmalı galeri olur.
   final List<String> images;
+
+  /// Sipariş grid'i için kare vitrin fotoğrafı ('/media/...'). Detay ekranı
+  /// bundan etkilenmez; yoksa grid de [images]/emoji akışını kullanır.
+  final String? gridImage;
 }

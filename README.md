@@ -47,15 +47,25 @@ Backend `.env`'inde `ADMIN_JWT_SECRET` (JWT_SECRET'tan farklı) ve
 
 ### Flutter uygulaması
 
+İlk kurulumda `dosso-dossi-app/dart_defines.example.json` dosyasını
+`dart_defines.json` olarak aynı klasöre kopyalayıp `MAPBOX_TOKEN` değerini
+doldurun. `tool/run.sh` bu yerel ayar dosyasını her çalıştırmada yükler.
+
 ```bash
 cd dosso-dossi-app
 flutter pub get
-flutter run                                  # gerçek API ile (localhost:3000, varsayılan)
-flutter run --dart-define=USE_MOCKS=true     # mock veriyle (backend gerekmez)
+./tool/run.sh                                # gerçek API ile (localhost:3000, varsayılan)
+./tool/run.sh --dart-define=USE_MOCKS=true     # mock veriyle (backend gerekmez)
 flutter test                                 # testler kendiliğinden mock modunda çalışır
 ```
 
 Android emülatöründe `--dart-define=API_BASE_URL=http://10.0.2.2:3000` ekleyin.
+Yayın derlemesinde de ayar dosyasını aktarın:
+
+```bash
+flutter build apk --dart-define-from-file=dart_defines.json
+flutter build ios --dart-define-from-file=dart_defines.json
+```
 
 ## Dokümanlar
 

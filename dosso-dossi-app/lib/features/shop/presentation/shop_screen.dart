@@ -6,7 +6,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/widgets/coffee_bean_icon.dart';
 import '../../../core/widgets/product_image.dart';
 import '../../../routing/app_router.dart';
 import '../../favorites/application/favorites_controller.dart';
@@ -25,11 +24,27 @@ class ShopScreen extends ConsumerStatefulWidget {
 }
 
 class _ShopScreenState extends ConsumerState<ShopScreen> {
-  /// Başlığın iki yanına ayrılan alan: 2 ikon (40) + aralık (8).
-  static const _headerIconsWidth = 88.0;
+  /// Başlığın iki yanına ayrılan alan: 2 ikon (40) + aralık (4).
+  static const _headerIconsWidth = 84.0;
 
   String _query = '';
   String _categoryId = 'merch';
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _selectCategory(String id) {
+    _searchController.clear();
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _categoryId = id;
+      _query = '';
+    });
+  }
 
   List<Product> _filter(List<Product> products) {
     final query = _query.trim().toLowerCase();
@@ -48,16 +63,19 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: AppSpacing.xxxl),
+        // Üst güvenli alan kapalı: içerik ekranın tepesine kadar uzanır.
+        top: false,
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Başlık: ortada sayfa adı, sağda favoriler + sepet.
             // İki yanda eşit genişlik ayrılır ki başlık gerçekten ortalansın
             // ve sepet rozeti kırpılmadan sığsın.
             Padding(
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 AppSpacing.page,
-                AppSpacing.md,
+                MediaQuery.paddingOf(context).top + AppSpacing.md,
                 AppSpacing.page,
                 AppSpacing.sm,
               ),
@@ -65,12 +83,16 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                 children: [
                   const SizedBox(width: _headerIconsWidth),
                   Expanded(
-                    child: Text(
-                      'Online Mağaza',
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.headline,
+                    // Dar ekranlarda (iPhone SE) başlık kırpılmak yerine
+                    // sığacak kadar küçülür; geniş ekranlarda tam boyutta.
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Online Mağaza',
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        style: AppTypography.headline,
+                      ),
                     ),
                   ),
                   SizedBox(
@@ -82,7 +104,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                           icon: Icons.favorite_border,
                           onTap: () => context.push(Routes.favorites),
                         ),
-                        const SizedBox(width: AppSpacing.sm),
+                        const SizedBox(width: AppSpacing.xs),
                         Badge(
                           label: Text('$cartCount'),
                           isLabelVisible: cartCount > 0,
@@ -103,6 +125,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
               child: TextField(
+                controller: _searchController,
                 decoration: const InputDecoration(
                   hintText: 'Mağazada ara',
                   prefixIcon: Icon(
@@ -122,16 +145,28 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.page,
                 ),
-                children: const [
-                  _TermosBanner(),
-                  SizedBox(width: AppSpacing.md),
-                  _BeansBanner(),
+                children: [
+                  _CoffeeBanner(
+                    assetPath: 'assets/images/shop_coffee_origins.png',
+                    label:
+                        'Dünyadan seç, evinde demle. Kolombiya, Kenya ve Nikaragua. Kahveleri keşfet.',
+                    onTap: () => _selectCategory('cekirdek'),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  _CoffeeBanner(
+                    assetPath: 'assets/images/shop_coffee_ritual.png',
+                    label:
+                        'Kahve keyfi, senin usulün. Türk Kahvesi ve Mehmedi Meşari. Ürünleri incele.',
+                    onTap: () => _selectCategory('cekirdek'),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
             // Kategori sekmeleri (alt çizgili)
             categories.when(
+              skipError: true,
+              skipLoadingOnReload: true,
               loading: () => const SizedBox(height: 40),
               error: (e, _) => const SizedBox.shrink(),
               data: (list) => Padding(
@@ -154,10 +189,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                               selected:
                                   category.id == _categoryId &&
                                   _query.trim().isEmpty,
-                              onTap: () => setState(() {
-                                _categoryId = category.id;
-                                _query = '';
-                              }),
+                              onTap: () => _selectCategory(category.id),
                             ),
                           ),
                   ],
@@ -165,52 +197,48 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            // Ürünler
-            products.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(AppSpacing.xxxl),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, _) => Padding(
-                padding: const EdgeInsets.all(AppSpacing.xxxl),
-                child: Center(
+            // Kaydırılan tek alan: ürün ızgarası.
+            Expanded(
+              child: products.when(
+                skipError: true,
+                skipLoadingOnReload: true,
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(
                   child: Text(
                     'Mağaza yüklenemedi',
                     style: AppTypography.bodySecondary,
                   ),
                 ),
-              ),
-              data: (list) {
-                final filtered = _filter(list);
-                if (filtered.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.all(AppSpacing.xxxl),
-                    child: Center(
+                data: (list) {
+                  final filtered = _filter(list);
+                  if (filtered.isEmpty) {
+                    return Center(
                       child: Text(
                         'Sonuç bulunamadı',
                         style: AppTypography.bodySecondary,
                       ),
+                    );
+                  }
+                  return GridView.builder(
+                    padding: EdgeInsets.fromLTRB(
+                      AppSpacing.page,
+                      0,
+                      AppSpacing.page,
+                      AppSpacing.xxxl + MediaQuery.paddingOf(context).bottom,
                     ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: AppSpacing.md,
+                          crossAxisSpacing: AppSpacing.md,
+                          childAspectRatio: 0.58,
+                        ),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) =>
+                        _ShopProductCard(product: filtered[index]),
                   );
-                }
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.page,
-                  ),
-                  child: GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    mainAxisSpacing: AppSpacing.md,
-                    crossAxisSpacing: AppSpacing.md,
-                    childAspectRatio: 0.58,
-                    children: [
-                      for (final product in filtered)
-                        _ShopProductCard(product: product),
-                    ],
-                  ),
-                );
-              },
+                },
+              ),
             ),
           ],
         ),
@@ -245,96 +273,35 @@ class _HeaderIcon extends StatelessWidget {
   }
 }
 
-/// Afiş 1: koyu zeminde yeni termoslar.
-class _TermosBanner extends StatelessWidget {
-  const _TermosBanner();
+/// Onaylanan 2:1 afiş; tamamına dokunarak kahve koleksiyonu açılır.
+class _CoffeeBanner extends StatelessWidget {
+  const _CoffeeBanner({
+    required this.assetPath,
+    required this.label,
+    required this.onTap,
+  });
+
+  final String assetPath;
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 300,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.coffeeDark,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Yeni Termoslar\nSeni Bekliyor',
-                  style: AppTypography.title.copyWith(
-                    color: AppColors.textOnDark,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  '4 renk · 500 ml',
-                  style: AppTypography.badge.copyWith(
-                    color: AppColors.goldOnDark,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Image.asset(
-            'assets/images/termos_pembe.png',
-            height: 110,
+    return Semantics(
+      button: true,
+      label: label,
+      child: SizedBox(
+        width: 300,
+        child: Material(
+          color: AppColors.campaignBackground,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          clipBehavior: Clip.antiAlias,
+          child: Ink.image(
+            image: AssetImage(assetPath),
             fit: BoxFit.contain,
+            child: InkWell(onTap: onTap),
           ),
-          Image.asset(
-            'assets/images/termos_yesil.png',
-            height: 96,
-            fit: BoxFit.contain,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Afiş 2: altın zeminde çekirdek kahveler.
-class _BeansBanner extends StatelessWidget {
-  const _BeansBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 300,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.gold,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Taze Kavrulmuş\nÇekirdekler',
-                  style: AppTypography.title.copyWith(
-                    color: AppColors.onGold,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Evinde Dosso Dossi keyfi',
-                  style: AppTypography.badge.copyWith(color: AppColors.onGold),
-                ),
-              ],
-            ),
-          ),
-          const CoffeeBeanIcon(size: 84, color: AppColors.onGold),
-        ],
+        ),
       ),
     );
   }

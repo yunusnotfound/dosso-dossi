@@ -47,8 +47,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Tanıtımı atla → telefon giriş ekranı
-    await tester.tap(find.text('Atla'));
+    // Tanıtımın sonuna git → telefon giriş ekranı
+    // ("Üye olmadan devam et" artık konuk moduna geçirir, giriş ekranına değil.)
+    await tester.tap(find.text('Devam'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Devam'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Telefonla Devam Et'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), '5551112233');

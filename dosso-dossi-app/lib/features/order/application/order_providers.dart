@@ -9,7 +9,8 @@ import '../domain/order_record.dart';
 /// Sipariş için seçilen şube (null = en yakın şube kullanılır).
 final selectedBranchProvider =
     NotifierProvider<SelectedBranchController, Branch?>(
-        SelectedBranchController.new);
+      SelectedBranchController.new,
+    );
 
 class SelectedBranchController extends Notifier<Branch?> {
   @override
@@ -19,15 +20,24 @@ class SelectedBranchController extends Notifier<Branch?> {
 }
 
 /// Ekranların kullanacağı etkin şube: seçilen yoksa en yakın.
-final activeBranchProvider = FutureProvider<Branch>((ref) async {
+/// Aynı AsyncValue'dan türetilir; arka plandaki sekme yeniden açıldığında
+/// ayrı bir Future önbelleği eski şube bilgisini tutmaz.
+final activeBranchProvider = Provider<AsyncValue<Branch>>((ref) {
   final selected = ref.watch(selectedBranchProvider);
-  if (selected != null) return selected;
-  return ref.watch(nearestBranchProvider.future);
+  return ref.watch(branchesProvider).whenData((branches) {
+    if (selected != null) {
+      for (final branch in branches) {
+        if (branch.id == selected.id) return branch;
+      }
+    }
+    return branches.first;
+  });
 });
 
 /// Tamamlanan siparişler (geçmiş siparişler ekranı Faz 7'de bunu okuyacak).
-final ordersProvider =
-    NotifierProvider<OrdersController, List<OrderRecord>>(OrdersController.new);
+final ordersProvider = NotifierProvider<OrdersController, List<OrderRecord>>(
+  OrdersController.new,
+);
 
 class OrdersController extends Notifier<List<OrderRecord>> {
   @override
@@ -41,10 +51,17 @@ class OrdersController extends Notifier<List<OrderRecord>> {
 
   Future<void> _loadFromApi() async {
     try {
-      state = await ref.read(orderRepositoryProvider).getOrders();
+      await refresh();
     } catch (_) {
       // Ağ hatasında liste boş kalır; sonraki sipariş/ekran açılışı tazeler.
     }
+  }
+
+  /// Panelde değişen sipariş durumlarını listeyi boşaltmadan tazeler.
+  /// Hata çağırana iletilir; canlı eşitleme sonraki denemede tekrar yükler.
+  Future<void> refresh() async {
+    final orders = await ref.read(orderRepositoryProvider).getOrders();
+    if (ref.mounted) state = orders;
   }
 
   void add(OrderRecord record) => state = [record, ...state];

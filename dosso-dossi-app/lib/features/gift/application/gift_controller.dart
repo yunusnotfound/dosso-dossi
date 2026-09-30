@@ -8,7 +8,7 @@ import '../domain/gift_record.dart';
 
 /// Gönderilen hediyeler + gönderme işlemi.
 /// Mock modunda tutar yerel bakiyeden düşer; API modunda sunucu düşer ve
-/// alıcıya SMS ile hediye kodu gönderir.
+/// hediyeyi alıcının telefon numarasına bağlı uygulama hesabına tanımlar.
 final giftControllerProvider =
     NotifierProvider<GiftController, List<GiftRecord>>(GiftController.new);
 

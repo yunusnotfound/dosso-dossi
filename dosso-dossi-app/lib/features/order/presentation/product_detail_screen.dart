@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../auth/presentation/guest_gate.dart';
+import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
@@ -39,7 +42,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
 
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 420),
+    duration: const Duration(milliseconds: 520),
   );
   Animation<double>? _shiftAnimation;
 
@@ -48,7 +51,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   double _dragDx = 0;
   bool _swapping = false;
 
-  int? _index;
+  late String _selectedProductId;
   ProductOption _milk = ProductOptions.defaultMilk;
   ProductOption _shot = ProductOptions.defaultShot;
 
@@ -59,6 +62,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   @override
   void initState() {
     super.initState();
+    _selectedProductId = widget.productId;
     _controller.addListener(() {
       final anim = _shiftAnimation;
       if (anim != null) setState(() => _shift = anim.value);
@@ -74,7 +78,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
 
   void _animateShiftTo(double target, {VoidCallback? onDone}) {
     _shiftAnimation = Tween<double>(begin: _shift, end: target).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+      // Hafif yaylanma: ürünler yerine "oturuyormuş" gibi gelir.
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
     _controller
       ..reset()
@@ -88,17 +93,28 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       return;
     }
     final dir = _shift > 0 ? 1 : -1;
+    final index = siblings.indexWhere((p) => p.id == _selectedProductId);
+    if (index < 0) {
+      _animateShiftTo(0);
+      return;
+    }
+    // Menü yenilenirken sıra değişse de kaydırılan ürün aynı kalır.
+    final nextId =
+        siblings[(index + dir + siblings.length) % siblings.length].id;
     _swapping = true;
-    _animateShiftTo(dir.toDouble(), onDone: () {
-      if (!mounted) return;
-      setState(() {
-        _index = (_index! + dir + siblings.length) % siblings.length;
-        _shift = 0;
-        _milk = ProductOptions.defaultMilk;
-        _shot = ProductOptions.defaultShot;
-        _swapping = false;
-      });
-    });
+    _animateShiftTo(
+      dir.toDouble(),
+      onDone: () {
+        if (!mounted) return;
+        setState(() {
+          _selectedProductId = nextId;
+          _shift = 0;
+          _milk = ProductOptions.defaultMilk;
+          _shot = ProductOptions.defaultShot;
+          _swapping = false;
+        });
+      },
+    );
   }
 
   double _priceFor(Product product) => product.hasOptions
@@ -106,9 +122,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       : product.price;
 
   void _addToCart(Product product) {
-    ref.read(cartProvider.notifier).add(
-          CartItem(product: product, milk: _milk, shot: _shot),
-        );
+    // Konuk sipariş veremez: giriş istemi açılır.
+    if (blockedForGuest(context, ref, action: 'Sipariş vermek')) return;
+    ref
+        .read(cartProvider.notifier)
+        .add(CartItem(product: product, milk: _milk, shot: _shot));
     setState(() => _added = true);
     _addedTimer?.cancel();
     _addedTimer = Timer(const Duration(milliseconds: 1600), () {
@@ -121,6 +139,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     final productsAsync = ref.watch(menuProductsProvider);
 
     return productsAsync.when(
+      skipError: true,
+      skipLoadingOnReload: true,
       loading: () => const Scaffold(
         backgroundColor: AppColors.primary,
         body: Center(child: CircularProgressIndicator(color: Colors.white)),
@@ -132,22 +152,24 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
         ),
       ),
       data: (all) {
-        final initial = all.where((p) => p.id == widget.productId).toList();
-        if (initial.isEmpty) {
+        final selected = all.where((p) => p.id == _selectedProductId).toList();
+        if (selected.isEmpty) {
           return Scaffold(
             appBar: AppBar(),
             body: Center(
-              child:
-                  Text('Ürün bulunamadı', style: AppTypography.bodySecondary),
+              child: Text(
+                'Bu ürün şu anda satışta değil',
+                style: AppTypography.bodySecondary,
+              ),
             ),
           );
         }
         // Kaydırma listesi: aynı kategorideki ürünler, menü sırasıyla.
+        final product = selected.first;
         final siblings = all
-            .where((p) => p.categoryId == initial.first.categoryId)
+            .where((p) => p.categoryId == product.categoryId)
             .toList(growable: false);
-        _index ??= siblings.indexWhere((p) => p.id == widget.productId);
-        final product = siblings[_index!];
+        final index = siblings.indexWhere((p) => p.id == _selectedProductId);
         final price = _priceFor(product);
 
         return Scaffold(
@@ -158,7 +180,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 bottom: false,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.sm,
+                  ),
                   child: Row(
                     children: [
                       CircleAvatar(
@@ -198,92 +222,126 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   ),
                 ),
               ),
-              // ── Vitrin: sürüklenebilir ürün karuseli ──
+              // ── Gövde: alt panel + üzerine taşan ürün vitrini ──
+              // Görsel panelin üst kenarını geçer; altındaki yumuşak gölgeyle
+              // havada asılı durur (referans tasarım).
               Expanded(
-                flex: 2,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onHorizontalDragStart: (_) => _dragDx = 0,
-                  onHorizontalDragUpdate: (details) {
-                    if (_swapping || siblings.length < 2) return;
-                    _dragDx += details.delta.dx;
-                    setState(() =>
-                        _shift = (-_dragDx / _slotOffset).clamp(-1.3, 1.3));
-                  },
-                  onHorizontalDragEnd: (_) => _onDragEnd(siblings),
-                  onHorizontalDragCancel: () => _onDragEnd(siblings),
-                  child: _CarouselStage(
-                    siblings: siblings,
-                    index: _index!,
-                    shift: _shift,
-                    slotOffset: _slotOffset,
-                  ),
-                ),
-              ),
-              // ── Alt panel (HTML: s04-sheet) ──
-              Expanded(
-                flex: 3,
-                child: Container(
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(30)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x1F2A1B12),
-                        blurRadius: 34,
-                        offset: Offset(0, -14),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 5,
-                        margin: const EdgeInsets.only(
-                            top: AppSpacing.md, bottom: AppSpacing.sm),
-                        decoration: BoxDecoration(
-                          color: AppColors.divider,
-                          borderRadius: BorderRadius.circular(3),
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    final bodyH = box.maxHeight;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          height: bodyH * 0.62,
+                          child: _buildSheet(product, price),
                         ),
-                      ),
-                      Expanded(
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 220),
-                          transitionBuilder: (child, animation) =>
-                              FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0, 0.03),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: child,
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          top: 0,
+                          // Dokunma alanı panelin üst kenarında biter; görsel
+                          // (artHeight) daha uzun olduğu için panele taşar.
+                          // Böylece paneldeki dokunmalar karusele takılmaz.
+                          height: bodyH * 0.38,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onHorizontalDragStart: (_) => _dragDx = 0,
+                            onHorizontalDragUpdate: (details) {
+                              if (_swapping || siblings.length < 2) return;
+                              _dragDx += details.delta.dx;
+                              setState(
+                                () => _shift = (-_dragDx / _slotOffset).clamp(
+                                  -1.3,
+                                  1.3,
+                                ),
+                              );
+                            },
+                            onHorizontalDragEnd: (_) => _onDragEnd(siblings),
+                            onHorizontalDragCancel: () => _onDragEnd(siblings),
+                            child: _CarouselStage(
+                              siblings: siblings,
+                              index: index,
+                              shift: _shift,
+                              slotOffset: _slotOffset,
+                              // Dokunma alanından uzun: aradaki fark kadar
+                              // panele taşar (havada asılı görünüm).
+                              artHeight: bodyH * 0.50,
                             ),
                           ),
-                          child: _SheetContent(
-                            key: ValueKey(product.id),
-                            product: product,
-                            price: price,
-                            milk: _milk,
-                            shot: _shot,
-                            onMilk: (o) => setState(() => _milk = o),
-                            onShot: (o) => setState(() => _shot = o),
-                            onAdd: () => _addToCart(product),
-                            added: _added,
-                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  /// Alt panel (HTML: s04-sheet): tutamak + ürün bilgileri.
+  Widget _buildSheet(Product product, double price) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x1F2A1B12),
+            blurRadius: 34,
+            offset: Offset(0, -14),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 44,
+            height: 5,
+            margin: const EdgeInsets.only(
+              top: AppSpacing.md,
+              bottom: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.divider,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.03),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              ),
+              child: _SheetContent(
+                key: ValueKey(product.id),
+                product: product,
+                price: price,
+                milk: _milk,
+                shot: _shot,
+                onMilk: (o) => setState(() => _milk = o),
+                onShot: (o) => setState(() => _shot = o),
+                onAdd: () => _addToCart(product),
+                added: _added,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -296,6 +354,7 @@ class _CarouselStage extends StatelessWidget {
     required this.index,
     required this.shift,
     required this.slotOffset,
+    required this.artHeight,
   });
 
   final List<Product> siblings;
@@ -303,11 +362,13 @@ class _CarouselStage extends StatelessWidget {
   final double shift;
   final double slotOffset;
 
+  /// Görselin yüksekliği — dokunma alanından bağımsız ki panele taşabilsin.
+  final double artHeight;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final artHeight = constraints.maxHeight * 0.92;
         final slots = <int>[-2, -1, 1, 2, 0]; // merkez en üstte çizilir
         final children = <Widget>[];
 
@@ -316,27 +377,44 @@ class _CarouselStage extends StatelessWidget {
           if (siblings.length == 2 && rel.abs() > 1) continue;
           final itemIndex =
               ((index + rel) % siblings.length + siblings.length) %
-                  siblings.length;
+              siblings.length;
           final p = rel - shift;
           final ap = p.abs();
-          final scale = 1 - 0.375 * math.min(ap, 1);
+          final t = math.min(ap, 1.0);
+          final scale = 1 - 0.42 * t;
           final opacity = ap <= 1
               ? 1 - 0.58 * ap
               : math.max(0.0, 0.42 * (2 - ap));
           if (opacity <= 0.02) continue;
 
+          // Düz kaydırma yerine 3B karusel: yanlar içe döner, biraz
+          // geri/aşağı kaçar ve hafifçe yatar.
+          final transform = Matrix4.identity()
+            ..setEntry(3, 2, 0.0011) // perspektif
+            ..translateByDouble(p * slotOffset, 26 * t, 0, 1)
+            ..rotateY((-0.52 * p).clamp(-0.85, 0.85))
+            ..rotateZ(0.05 * p.clamp(-1.3, 1.3))
+            ..scaleByDouble(scale, scale, 1, 1);
+
           children.add(
             Positioned.fill(
               child: Align(
-                child: Transform.translate(
-                  offset: Offset(p * slotOffset, 0),
-                  child: Transform.scale(
-                    scale: scale,
+                alignment: Alignment.topCenter,
+                // Görsel dokunma alanından uzun; OverflowBox kısıtı gevşetir
+                // ki alt kenardan panelin üzerine taşabilsin.
+                child: OverflowBox(
+                  alignment: Alignment.topCenter,
+                  minHeight: artHeight,
+                  maxHeight: artHeight,
+                  child: Transform(
+                    transform: transform,
+                    alignment: Alignment.center,
                     child: Opacity(
                       opacity: opacity.clamp(0.0, 1.0),
                       child: _ProductArt(
                         product: siblings[itemIndex],
                         height: artHeight,
+                        focus: 1 - t,
                       ),
                     ),
                   ),
@@ -353,17 +431,85 @@ class _CarouselStage extends StatelessWidget {
 }
 
 class _ProductArt extends StatelessWidget {
-  const _ProductArt({required this.product, required this.height});
+  const _ProductArt({
+    required this.product,
+    required this.height,
+    this.focus = 1,
+  });
 
   final Product product;
   final double height;
 
+  /// 0 = yan yuva, 1 = merkez. Gölgenin koyuluğunu/yayılmasını belirler.
+  final double focus;
+
+  /// Ürünün altına yumuşak elips gölge koyar: nesne panelin üzerinde
+  /// havada asılı durur.
+  Widget _withShadow(Widget art) {
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          bottom: height * 0.02,
+          child: Container(
+            width: height * (0.30 + 0.10 * focus),
+            height: height * 0.055,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.all(
+                Radius.elliptical(height * 0.20, height * 0.028),
+              ),
+              gradient: RadialGradient(
+                colors: [
+                  Colors.black.withValues(alpha: 0.26 * focus),
+                  Colors.black.withValues(alpha: 0.0),
+                ],
+                stops: const [0.15, 1],
+              ),
+            ),
+          ),
+        ),
+        art,
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (product.images.isNotEmpty) {
+      final src = product.images.first;
+      // Emoji yer tutucu, fotoğraflı ürünlerle aynı irilikte dursun ki
+      // gerçek fotoğraf gelince görsel ağırlık değişmesin.
+      final emoji = Center(
+        child: Text(
+          product.emoji,
+          style: TextStyle(fontSize: math.min(320, height * 0.7)),
+        ),
+      );
+      if (src.startsWith('/') || src.startsWith('http')) {
+        // Karusel aynı anda 5 örnek kurar; decode yüksekliği sınırlanmazsa
+        // 5 tam çözünürlük görsel belleği ve kaydırmayı yorar.
+        final dpr = MediaQuery.devicePixelRatioOf(context);
+        return SizedBox(
+          height: height,
+          child: _withShadow(
+            CachedNetworkImage(
+              imageUrl: ApiEndpoints.mediaUrl(src),
+              fit: BoxFit.contain,
+              height: height,
+              memCacheHeight: (height * dpr).round().clamp(1, 1000),
+              fadeInDuration: const Duration(milliseconds: 150),
+              placeholder: (_, _) => emoji,
+              errorWidget: (_, _, _) => emoji,
+            ),
+          ),
+        );
+      }
       return SizedBox(
         height: height,
-        child: Image.asset(product.images.first, fit: BoxFit.contain),
+        child: _withShadow(
+          Image.asset(src, fit: BoxFit.contain, height: height),
+        ),
       );
     }
     return SizedBox(
@@ -371,7 +517,7 @@ class _ProductArt extends StatelessWidget {
       child: Center(
         child: Text(
           product.emoji,
-          style: TextStyle(fontSize: math.min(120, height * 0.55)),
+          style: TextStyle(fontSize: math.min(320, height * 0.7)),
         ),
       ),
     );
@@ -406,16 +552,30 @@ class _SheetContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
+      // Üst boşluk: panele taşan ürün görselinin altında kalsın diye
+      // fiyat/ad satırı aşağıdan başlar.
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.xs, AppSpacing.xl, AppSpacing.xl),
+        AppSpacing.xl,
+        56,
+        AppSpacing.xl,
+        AppSpacing.xl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text(
-                formatTl(price),
-                style: AppTypography.numberLarge.copyWith(fontSize: 30),
+              // Yüksek fiyatlar rozetleri taşırmasın: gerekirse küçülür.
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    formatTl(price),
+                    maxLines: 1,
+                    style: AppTypography.numberLarge.copyWith(fontSize: 30),
+                  ),
+                ),
               ),
               const Spacer(),
               if (product.sizeMl > 0) ...[
@@ -432,9 +592,19 @@ class _SheetContent extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.xs),
-          Text(product.name, style: AppTypography.headline),
+          Text(
+            product.name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.headline,
+          ),
           const SizedBox(height: AppSpacing.xs),
-          Text(product.description, style: AppTypography.bodySecondary),
+          Text(
+            product.description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.bodySecondary,
+          ),
           const SizedBox(height: AppSpacing.md),
           if (product.hasOptions)
             Expanded(
@@ -466,8 +636,7 @@ class _SheetContent extends StatelessWidget {
           FilledButton(
             onPressed: onAdd,
             style: FilledButton.styleFrom(
-              backgroundColor:
-                  added ? AppColors.success : AppColors.coffeeDark,
+              backgroundColor: added ? AppColors.success : AppColors.coffeeDark,
             ),
             child: added
                 ? const Row(
@@ -496,7 +665,9 @@ class _InfoChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: gold ? AppColors.gold : Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.pill),

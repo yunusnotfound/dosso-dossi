@@ -9,21 +9,75 @@ import '../../wallet/application/wallet_providers.dart';
 import '../data/order_repository.dart';
 import '../domain/cart.dart';
 import '../domain/order_record.dart';
+import '../domain/menu.dart';
+import 'menu_providers.dart';
 import 'order_providers.dart';
 
-final cartProvider =
-    NotifierProvider<CartController, CartState>(CartController.new);
+final cartProvider = NotifierProvider<CartController, CartState>(
+  CartController.new,
+);
 
 class CartController extends Notifier<CartState> {
   @override
-  CartState build() => const CartState();
+  CartState build() {
+    ref.listen(menuProductsProvider, (_, next) {
+      if (!next.isLoading && !next.hasError && next.hasValue) {
+        _reconcileProducts(next.requireValue);
+      }
+    });
+    return const CartState();
+  }
+
+  void _reconcileProducts(List<Product> products) {
+    if (state.items.isEmpty) return;
+    final current = {for (final product in products) product.id: product};
+    final items = <CartItem>[];
+    var changed = false;
+    var removed = false;
+    for (final item in state.items) {
+      final product = current[item.product.id];
+      if (product == null) {
+        removed = true;
+        continue;
+      }
+      changed =
+          changed ||
+          product.price != item.product.price ||
+          product.name != item.product.name ||
+          product.hasOptions != item.product.hasOptions;
+      items.add(item.copyWith(product: product));
+    }
+    state = state.copyWith(
+      items: items,
+      clearPromo: items.isEmpty,
+      useFreeDrink: items.isEmpty ? false : state.useFreeDrink,
+      catalogNotice: removed
+          ? 'Satıştan kaldırılan ürünler sepetinden çıkarıldı.'
+          : changed
+          ? 'Sepetindeki ürün bilgileri ve fiyatlar güncellendi.'
+          : null,
+    );
+  }
+
+  Future<void> refreshPromo() async {
+    final code = state.promoCode;
+    if (code == null) return;
+    final result = await ref
+        .read(campaignRepositoryProvider)
+        .validateCode(code);
+    if (!ref.mounted || state.promoCode != code) return;
+    state = result.valid
+        ? state.copyWith(discountRate: result.discountRate)
+        : state.copyWith(clearPromo: true);
+  }
 
   void add(CartItem item) {
     final items = [...state.items];
     final index = items.indexWhere((i) => i.mergeKey == item.mergeKey);
     if (index >= 0) {
-      items[index] =
-          items[index].copyWith(quantity: items[index].quantity + item.quantity);
+      items[index] = items[index].copyWith(
+        quantity: items[index].quantity + item.quantity,
+      );
     } else {
       items.add(item);
     }
@@ -45,8 +99,9 @@ class CartController extends Notifier<CartState> {
   /// geçerliyse uygular ve true döner.
   Future<bool> applyPromo(String code) async {
     final normalized = code.trim().toUpperCase();
-    final result =
-        await ref.read(campaignRepositoryProvider).validateCode(normalized);
+    final result = await ref
+        .read(campaignRepositoryProvider)
+        .validateCode(normalized);
     if (!result.valid) return false;
     state = state.copyWith(
       promoCode: normalized,
@@ -77,11 +132,9 @@ class CartController extends Notifier<CartState> {
     }
 
     try {
-      final record = await ref.read(orderRepositoryProvider).placeOrder(
-            branch: branch,
-            pickupLabel: pickupLabel,
-            cart: cart,
-          );
+      final record = await ref
+          .read(orderRepositoryProvider)
+          .placeOrder(branch: branch, pickupLabel: pickupLabel, cart: cart);
       ref.read(ordersProvider.notifier).add(record);
       ref.invalidate(walletProvider);
       ref.invalidate(loyaltyStatusProvider);
@@ -119,8 +172,11 @@ class CartController extends Notifier<CartState> {
       branchName: branch.name,
       pickupLabel: pickupLabel,
       itemsLabel: cart.items
-          .map((i) =>
-              i.quantity > 1 ? '${i.quantity}x ${i.product.name}' : i.product.name)
+          .map(
+            (i) => i.quantity > 1
+                ? '${i.quantity}x ${i.product.name}'
+                : i.product.name,
+          )
           .join(', '),
       total: cart.total,
       stampsEarned: cart.stampsEarned,

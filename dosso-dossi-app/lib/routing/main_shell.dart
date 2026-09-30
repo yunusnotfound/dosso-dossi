@@ -31,12 +31,15 @@ class _MainShellState extends State<MainShell>
     value: 1,
   );
 
-  late final Animation<double> _fade = Tween(begin: 0.85, end: 1.0)
-      .animate(CurvedAnimation(parent: _controller, curve: _transitionCurve));
+  late final Animation<double> _fade = Tween(
+    begin: 0.85,
+    end: 1.0,
+  ).animate(CurvedAnimation(parent: _controller, curve: _transitionCurve));
 
-  late final Animation<Offset> _slide =
-      Tween(begin: const Offset(0, 0.012), end: Offset.zero)
-          .animate(CurvedAnimation(parent: _controller, curve: _transitionCurve));
+  late final Animation<Offset> _slide = Tween(
+    begin: const Offset(0, 0.012),
+    end: Offset.zero,
+  ).animate(CurvedAnimation(parent: _controller, curve: _transitionCurve));
 
   @override
   void didUpdateWidget(covariant MainShell oldWidget) {
@@ -56,12 +59,10 @@ class _MainShellState extends State<MainShell>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: FadeTransition(
         opacity: _fade,
-        child: SlideTransition(
-          position: _slide,
-          child: widget.navigationShell,
-        ),
+        child: SlideTransition(position: _slide, child: widget.navigationShell),
       ),
       bottomNavigationBar: PillNavBar(
         currentIndex: widget.navigationShell.currentIndex,
@@ -87,7 +88,7 @@ class _NavItem {
 
 /// Zeminden ayrık, hap şeklinde yüzen alt menü. Ortadaki "Tara & Öde"
 /// sekmesi hapın üzerine taşan yuvarlak bir FAB olarak durur.
-/// Yüksekliği Scaffold'da yer kapladığı için içerik barın altında kalmaz.
+/// Sayfalar menünün arkasına uzanır; son içerik için kaydırma payı bırakılır.
 /// Dokunma davranışı test edilebilsin diye görünür (public) bırakıldı.
 class PillNavBar extends StatelessWidget {
   const PillNavBar({
@@ -104,7 +105,11 @@ class PillNavBar extends StatelessWidget {
     _NavItem(0, Icons.home_outlined, Icons.home, 'Ana Sayfa'),
     _NavItem(2, Icons.coffee_outlined, Icons.coffee, 'Sipariş'),
     _NavItem(
-        1, Icons.qr_code_scanner_outlined, Icons.qr_code_scanner, 'Tara & Öde'),
+      1,
+      Icons.qr_code_scanner_outlined,
+      Icons.qr_code_scanner,
+      'Tara & Öde',
+    ),
     // Not: shopping_bag değil local_mall — sepet butonu shopping_bag kullanır,
     // ikisi aynı ekranda karışmasın.
     _NavItem(3, Icons.local_mall_outlined, Icons.local_mall, 'Online Mağaza'),
@@ -135,12 +140,7 @@ class PillNavBar extends StatelessWidget {
           height: _barHeight + _fabLift,
           child: Stack(
             children: [
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _bar(),
-              ),
+              Positioned(left: 0, right: 0, bottom: 0, child: _bar()),
               Positioned(
                 top: 0,
                 left: 0,
@@ -237,8 +237,11 @@ class _PillNavTab extends StatelessWidget {
           duration: _transitionDuration,
           curve: _transitionCurve,
           builder: (context, t, _) {
-            final color =
-                Color.lerp(AppColors.textSecondary, AppColors.primary, t)!;
+            final color = Color.lerp(
+              AppColors.textSecondary,
+              AppColors.primary,
+              t,
+            )!;
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -277,8 +280,10 @@ class _PillNavTab extends StatelessWidget {
                     child: Text(
                       item.label,
                       maxLines: 1,
-                      style: AppTypography.badge
-                          .copyWith(fontSize: 11, color: color),
+                      style: AppTypography.badge.copyWith(
+                        fontSize: 11,
+                        color: color,
+                      ),
                     ),
                   ),
                 ),
@@ -314,8 +319,14 @@ class _MorphIcon extends StatelessWidget {
     return Stack(
       alignment: Alignment.center,
       children: [
-        Opacity(opacity: 1 - t, child: Icon(idle, size: size, color: color)),
-        Opacity(opacity: t, child: Icon(active, size: size, color: color)),
+        Opacity(
+          opacity: 1 - t,
+          child: Icon(idle, size: size, color: color),
+        ),
+        Opacity(
+          opacity: t,
+          child: Icon(active, size: size, color: color),
+        ),
       ],
     );
   }
@@ -349,8 +360,11 @@ class _ScanFab extends StatelessWidget {
         builder: (context, t, _) {
           // Gölge FAB'ın rengini izler; seçiliyken koyu butonun altında
           // turuncu hale kalmasın.
-          final background =
-              Color.lerp(AppColors.primary, AppColors.coffeeDark, t)!;
+          final background = Color.lerp(
+            AppColors.primary,
+            AppColors.coffeeDark,
+            t,
+          )!;
           return Container(
             width: size,
             height: size,

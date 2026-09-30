@@ -100,6 +100,7 @@ const productSchema = z.object({
   categoryId: z.string().min(1),
   description: z.string().max(500).default(''),
   imageUrl: z.string().max(500).nullable().default(null),
+  gridImageUrl: z.string().max(500).nullable().optional(),
   sizeMl: z.number().int().min(0).max(5000).default(0),
   stampMultiplier: z.number().int().min(0).max(10).default(0),
   isNew: z.boolean().default(false),

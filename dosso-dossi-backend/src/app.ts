@@ -1,3 +1,4 @@
+import path from 'node:path';
 import express from 'express';
 import helmet from 'helmet';
 import { AppError, ErrorCodes } from './lib/errors.js';
@@ -13,6 +14,7 @@ import { loyaltyRouter } from './features/loyalty/loyalty.routes.js';
 import { meRouter } from './features/me/me.routes.js';
 import { menuRouter } from './features/menu/menu.routes.js';
 import { ordersRouter } from './features/orders/orders.routes.js';
+import { syncRouter } from './features/sync/sync.routes.js';
 import { posRouter } from './features/pos/pos.routes.js';
 import { walletRouter } from './features/wallet/wallet.routes.js';
 import { kerzzWebhooksRouter } from './features/webhooks/kerzz.routes.js';
@@ -47,6 +49,23 @@ export function createApp(): express.Express {
     }
   });
 
+  // Ürün görselleri (uploads/ → optimize-images.ts üretir). Dosya adı
+  // içerik değişince değişir varsayımıyla 1 yıl immutable önbellek.
+  // helmet'in same-origin CORP başlığı bu rota için gevşetilir ki admin
+  // paneli (farklı origin) <img> ile önizleyebilsin.
+  app.use(
+    '/media',
+    (_req, res, next) => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      next();
+    },
+    express.static(path.resolve(process.cwd(), 'uploads'), {
+      immutable: true,
+      maxAge: '365d',
+      index: false,
+    }),
+  );
+
   // Yönetim paneli: müşteri API'sinden ayrı auth evreni, dar CORS allowlist'i.
   app.use('/admin', adminCors, adminRouter);
 
@@ -55,6 +74,7 @@ export function createApp(): express.Express {
   app.use('/menu', menuRouter);
   app.use('/branches', branchesRouter);
   app.use('/campaigns', campaignsRouter); // validate-code kendi içinde auth'lu
+  app.use('/sync', syncRouter);
   app.use('/webhooks/kerzz', posAuth('POS_WEBHOOK_SECRET'), kerzzWebhooksRouter);
   app.use(
     '/webhooks/payment',
