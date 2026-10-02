@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import { getSetting } from '../settings/settings.service.js';
 import { prisma } from '../../lib/prisma.js';
 import { normalizePhone } from '../../lib/phone.js';
 import { signToken } from '../../middleware/auth.js';
@@ -27,18 +28,20 @@ export async function verifyOtp(rawPhone: string, code: string): Promise<AuthRes
         data: {
           phone,
           wallet: { create: {} },
-          loyalty: { create: {} },
+          loyalty: { create: { target: await getSetting<number>('loyalty.stampTarget', tx) } },
           notificationPrefs: { create: {} },
         },
       });
     }
-    await claimPendingGifts(tx, user.id, phone);
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${user.id} FOR UPDATE`;
+    user = await tx.user.findUniqueOrThrow({ where: { id: user.id } });
+    if (!user.isBlocked) await claimPendingGifts(tx, user.id, phone);
     const refreshToken = await issueRefreshToken(tx, user.id);
     return { user, refreshToken };
   });
 
   return {
-    token: signToken(user.id),
+    token: signToken(user.id, user.tokenVersion),
     refreshToken,
     user: { phone: user.phone, name: user.name, email: user.email },
   };

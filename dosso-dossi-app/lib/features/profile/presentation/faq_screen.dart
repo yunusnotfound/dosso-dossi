@@ -1,60 +1,63 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_config.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../campaigns/application/public_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/scrollable_page_scaffold.dart';
 
-class FaqScreen extends StatelessWidget {
+class FaqScreen extends ConsumerWidget {
   const FaqScreen({super.key});
 
-  static final _faqs = [
-    (
-      q: 'Damga nasıl kazanırım?',
-      a:
-          'Uygulamayla ödediğin her kahve 1 damga kazandırır. '
-          '${AppConfig.stampsPerReward} damgaya ulaştığında 1 ikram içecek hakkın otomatik tanımlanır.',
-    ),
-    (
-      q: 'İkram içeceğimi nasıl kullanırım?',
-      a:
-          'Sepette "İkram hakkını kullan" anahtarını aç — sepetteki en yüksek '
-          'fiyatlı içeceğin ücretsiz olur. İkram, dilediğin boyda tek bir el yapımı içecek için geçerlidir.',
-    ),
-    (
-      q: 'Bakiye yükleme kampanyası nedir?',
-      a:
-          'Tek seferde ${AppConfig.topUpBonusThreshold.toStringAsFixed(0)} ₺ ve üzeri '
-          'bakiye yüklediğinde ${AppConfig.topUpBonusDrinks} ikram kahve hediye edilir.',
-    ),
-    (
-      q: 'Arkadaşıma nasıl hediye gönderirim?',
-      a:
-          'Hediye sekmesinden kahve veya bakiye seç, arkadaşının telefon numarasını gir. '
-          'Hediyeyi kullanmak için alıcının Dosso Dossi Coffee uygulamasına '
-          'bu numarayla giriş yapması gerekir. Hesabı yoksa hediyesi giriş yapana kadar bekler. '
-          'Kahve hediyesi İkramlarım bölümüne, bakiye hediyesi Dosso Dossi Kart hesabına eklenir. '
-          'SMS yalnızca bilgilendirme içindir; SMS ile hediye kullanılamaz.',
-    ),
-    (
-      q: 'Siparişimi nereden teslim alırım?',
-      a:
-          'Siparişini verdiğin şubeden, seçtiğin saatte Gel-Al olarak teslim alabilirsin. '
-          'Şubeyi sipariş ekranından veya Profil > Şubeler bölümünden değiştirebilirsin.',
-    ),
-    (
-      q: 'Dosso Kart bakiyemi iade alabilir miyim?',
-      a: 'Bakiye iadesi için şubemize başvurabilir veya müşteri hizmetlerini arayabilirsin: (0212) 242 21 21.',
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rules = ref.watch(campaignRulesProvider);
+    final target = ref.watch(currentStampTargetProvider);
+    final faqs = [
+      (
+        q: 'Damga nasıl kazanırım?',
+        a:
+            'Uygulamayla ödediğin her kahve 1 damga kazandırır. '
+            '$target damgaya ulaştığında 1 ikram içecek hakkın otomatik tanımlanır.',
+      ),
+      (
+        q: 'İkram içeceğimi nasıl kullanırım?',
+        a:
+            'Sepette "İkram hakkını kullan" anahtarını aç — sepetteki en yüksek '
+            'fiyatlı içeceğin ücretsiz olur. İkram, dilediğin boyda tek bir el yapımı içecek için geçerlidir.',
+      ),
+      (
+        q: 'Bakiye yükleme kampanyası nedir?',
+        a:
+            '${rules.topupFirstOnly ? 'İlk bakiye yüklemende, tek seferde' : 'Tek seferde'} ${rules.topupThreshold.toStringAsFixed(0)} ₺ ve üzeri '
+            'bakiye yüklediğinde ${rules.topupBonusDrinks} ikram kahve hediye edilir.',
+      ),
+      (
+        q: 'Arkadaşıma nasıl hediye gönderirim?',
+        a:
+            'Hediye sekmesinden kahve veya bakiye seç, arkadaşının telefon numarasını gir. '
+            'Hediyeyi kullanmak için alıcının Dosso Dossi Coffee uygulamasına '
+            'bu numarayla giriş yapması gerekir. Hesabı yoksa hediyesi giriş yapana kadar bekler. '
+            'Kahve hediyesi İkramlarım bölümüne, bakiye hediyesi Dosso Dossi Kart hesabına eklenir. '
+            'SMS yalnızca bilgilendirme içindir; SMS ile hediye kullanılamaz.',
+      ),
+      (
+        q: 'Siparişimi nereden teslim alırım?',
+        a:
+            'Siparişini verdiğin şubeden, seçtiğin saatte Gel-Al olarak teslim alabilirsin. '
+            'Şubeyi sipariş ekranından veya Profil > Şubeler bölümünden değiştirebilirsin.',
+      ),
+      (
+        q: 'Dosso Kart bakiyemi iade alabilir miyim?',
+        a: 'Bakiye iadesi için şubemize başvurabilir veya müşteri hizmetlerini arayabilirsin: (0212) 242 21 21.',
+      ),
+    ];
+
     return ScrollablePageScaffold(
       title: 'Yardım & SSS',
       children: [
-        for (final faq in _faqs)
+        for (final faq in faqs)
           Container(
             margin: const EdgeInsets.only(bottom: AppSpacing.md),
             decoration: BoxDecoration(

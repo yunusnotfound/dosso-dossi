@@ -51,7 +51,7 @@ export async function summary(branchId?: string): Promise<DashboardSummary> {
       ? null
       : prisma.paymentIntent.aggregate({
           where: { confirmedAt: { gte: since }, status: 'SUCCEEDED' },
-          _sum: { amount: true },
+          _sum: { amount: true, bonusDrinks: true },
         }),
     branchId ? null : prisma.user.count({ where: { createdAt: { gte: since } } }),
     prisma.order.aggregate({
@@ -66,7 +66,7 @@ export async function summary(branchId?: string): Promise<DashboardSummary> {
   const freeDrinksGranted = branchId
     ? 0
     : await prisma.loyaltyEvent.count({
-        where: { createdAt: { gte: since }, type: { in: ['REWARD_EARNED', 'TOPUP_BONUS'] } },
+        where: { createdAt: { gte: since }, type: 'REWARD_EARNED' },
       });
 
   const orderRevenue = toMoney(orders._sum.total ?? 0);
@@ -80,7 +80,7 @@ export async function summary(branchId?: string): Promise<DashboardSummary> {
     topUpTotal: toMoney(topups?._sum?.amount ?? 0),
     newUsers: newUsers ?? 0,
     stampsEarned: loyalty._sum.stampsEarned ?? 0,
-    freeDrinksGranted,
+    freeDrinksGranted: freeDrinksGranted + (topups?._sum.bonusDrinks ?? 0),
     pendingGifts: gifts ?? 0,
   };
 }
@@ -204,12 +204,12 @@ export async function alerts(branchId?: string): Promise<Alerts> {
     prisma.order.count({
       where: { forwardedAt: null, status: { not: 'CANCELLED' }, ...scoped },
     }),
-    prisma.posEvent.count({ where: { status: 'FAILED' } }),
+    branchId ? 0 : prisma.posEvent.count({ where: { status: 'FAILED' } }),
     prisma.branch.findMany({
       where: { isOpen: false, ...(branchId ? { id: branchId } : {}) },
       select: { name: true },
     }),
-    prisma.paymentIntent.count({ where: { status: 'PENDING' } }),
+    branchId ? 0 : prisma.paymentIntent.count({ where: { status: 'PENDING' } }),
   ]);
   return {
     unforwardedOrders: unforwarded,

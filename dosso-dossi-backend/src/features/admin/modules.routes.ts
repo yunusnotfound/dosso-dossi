@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { moneyInput } from '../../lib/money.js';
 import { requireAdmin, scopeBranch } from '../../middleware/admin-auth.js';
 import { validate } from '../../middleware/validate.js';
 import { listOptions } from '../menu/options.service.js';
 import {
-  SETTING_DEFAULTS,
+  settingSchema,
   allSettings,
   setSetting,
-  type SettingKey,
 } from '../settings/settings.service.js';
 import {
   createAdmin,
@@ -63,6 +63,7 @@ export const modulesRouter = Router();
 
 // Yazma yetkisi olan roller — izleyici her yerde salt okuma.
 const WRITE = ['SUPER_ADMIN', 'MANAGER'] as const;
+const GLOBAL_READ = ['SUPER_ADMIN', 'MANAGER', 'VIEWER'] as const;
 const WRITE_WITH_BRANCH = ['SUPER_ADMIN', 'MANAGER', 'BRANCH_MANAGER'] as const;
 
 const str = (v: unknown): string | undefined =>
@@ -96,7 +97,7 @@ const reorderSchema = z.object({ ids: z.array(z.string()).min(1).max(200) });
 const productSchema = z.object({
   id: z.string().trim().min(1).max(80),
   name: z.string().trim().min(1).max(120),
-  price: z.number().min(0).max(100000),
+  price: moneyInput.min(0).max(100000),
   categoryId: z.string().min(1),
   description: z.string().max(500).default(''),
   imageUrl: z.string().max(500).nullable().default(null),
@@ -112,8 +113,8 @@ const bulkPriceSchema = z
   .object({
     categoryId: z.string().optional(),
     percent: z.number().min(-90).max(200).optional(),
-    amount: z.number().min(-10000).max(10000).optional(),
-    roundTo: z.number().min(0).max(100).default(0),
+    amount: moneyInput.min(-10000).max(10000).optional(),
+    roundTo: moneyInput.min(0).max(100).default(0),
     reason: z.string().trim().min(5).max(300),
   })
   .refine((v) => v.percent !== undefined || v.amount !== undefined, {
@@ -121,13 +122,13 @@ const bulkPriceSchema = z
   });
 const availabilitySchema = z.object({
   isAvailable: z.boolean(),
-  priceOverride: z.number().min(0).max(100000).nullable().default(null),
+  priceOverride: moneyInput.min(0).max(100000).nullable().optional(),
 });
 const optionSchema = z.object({
   id: z.string().optional(),
   group: z.string().trim().min(1).max(40),
   name: z.string().trim().min(1).max(80),
-  priceDelta: z.number().min(-1000).max(1000),
+  priceDelta: moneyInput.min(-1000).max(1000),
   sortOrder: z.number().int().min(0).max(999).default(0),
   isActive: z.boolean().default(true),
 });
@@ -281,11 +282,6 @@ const promoSchema = z.object({
   isActive: z.boolean().default(true),
   expiresAt: z.string().nullable().default(null),
 });
-const settingSchema = z.object({
-  key: z.enum(Object.keys(SETTING_DEFAULTS) as [SettingKey, ...SettingKey[]]),
-  value: z.union([z.number(), z.boolean(), z.string()]),
-});
-
 modulesRouter.get('/campaigns', requireAdmin(), h(() => listCampaigns()));
 modulesRouter.post(
   '/campaigns',
@@ -334,7 +330,7 @@ modulesRouter.post(
 
 const reasonSchema = z.object({ reason: z.string().trim().min(5).max(300) });
 const balanceSchema = reasonSchema.extend({
-  amount: z.number().refine((v) => v !== 0, 'Tutar sıfır olamaz'),
+  amount: moneyInput.refine((v) => v !== 0, 'Tutar sıfır olamaz'),
 });
 const loyaltySchema = reasonSchema.extend({
   stamps: z.number().int().min(0).max(100).optional(),
@@ -343,7 +339,7 @@ const loyaltySchema = reasonSchema.extend({
 
 modulesRouter.get(
   '/customers',
-  requireAdmin(),
+  requireAdmin(...GLOBAL_READ),
   h((req) =>
     listCustomers({
       q: str(req.query.q),
@@ -353,10 +349,10 @@ modulesRouter.get(
     }),
   ),
 );
-modulesRouter.get('/customers/gifts/pending', requireAdmin(), h(() => pendingGifts()));
+modulesRouter.get('/customers/gifts/pending', requireAdmin(...GLOBAL_READ), h(() => pendingGifts()));
 modulesRouter.get(
   '/customers/:id',
-  requireAdmin(),
+  requireAdmin(...GLOBAL_READ),
   h((req) => customerDetail(String(req.params.id))),
 );
 modulesRouter.post(
@@ -410,9 +406,10 @@ const txType = (v: unknown) =>
 
 modulesRouter.get(
   '/finance/ledger',
-  requireAdmin(),
+  requireAdmin(...GLOBAL_READ),
   h((req) =>
     ledger({
+      q: str(req.query.q),
       type: txType(req.query.type),
       from: date(req.query.from),
       to: date(req.query.to),
@@ -421,9 +418,10 @@ modulesRouter.get(
     }),
   ),
 );
-modulesRouter.get('/finance/ledger.csv', requireAdmin(), async (req, res, next) => {
+modulesRouter.get('/finance/ledger.csv', requireAdmin(...GLOBAL_READ), async (req, res, next) => {
   try {
     const csv = await ledgerCsv({
+      q: str(req.query.q),
       type: txType(req.query.type),
       from: date(req.query.from),
       to: date(req.query.to),
@@ -441,9 +439,10 @@ modulesRouter.get('/finance/ledger.csv', requireAdmin(), async (req, res, next) 
 });
 
 /// Markalı Excel defteri: Özet + Tüm hareketler + işlem tipi başına sayfa.
-modulesRouter.get('/finance/ledger.xlsx', requireAdmin(), async (req, res, next) => {
+modulesRouter.get('/finance/ledger.xlsx', requireAdmin(...GLOBAL_READ), async (req, res, next) => {
   try {
     const buffer = await ledgerWorkbook({
+      q: str(req.query.q),
       type: txType(req.query.type),
       from: date(req.query.from),
       to: date(req.query.to),
@@ -464,7 +463,7 @@ modulesRouter.get('/finance/ledger.xlsx', requireAdmin(), async (req, res, next)
 });
 modulesRouter.get(
   '/finance/payments',
-  requireAdmin(),
+  requireAdmin(...GLOBAL_READ),
   h((req) =>
     payments({
       status: str(req.query.status) as never,
@@ -475,7 +474,7 @@ modulesRouter.get(
 );
 modulesRouter.get(
   '/finance/charges',
-  requireAdmin(),
+  requireAdmin(...GLOBAL_READ),
   h((req) => charges({ from: date(req.query.from), to: date(req.query.to) })),
 );
 modulesRouter.post(
@@ -486,7 +485,7 @@ modulesRouter.post(
 );
 modulesRouter.get(
   '/finance/reconciliation',
-  requireAdmin(),
+  requireAdmin(...GLOBAL_READ),
   h((req) => reconciliation(num(req.query.days, 7))),
 );
 
@@ -494,7 +493,7 @@ modulesRouter.get(
 
 modulesRouter.get(
   '/pos/events',
-  requireAdmin(),
+  requireAdmin(...GLOBAL_READ),
   h((req) =>
     listEvents({
       source: str(req.query.source),
@@ -505,7 +504,7 @@ modulesRouter.get(
     }),
   ),
 );
-modulesRouter.get('/pos/health', requireAdmin(), h(() => health()));
+modulesRouter.get('/pos/health', requireAdmin(...GLOBAL_READ), h(() => health()));
 modulesRouter.post(
   '/pos/events/:id/requeue',
   requireAdmin(...WRITE),

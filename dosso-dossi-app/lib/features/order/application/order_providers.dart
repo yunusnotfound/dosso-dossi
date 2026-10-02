@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_config.dart';
+import '../../../core/network/runtime_mode.dart';
+import '../../../core/network/session_scope.dart';
 import '../../branches/application/branch_providers.dart';
 import '../../branches/domain/branch.dart';
 import '../data/order_repository.dart';
@@ -30,6 +31,9 @@ final activeBranchProvider = Provider<AsyncValue<Branch>>((ref) {
         if (branch.id == selected.id) return branch;
       }
     }
+    if (branches.isEmpty) {
+      throw StateError('Şu anda sipariş alınabilen şube yok.');
+    }
     return branches.first;
   });
 });
@@ -43,7 +47,7 @@ class OrdersController extends Notifier<List<OrderRecord>> {
   @override
   List<OrderRecord> build() {
     // API modunda geçmiş siparişler sunucudan yüklenir (mock'ta oturum içi).
-    if (!AppConfig.useMocks) {
+    if (ref.read(apiModeProvider)) {
       Future.microtask(_loadFromApi);
     }
     return [];
@@ -52,17 +56,37 @@ class OrdersController extends Notifier<List<OrderRecord>> {
   Future<void> _loadFromApi() async {
     try {
       await refresh();
-    } catch (_) {
-      // Ağ hatasında liste boş kalır; sonraki sipariş/ekran açılışı tazeler.
+    } catch (_) {}
+  }
+
+  Future<void> refresh() async {
+    if (!ref.mounted) return;
+    final scope = ref.read(sessionScopeProvider);
+    final epoch = scope.revision;
+    ref.read(ordersLoadProvider.notifier).set(const AsyncLoading());
+    try {
+      final records = await ref.read(orderRepositoryProvider).getOrders();
+      if (!ref.mounted || scope.revision != epoch) return;
+      state = records;
+      ref.read(ordersLoadProvider.notifier).set(const AsyncData(null));
+    } catch (error, stack) {
+      if (ref.mounted && scope.revision == epoch) {
+        ref.read(ordersLoadProvider.notifier).set(AsyncError(error, stack));
+      }
+      rethrow;
     }
   }
 
-  /// Panelde değişen sipariş durumlarını listeyi boşaltmadan tazeler.
-  /// Hata çağırana iletilir; canlı eşitleme sonraki denemede tekrar yükler.
-  Future<void> refresh() async {
-    final orders = await ref.read(orderRepositoryProvider).getOrders();
-    if (ref.mounted) state = orders;
-  }
-
   void add(OrderRecord record) => state = [record, ...state];
+}
+
+final ordersLoadProvider =
+    NotifierProvider<OrdersLoadController, AsyncValue<void>>(
+      OrdersLoadController.new,
+    );
+
+class OrdersLoadController extends Notifier<AsyncValue<void>> {
+  @override
+  AsyncValue<void> build() => const AsyncData(null);
+  void set(AsyncValue<void> value) => state = value;
 }

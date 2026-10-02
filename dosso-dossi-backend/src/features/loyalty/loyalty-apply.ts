@@ -1,4 +1,8 @@
 import type { Prisma } from '@prisma/client';
+import { lockUsers } from '../../lib/financial-locks.js';
+import { AppError } from '../../lib/errors.js';
+import { getSetting } from '../settings/settings.service.js';
+import { journalMetadata, loyaltyState, purchaseState } from './loyalty-journal.js';
 
 interface ApplyLoyaltyOptions {
   /// Bu işlemle kazanılan damga (ikram edilen içecek dahil — mock ile aynı kural)
@@ -19,19 +23,18 @@ export async function applyLoyalty(
   userId: string,
   opts: ApplyLoyaltyOptions,
 ): Promise<{ rewardsEarned: number }> {
+  await lockUsers(tx, [userId]);
   const loyalty = await tx.loyaltyAccount.findUniqueOrThrow({
     where: { userId },
   });
 
-  const rawStamps = loyalty.stamps + opts.stampsEarned;
-  const rewardsEarned = Math.floor(rawStamps / loyalty.target);
+  if (opts.consumeFreeDrink && loyalty.freeDrinks < 1) throw AppError.noFreeDrink();
+  const nextTarget = await getSetting<number>('loyalty.stampTarget', tx);
+  const before = loyaltyState(loyalty);
+  const { state, rewardsEarned } = purchaseState(before, opts.stampsEarned, !!opts.consumeFreeDrink, nextTarget);
   await tx.loyaltyAccount.update({
     where: { userId },
-    data: {
-      stamps: rawStamps % loyalty.target,
-      freeDrinks:
-        loyalty.freeDrinks + rewardsEarned - (opts.consumeFreeDrink ? 1 : 0),
-    },
+    data: state,
   });
 
   if (opts.consumeFreeDrink) {
@@ -45,13 +48,17 @@ export async function applyLoyalty(
       },
     });
   }
-  if (opts.stampsEarned > 0) {
+  if (opts.stampsEarned > 0 || opts.consumeFreeDrink) {
     await tx.loyaltyEvent.create({
       data: {
         accountId: loyalty.id,
         type: 'STAMPS_EARNED',
         title: `${opts.stampsEarned} damga — ${opts.sourceTitle}`,
         orderId: opts.orderId,
+        metadata: journalMetadata({
+          kind: 'purchase', before, stampsEarned: opts.stampsEarned,
+          consumeFreeDrink: !!opts.consumeFreeDrink, nextTarget,
+        }),
       },
     });
   }

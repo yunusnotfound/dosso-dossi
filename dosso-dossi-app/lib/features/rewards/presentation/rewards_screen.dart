@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_config.dart';
+import '../../campaigns/application/public_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
@@ -129,15 +129,15 @@ class _ProgressCard extends StatelessWidget {
   }
 }
 
-class _HowItWorksCard extends StatelessWidget {
+class _HowItWorksCard extends ConsumerWidget {
   const _HowItWorksCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final steps = [
       'Kahveni uygulamayla öde',
       'Her kahve 1 damga kazandırır',
-      '${AppConfig.stampsPerReward} damga = 1 ikram içecek',
+      '${ref.watch(currentStampTargetProvider)} damga = 1 ikram içecek',
     ];
 
     return Container(

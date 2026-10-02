@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '../../auth/AuthContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../api/client';
 import { Checkbox, Drawer, Field, Input } from '../../components/form';
@@ -43,6 +44,9 @@ const EMPTY: Branch = {
 };
 
 export function BranchesPage() {
+  const { admin } = useAuth();
+  const canManage = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
+  const canOperate = admin?.role !== 'VIEWER';
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Branch | null>(null);
   const [matrixFor, setMatrixFor] = useState<Branch | null>(null);
@@ -95,6 +99,7 @@ export function BranchesPage() {
             e.stopPropagation();
             toggle.mutate(b);
           }}
+          disabled={!canOperate || toggle.isPending}
           title="Anlık açık/kapalı — kapalı şube sipariş alamaz"
         >
           <Badge tone={b.isOpen ? 'ok' : 'bad'}>{b.isOpen ? 'Açık' : 'Kapalı'}</Badge>
@@ -123,13 +128,14 @@ export function BranchesPage() {
       <PageHeader
         title="Şubeler"
         subtitle="Bilgiler, çalışma durumu ve ürün müsaitliği"
-        actions={<Button onClick={() => setEditing({ ...EMPTY })}>Yeni şube</Button>}
+        actions={canManage ? <Button onClick={() => setEditing({ ...EMPTY })}>Yeni şube</Button> : null}
       />
+      {toggle.error ? <p role="alert" className="text-sm text-bad">{toggle.error.message}</p> : null}
       <DataTable
         columns={columns}
         rows={list.data}
         rowKey={(b) => b.id}
-        onRowClick={setEditing}
+        onRowClick={canManage ? setEditing : undefined}
         loading={list.isLoading}
       />
 
@@ -276,6 +282,7 @@ function AvailabilityDrawer({
   onClose: () => void;
 }) {
   const qc = useQueryClient();
+  const { admin } = useAuth();
   const [q, setQ] = useState('');
 
   const list = useQuery({
@@ -288,7 +295,7 @@ function AvailabilityDrawer({
     mutationFn: (p: { productId: string; isAvailable: boolean }) =>
       api(`/admin/branches/${branch!.id}/availability/${p.productId}`, {
         method: 'POST',
-        body: { isAvailable: p.isAvailable, priceOverride: null },
+        body: { isAvailable: p.isAvailable },
       }),
     onSuccess: () =>
       void qc.invalidateQueries({ queryKey: ['availability', branch?.id] }),
@@ -308,6 +315,7 @@ function AvailabilityDrawer({
         <p className="text-sm text-ink-muted">
           Kapatılan ürün bu şubede sipariş edilemez. Kayıt yoksa ürün müsait sayılır.
         </p>
+        {set.error ? <p role="alert" className="text-sm text-bad">{set.error.message}</p> : null}
         <Input placeholder="Ürün ara" value={q} onChange={(e) => setQ(e.target.value)} />
         <Card className="p-0">
           <ul>
@@ -319,10 +327,12 @@ function AvailabilityDrawer({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-ink">{r.name}</p>
                   <p className="text-xs text-ink-muted">
-                    {r.categoryName} · {fmtTL(r.basePrice)}
+                    {r.categoryName} · {fmtTL(r.priceOverride ?? r.basePrice)}
+                    {r.priceOverride !== null ? ` (şubeye özel; genel ${fmtTL(r.basePrice)})` : ''}
                   </p>
                 </div>
                 <button
+                  disabled={admin?.role === 'VIEWER' || set.isPending}
                   onClick={() =>
                     set.mutate({ productId: r.productId, isAvailable: !r.isAvailable })
                   }

@@ -3,19 +3,24 @@ import { AppError } from '../../lib/errors.js';
 import { dec, toMoney } from '../../lib/money.js';
 import { logger } from '../../lib/logger.js';
 import { prisma } from '../../lib/prisma.js';
+import { assertActiveUser } from '../../lib/active-user.js';
+import { lockUsers } from '../../lib/financial-locks.js';
+import { lockFinancialRequest, saveFinancialResult } from '../../lib/idempotency.js';
 import { applyLoyalty } from '../loyalty/loyalty-apply.js';
-import { loadOptionDeltas } from '../menu/options.service.js';
+import { loadOrderOptions } from '../menu/options.service.js';
 import { parseOrderNumber } from './order-status.service.js';
 import { kerzzPosClient } from './pos-client.js';
 import type { PlaceOrderInput } from './orders.schemas.js';
 
 export async function placeOrder(userId: string, input: PlaceOrderInput) {
-  // Opsiyon fiyat farkları artık ProductOption tablosundan (panelden
-  // yönetilir); transaction'a girmeden okunur, önbellekli.
-  const deltas = await loadOptionDeltas();
-  const optionDelta = (name: string): number => deltas.get(name) ?? 0;
-
-  const order = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
+    await lockUsers(tx, [userId]);
+    await assertActiveUser(tx, userId);
+    const request = await lockFinancialRequest(tx, userId, 'order', input.idempotencyKey, input);
+    if (request?.response) {
+      return { order: null, response: request.response as unknown as ReturnType<typeof serializeOrder> };
+    }
+    const optionDelta = await loadOrderOptions(tx);
     const branch = await tx.branch.findUnique({ where: { id: input.branchId } });
     if (!branch) throw AppError.notFound('Şube bulunamadı');
     if (!branch.isOpen) throw AppError.branchClosed();
@@ -47,16 +52,20 @@ export async function placeOrder(userId: string, input: PlaceOrderInput) {
       if (unavailable.has(product.id)) {
         throw AppError.productUnavailable(`${product.name} bu şubede şu an yok`);
       }
-      const basePrice = Number(priceOverrides.get(product.id) ?? product.price);
+      const basePrice = priceOverrides.get(product.id) ?? product.price;
       const unitPrice = product.hasOptions
-        ? basePrice + optionDelta(item.milk) + optionDelta(item.shot)
-        : basePrice;
+        ? toMoney(basePrice.add(optionDelta('milk', item.milk)).add(optionDelta('shot', item.shot)))
+        : toMoney(basePrice);
+      if (!product.hasOptions && ((item.milk && item.milk !== 'Normal süt') || (item.shot && item.shot !== 'Tek shot'))) {
+        throw new AppError('VALIDATION_ERROR', 400, 'Bu ürün için süt veya shot seçilemez');
+      }
+      if (unitPrice < 0) throw new AppError('VALIDATION_ERROR', 400, 'Ürün fiyatı negatif olamaz');
       return { ...item, product, unitPrice };
     });
 
-    const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
+    const subtotal = toMoney(lines.reduce((sum, l) => sum.add(dec(l.unitPrice).mul(l.quantity)), dec(0)));
 
-    let discountRate = 0;
+    let discountRate = new Prisma.Decimal(0);
     let promoCode: string | undefined;
     if (input.promoCode) {
       promoCode = input.promoCode.toUpperCase();
@@ -64,9 +73,9 @@ export async function placeOrder(userId: string, input: PlaceOrderInput) {
       if (!promo || !promo.isActive || (promo.expiresAt && promo.expiresAt < new Date())) {
         throw AppError.invalidPromo();
       }
-      discountRate = Number(promo.discountRate);
+      discountRate = promo.discountRate;
     }
-    const discount = subtotal * discountRate;
+    const discount = toMoney(dec(subtotal).mul(discountRate));
 
     // İkram: damga kazandıran en yüksek birim fiyatlı üründen 1 adet bedava.
     // İkram edilen içecek de damga kazanır (mock ile aynı kural).
@@ -85,7 +94,10 @@ export async function placeOrder(userId: string, input: PlaceOrderInput) {
       freeDrinkDiscount = freeLine.unitPrice;
     }
 
-    const total = Math.max(0, subtotal - discount - freeDrinkDiscount);
+    const total = toMoney(Prisma.Decimal.max(0, dec(subtotal).sub(discount).sub(freeDrinkDiscount)));
+    if (input.expectedTotal !== undefined && dec(input.expectedTotal).comparedTo(dec(total)) !== 0) {
+      throw AppError.priceChanged(total);
+    }
     const stampsEarned = lines.reduce(
       (sum, l) => sum + l.product.stampMultiplier * l.quantity,
       0,
@@ -155,14 +167,19 @@ export async function placeOrder(userId: string, input: PlaceOrderInput) {
       orderId: order.id,
     });
 
-    return order;
+    const response = serializeOrder(order);
+    await saveFinancialResult(tx, request?.id, response, order.id);
+    return { order, response };
   });
 
   // At-ve-unut değil: hata sweep'e loglanır, mini-outbox yeniden dener
-  kerzzPosClient
-    .forwardOrder(order)
-    .catch((err) => logger.warn(`Sipariş DD-${order.number} POS'a iletilemedi: ${err}`));
-  return serializeOrder(order);
+  if (result.order) {
+    const order = result.order;
+    kerzzPosClient
+      .forwardOrder(order)
+      .catch((err) => logger.warn(`Sipariş DD-${order.number} POS'a iletilemedi: ${err}`));
+  }
+  return result.response;
 }
 
 export async function getOrder(userId: string, orderId: string) {

@@ -36,9 +36,12 @@ void main() {
     await tester.tap(find.text('Üye olmadan devam et'));
     await tester.pumpAndSettle();
 
-    // Ana sayfa açılır; damga kartının yerinde giriş çağrısı durur.
+    // Açıklamalar görünmez; eski boşluk ve giriş düğmesi korunur.
     expect(find.text('Ana Sayfa'), findsWidgets);
-    expect(find.text('Damga biriktirmeye başla'), findsOneWidget);
+    expect(find.text('Damga biriktirmeye başla').hitTestable(), findsNothing);
+    expect(find.text('Üye ol, her kahvende damga kazan; 5. kahven bizden.').hitTestable(),
+        findsNothing);
+    expect(find.text('Giriş yap / Üye ol'), findsOneWidget);
 
     // Hesaba bağlı sekme kilitli.
     await tester.tap(find.text('Tara & Öde').last);

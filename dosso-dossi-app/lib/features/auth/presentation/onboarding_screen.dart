@@ -407,7 +407,7 @@ class _StampIllustration extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           const Positioned(
-            top: 6,
+            top: 30,
             child: _BrandCup(height: 200),
           ),
           Positioned(
@@ -510,19 +510,19 @@ class _GiftIllustration extends StatelessWidget {
   }
 }
 
-/// Marka bardağı: turuncu kapaklı, logolu gerçek ürün fotoğrafı.
-/// Genişlik, görselin kendi en/boy oranından (471×725) türetilir.
+/// Kampanyalarla ortak logolu, yaprak ve kahve çekirdekli bardak görseli.
+/// Genişlik, görselin kendi en/boy oranından (1024×1536) türetilir.
 class _BrandCup extends StatelessWidget {
   const _BrandCup({required this.height});
 
-  static const _aspect = 471 / 725;
+  static const _aspect = 1024 / 1536;
 
   final double height;
 
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'assets/images/onboarding_bardak.png',
+      'assets/images/yukle_kazan_cup.png',
       height: height,
       width: height * _aspect,
       fit: BoxFit.contain,

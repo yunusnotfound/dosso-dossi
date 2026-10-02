@@ -23,6 +23,7 @@ class ApiOrderRepository implements OrderRepository {
         ApiEndpoints.orders,
         data: {
           'branchId': branch.id,
+          'expectedTotal': double.parse(cart.total.toStringAsFixed(2)),
           'pickupSlot': pickupLabel,
           'items': [
             for (final item in cart.items)
@@ -48,7 +49,8 @@ class ApiOrderRepository implements OrderRepository {
     return apiCall(() async {
       final res = await _dio.get<List<dynamic>>(ApiEndpoints.orders);
       return [
-        for (final item in res.data!) _orderFromJson(item as Map<String, dynamic>),
+        for (final item in res.data!)
+          _orderFromJson(item as Map<String, dynamic>),
       ];
     });
   }
@@ -56,8 +58,7 @@ class ApiOrderRepository implements OrderRepository {
   @override
   Future<OrderRecord> getOrder(String id) {
     return apiCall(() async {
-      final res =
-          await _dio.get<Map<String, dynamic>>(ApiEndpoints.order(id));
+      final res = await _dio.get<Map<String, dynamic>>(ApiEndpoints.order(id));
       return _orderFromJson(res.data!);
     });
   }

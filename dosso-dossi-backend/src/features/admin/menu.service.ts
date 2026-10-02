@@ -121,6 +121,7 @@ export async function listProducts(f: ProductFilters) {
       categoryName: p.category.name,
       description: p.description,
       imageUrl: p.imageUrl,
+      gridImageUrl: p.gridImageUrl,
       sizeMl: p.sizeMl,
       stampMultiplier: p.stampMultiplier,
       isNew: p.isNew,
@@ -295,10 +296,9 @@ export async function setAvailability(
     });
     const data = {
       isAvailable: input.isAvailable,
-      priceOverride:
-        input.priceOverride === null || input.priceOverride === undefined
-          ? null
-          : dec(input.priceOverride),
+      ...(input.priceOverride === undefined ? {} : {
+        priceOverride: input.priceOverride === null ? null : dec(input.priceOverride),
+      }),
     };
     const after = await tx.branchProduct.upsert({
       where: { branchId_productId: { branchId, productId } },
@@ -332,7 +332,7 @@ export async function saveOption(
   const saved = await prisma.$transaction(async (tx) => {
     const before = input.id
       ? await tx.productOption.findUnique({ where: { id: input.id } })
-      : null;
+      : await tx.productOption.findUnique({ where: { group_name: { group: input.group, name: input.name } } });
     const data = {
       group: input.group,
       name: input.name,
@@ -342,7 +342,7 @@ export async function saveOption(
     };
     const after = input.id
       ? await tx.productOption.update({ where: { id: input.id }, data })
-      : await tx.productOption.create({ data });
+      : await tx.productOption.upsert({ where: { group_name: { group: input.group, name: input.name } }, create: data, update: data });
     await audit(tx, req, {
       action: before ? 'option.update' : 'option.create',
       entity: 'ProductOption',

@@ -33,6 +33,8 @@ class ApiWalletRepository implements WalletRepository {
       return TopUpResult(
         balance: (data['balance'] as num).toDouble(),
         bonusDrinks: (data['bonusDrinks'] as num).toInt(),
+        status: data['status'] as String? ?? 'succeeded',
+        paymentId: data['paymentId'] as String?,
       );
     });
   }
@@ -40,8 +42,9 @@ class ApiWalletRepository implements WalletRepository {
   @override
   Future<QrTokenData> createQrToken(String phone) {
     return apiCall(() async {
-      final res =
-          await _dio.post<Map<String, dynamic>>(ApiEndpoints.walletQrToken);
+      final res = await _dio.post<Map<String, dynamic>>(
+        ApiEndpoints.walletQrToken,
+      );
       final data = res.data!;
       return QrTokenData(
         code: data['code'] as String,

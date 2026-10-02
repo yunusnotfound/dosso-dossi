@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { moneyInput } from '../../lib/money.js';
 
 export const placeOrderSchema = z.object({
   branchId: z.string().min(1),
@@ -17,6 +18,8 @@ export const placeOrderSchema = z.object({
   promoCode: z.string().trim().max(40).optional(),
   useFreeDrink: z.boolean().default(false),
   payment: z.object({ method: z.literal('dosso_card') }),
+  idempotencyKey: z.string().uuid().optional(),
+  expectedTotal: moneyInput.nonnegative().optional(),
 });
 
 export type PlaceOrderInput = z.infer<typeof placeOrderSchema>;

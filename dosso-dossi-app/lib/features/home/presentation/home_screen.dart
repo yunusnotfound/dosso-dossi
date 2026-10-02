@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../../core/constants/app_config.dart';
+import '../../../core/utils/error_feedback.dart';
+import '../../campaigns/application/public_config.dart';
+import '../../campaigns/application/campaign_story_providers.dart';
+import '../../wallet/application/wallet_providers.dart';
+import '../../rewards/application/loyalty_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,6 +18,7 @@ import '../../auth/application/guest_mode.dart';
 import '../../branches/application/branch_providers.dart';
 import '../../campaigns/application/campaign_providers.dart';
 import 'widgets/campaign_carousel.dart';
+import 'widgets/campaign_story_strip.dart';
 import 'widgets/load_rewards_banner.dart';
 import 'widgets/stamp_card.dart';
 import 'widgets/wallet_card.dart';
@@ -33,11 +40,21 @@ class HomeScreen extends ConsumerWidget {
         bottom: false,
         child: RefreshIndicator(
           color: AppColors.primary,
-          // Bakiye ve damga bilerek yenilenmiyor: simüle ödeme/damga
-          // durumu sıfırlanmasın. API bağlanınca buraya eklenecekler.
           onRefresh: () async {
-            ref.invalidate(campaignsProvider);
-            ref.invalidate(branchesProvider);
+            try {
+              await Future.wait([
+                ref.refresh(campaignsProvider.future),
+                ref.refresh(branchesProvider.future),
+                ref.refresh(publicConfigProvider.future),
+                ref.refresh(campaignStoriesProvider.future),
+                if (!isGuest && !AppConfig.useMocks)
+                  ref.refresh(walletProvider.future),
+                if (!isGuest && !AppConfig.useMocks)
+                  ref.refresh(loyaltyStatusProvider.future),
+              ]);
+            } catch (error) {
+              if (context.mounted) showApiError(context, error);
+            }
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -78,6 +95,7 @@ class HomeScreen extends ConsumerWidget {
                 const WalletCard(),
               ],
               const SizedBox(height: AppSpacing.lg),
+              const CampaignStoryStrip(),
               const LoadRewardsBanner(),
               const SizedBox(height: AppSpacing.xxl),
               Row(
@@ -107,6 +125,7 @@ class _GreetingHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).value;
+    final isGuest = ref.watch(guestModeProvider);
     final now = DateTime.now();
     final firstName = user == null || user.name.isEmpty
         ? ''
@@ -123,13 +142,19 @@ class _GreetingHeader extends ConsumerWidget {
               // Her ekran genişliğine kendiliğinden uyar: kısa isimlerde tek
               // satır, uzun isimlerde ikinci satıra sarar (küçülterek okunmaz
               // hale getirmez), taşacak kadar uzunsa kısaltır.
-              Text(
-                firstName.isEmpty
-                    ? greetingFor(now)
-                    : '${greetingFor(now)}, $firstName',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.greeting,
+              Visibility(
+                visible: !isGuest,
+                maintainSize: true,
+                maintainAnimation: true,
+                maintainState: true,
+                child: Text(
+                  firstName.isEmpty
+                      ? greetingFor(now)
+                      : '${greetingFor(now)}, $firstName',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.greeting,
+                ),
               ),
             ],
           ),
@@ -140,7 +165,7 @@ class _GreetingHeader extends ConsumerWidget {
             radius: 24,
             backgroundColor: AppColors.primary,
             child: Text(
-              initialsOf(user?.name ?? ''),
+              isGuest ? 'M' : initialsOf(user?.name ?? ''),
               style: AppTypography.title.copyWith(color: Colors.white),
             ),
           ),

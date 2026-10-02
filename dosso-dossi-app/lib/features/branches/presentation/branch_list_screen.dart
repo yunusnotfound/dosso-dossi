@@ -57,7 +57,10 @@ class BranchListBody extends ConsumerWidget {
                       ),
                     );
                   },
-                  onOrder: () => context.go(Routes.order),
+                  onOrder: () {
+                    ref.read(selectedBranchProvider.notifier).select(branch);
+                    context.go(Routes.order);
+                  },
                 ),
               const SizedBox(height: AppSpacing.lg),
             ],

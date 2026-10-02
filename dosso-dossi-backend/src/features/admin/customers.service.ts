@@ -1,7 +1,10 @@
+import { Prisma } from '@prisma/client';
 import type { Request } from 'express';
 import { AppError } from '../../lib/errors.js';
 import { dec, toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
+import { lockUsers } from '../../lib/financial-locks.js';
+import { journalMetadata, loyaltyState } from '../loyalty/loyalty-journal.js';
 import { audit } from './audit.js';
 
 export async function listCustomers(opts: {
@@ -22,11 +25,26 @@ export async function listCustomers(opts: {
       }
     : {};
 
+  // Sıralama sayfalamadan önce tüm eşleşen müşteriler üzerinde yapılır.
+  let rankedIds: string[] | undefined;
+  if (opts.sort === 'ltv') {
+    const namePattern = `%${(q ?? '').replace(/[\\%_]/g, '\\$&')}%`;
+    const phonePattern = `%${q?.replace(/\D/g, '') || ' '}%`;
+    const filter = q ? Prisma.sql`WHERE (u.name ILIKE ${namePattern} OR u.phone LIKE ${phonePattern})` : Prisma.empty;
+    const ranked = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+      SELECT u.id FROM "User" u LEFT JOIN "Order" o ON o."userId" = u.id AND o.status <> 'CANCELLED'
+      ${filter} GROUP BY u.id
+      ORDER BY COALESCE(SUM(o.total), 0) DESC, u."createdAt" DESC, u.id ASC
+      LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}
+    `);
+    rankedIds = ranked.map((row) => row.id);
+  }
+
   const [rows, total] = await Promise.all([
     prisma.user.findMany({
-      where,
+      where: rankedIds ? { id: { in: rankedIds } } : where,
       orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * pageSize,
+      skip: rankedIds ? 0 : (page - 1) * pageSize,
       take: pageSize,
       include: {
         wallet: { select: { balance: true } },
@@ -63,7 +81,7 @@ export async function listCustomers(opts: {
   }));
 
   if (opts.sort === 'ltv') {
-    customers.sort((a, b) => b.lifetimeSpend - a.lifetimeSpend);
+    customers.sort((a, b) => rankedIds!.indexOf(a.id) - rankedIds!.indexOf(b.id));
   }
   return { page, pageSize, total, customers };
 }
@@ -76,6 +94,7 @@ export async function customerDetail(id: string) {
       wallet: true,
       loyalty: true,
       notificationPrefs: true,
+      _count: { select: { orders: true } },
     },
   });
   if (!user) throw AppError.notFound('Müşteri bulunamadı');
@@ -131,6 +150,7 @@ export async function customerDetail(id: string) {
       target: user.loyalty?.target ?? 5,
       freeDrinks: user.loyalty?.freeDrinks ?? 0,
     },
+    orderCount: user._count.orders,
     activeSessions: sessions,
     notificationPrefs: user.notificationPrefs,
     transactions: transactions.map((t) => ({
@@ -192,7 +212,9 @@ export async function adjustBalance(
   reason: string,
 ) {
   if (amount === 0) throw AppError.notFound('Tutar sıfır olamaz');
+  const delta = dec(amount);
   return prisma.$transaction(async (tx) => {
+    await lockUsers(tx, [userId]);
     const wallet = await tx.wallet.findUnique({ where: { userId } });
     if (!wallet) throw AppError.notFound('Cüzdan bulunamadı');
 
@@ -200,10 +222,12 @@ export async function adjustBalance(
     if (amount < 0 && before + amount < 0) {
       throw AppError.insufficientBalance('Bakiye eksiye düşemez');
     }
-    const updated = await tx.wallet.update({
-      where: { userId },
-      data: { balance: { increment: dec(amount) } },
+    const changed = await tx.wallet.updateMany({
+      where: { userId, ...(amount < 0 ? { balance: { gte: delta.negated() } } : {}) },
+      data: { balance: { increment: delta } },
     });
+    if (changed.count !== 1) throw AppError.insufficientBalance('Bakiye eksiye düşemez');
+    const updated = await tx.wallet.findUniqueOrThrow({ where: { userId } });
     await tx.walletTransaction.create({
       data: {
         walletId: wallet.id,
@@ -236,6 +260,7 @@ export async function adjustLoyalty(
   reason: string,
 ) {
   return prisma.$transaction(async (tx) => {
+    await lockUsers(tx, [userId]);
     const loyalty = await tx.loyaltyAccount.findUnique({ where: { userId } });
     if (!loyalty) throw AppError.notFound('Sadakat hesabı bulunamadı');
 
@@ -257,6 +282,11 @@ export async function adjustLoyalty(
         accountId: loyalty.id,
         type: 'ADJUSTMENT',
         title: `Panel düzeltmesi: ${reason}`,
+        metadata: journalMetadata({
+          kind: 'set', before: loyaltyState(loyalty), target: loyalty.target,
+          ...(input.stamps === undefined ? {} : { stamps }),
+          ...(input.freeDrinks === undefined ? {} : { freeDrinks }),
+        }),
       },
     });
     await audit(tx, req, {
@@ -274,6 +304,7 @@ export async function adjustLoyalty(
 /// Tüm oturumları kapat (çalıntı cihaz, şüpheli erişim).
 export async function revokeSessions(req: Request, userId: string, reason: string) {
   return prisma.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: userId }, data: { tokenVersion: { increment: 1 } } });
     const res = await tx.refreshToken.updateMany({
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
@@ -300,7 +331,7 @@ export async function setBlocked(
     if (!before) throw AppError.notFound('Müşteri bulunamadı');
     const after = await tx.user.update({
       where: { id: userId },
-      data: { isBlocked },
+      data: { isBlocked, ...(isBlocked ? { tokenVersion: { increment: 1 } } : {}) },
     });
     // Dondurulan hesabın açık oturumları da düşsün.
     if (isBlocked) {

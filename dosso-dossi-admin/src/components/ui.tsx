@@ -133,7 +133,8 @@ export const fmtTL = (n: number): string =>
   new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency: 'TRY',
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(n);
 
 export const fmtNum = (n: number): string =>

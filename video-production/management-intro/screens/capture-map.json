@@ -1,0 +1,17 @@
+[
+  {
+    "id": "01-home",
+    "title": "Ana sayfa",
+    "file": "01-home.png",
+    "source": "lib/features/home/presentation/home_screen.dart",
+    "origin": "Production Flutter widgets rendered at commit ffba174 with fictional demo account and committed menu/media fixtures",
+    "logicalSize": [
+      430,
+      932
+    ],
+    "pixelSize": [
+      860,
+      1864
+    ]
+  }
+]

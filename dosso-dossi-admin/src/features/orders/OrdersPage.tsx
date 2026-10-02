@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useAuth } from '../../auth/AuthContext';
+import { addDateRange } from '../../api/filters';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../api/client';
 import { Drawer, Input, ReasonDialog, Select, Tabs } from '../../components/form';
 import { DataTable, PageHeader, Pager, type Column } from '../../components/table';
-import { Badge, Button, Card, Kpi, SectionTitle, fmtNum, fmtTL } from '../../components/ui';
+import { Badge, Button, Card, Kpi, SectionTitle, Spinner, fmtNum, fmtTL } from '../../components/ui';
 import { DownloadMenu } from '../../components/DownloadMenu';
 
 type Status = 'RECEIVED' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';
@@ -102,25 +104,38 @@ const fmtDateTime = (iso: string) =>
   );
 
 export function OrdersPage() {
+  const { admin } = useAuth();
+  const canOperate = admin?.role !== 'VIEWER';
   const [tab, setTab] = useState('board');
   const [q, setQ] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const validDates = !from || !to || from <= to;
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
+  const [boardPage, setBoardPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const qc = useQueryClient();
 
   const listQuery = useQuery({
-    queryKey: ['orders', { q, status, page, tab }],
-    queryFn: () => {
+    queryKey: ['orders', 'list', { q, status, page, from, to }],
+    queryFn: ({ signal }) => {
       const params = new URLSearchParams({ page: String(page), pageSize: '25' });
       if (q) params.set('q', q);
       if (status) params.set('status', status);
-      return api<OrderList>(`/admin/orders?${params}`);
+      addDateRange(params, from, to);
+      return api<OrderList>(`/admin/orders?${params}`, { signal });
     },
-    // Canlı pano: kısa aralıkla tazelenir.
+    enabled: tab === 'list' && validDates,
+  });
+  const boardQuery = useQuery({
+    queryKey: ['orders', 'board', boardPage],
+    queryFn: ({ signal }) => api<OrderList>(`/admin/orders?activeOnly=true&page=${boardPage}&pageSize=50`, { signal }),
+    enabled: tab === 'board',
     refetchInterval: tab === 'board' ? 10_000 : false,
   });
+  const shownQuery = tab === 'board' ? boardQuery : listQuery;
 
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['orders'] });
@@ -169,12 +184,13 @@ export function OrdersPage() {
     },
   ];
 
-  const orders = listQuery.data?.orders ?? [];
+  const orders = shownQuery.data?.orders ?? [];
 
   // Dışa aktarım ekrandaki filtreyi izler: kullanıcı ne görüyorsa onu indirir.
   const exportParams = new URLSearchParams();
   if (q) exportParams.set('q', q);
   if (status) exportParams.set('status', status);
+  addDateRange(exportParams, from, to);
   const exportQuery = exportParams.toString() ? `?${exportParams}` : '';
 
   return (
@@ -183,22 +199,22 @@ export function OrdersPage() {
         title="Siparişler"
         subtitle="Canlı pano ve geçmiş"
         actions={
-          <DownloadMenu
+          tab === 'list' ? <DownloadMenu disabled={!validDates}
             items={[
               {
                 label: 'Excel raporu (.xlsx)',
-                hint: 'Özet · Siparişler · Kalemler sayfaları, marka biçimli',
+                hint: 'Seçili filtrelerdeki siparişler ve kalemler; en fazla 10.000 kayıt',
                 path: `/admin/orders/export.xlsx${exportQuery}`,
                 fallbackName: 'dosso-dossi-siparisler.xlsx',
               },
               {
                 label: 'CSV (.csv)',
-                hint: 'Ham veri — muhasebe yazılımına aktarım için',
+                hint: 'Seçili filtrelerdeki tüm siparişler; en fazla 10.000 kayıt',
                 path: `/admin/orders/export.csv${exportQuery}`,
                 fallbackName: 'dosso-dossi-siparisler.csv',
               },
             ]}
-          />
+          /> : null
         }
       />
 
@@ -239,11 +255,19 @@ export function OrdersPage() {
                 </option>
               ))}
             </Select>
+            <Input aria-label="Başlangıç tarihi" type="date" value={from} max={to || undefined} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
+            <Input aria-label="Bitiş tarihi" type="date" value={to} min={from || undefined} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
+            <span className="text-xs text-ink-muted">Tarihler cihazınızın saat dilimindedir.</span>
           </>
         ) : null}
       </div>
 
-      {tab === 'board' ? (
+      {tab === 'list' && !validDates ? <p role="alert" className="text-sm text-bad">Bitiş tarihi başlangıçtan önce olamaz.</p> : null}
+      {shownQuery.error ? <p role="alert" className="text-sm text-bad">Siparişler yüklenemedi. <button onClick={() => void shownQuery.refetch()}>Yeniden dene</button></p> : null}
+      {tab === 'board' && boardQuery.isLoading ? <Spinner /> : null}
+      {tab === 'board' && !boardQuery.isLoading && !boardQuery.error ? (
+        <>
+        <p className="text-sm text-ink-muted">{fmtNum(boardQuery.data?.total ?? 0)} aktif sipariş · Sayfa {boardPage}. Diğer aktif siparişler için sayfa düğmelerini kullanın.</p>
         <div className="grid gap-4 lg:grid-cols-3">
           {BOARD.map((col) => {
             const items = orders.filter((o) => o.status === col);
@@ -272,7 +296,7 @@ export function OrdersPage() {
                         </p>
                         <p className="tnum mt-1 font-semibold">{fmtTL(o.total)}</p>
                       </div>
-                      {NEXT[o.status] ? (
+                      {canOperate && NEXT[o.status] ? (
                         <StatusButton
                           id={o.id}
                           next={NEXT[o.status]!}
@@ -286,7 +310,9 @@ export function OrdersPage() {
             );
           })}
         </div>
-      ) : (
+        <Pager page={boardPage} pageSize={boardQuery.data?.pageSize ?? 50} total={boardQuery.data?.total ?? 0} onPage={setBoardPage} />
+        </>
+      ) : tab === 'list' ? (
         <>
           <DataTable
             columns={columns}
@@ -303,7 +329,7 @@ export function OrdersPage() {
             onPage={setPage}
           />
         </>
-      )}
+      ) : null}
 
       <OrderDrawer id={openId} onClose={() => setOpenId(null)} onChanged={refresh} />
     </div>
@@ -325,6 +351,7 @@ function StatusButton({
     onSuccess: onDone,
   });
   return (
+    <>
     <Button
       className="mt-3 w-full"
       onClick={() => m.mutate()}
@@ -332,6 +359,8 @@ function StatusButton({
     >
       {m.isPending ? '…' : `${STATUS_LABEL[next]} yap`}
     </Button>
+    {m.error ? <p role="alert" className="mt-2 text-xs text-bad">{m.error.message}</p> : null}
+    </>
   );
 }
 
@@ -344,6 +373,7 @@ function OrderDrawer({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const { admin } = useAuth();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [error, setError] = useState('');
 
@@ -365,7 +395,7 @@ function OrderDrawer({
   });
 
   const canCancel =
-    data && data.status !== 'CANCELLED' && data.status !== 'COMPLETED';
+    admin?.role !== 'VIEWER' && data && data.status !== 'CANCELLED' && data.status !== 'COMPLETED';
 
   return (
     <>

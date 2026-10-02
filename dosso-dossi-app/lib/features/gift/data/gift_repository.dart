@@ -12,6 +12,7 @@ abstract interface class GiftRepository {
     required String type, // 'drink' | 'balance'
     String? productId,
     double? amount,
+    double? expectedTotal,
     String note = '',
   });
 

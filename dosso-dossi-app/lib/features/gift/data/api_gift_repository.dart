@@ -16,6 +16,7 @@ class ApiGiftRepository implements GiftRepository {
     required String type,
     String? productId,
     double? amount,
+    double? expectedTotal,
     String note = '',
   }) {
     return apiCall(() async {
@@ -26,6 +27,7 @@ class ApiGiftRepository implements GiftRepository {
           'type': type,
           'productId': ?productId,
           'amount': ?amount,
+          'expectedTotal': ?expectedTotal,
           'note': note,
         },
       );
@@ -38,7 +40,8 @@ class ApiGiftRepository implements GiftRepository {
     return apiCall(() async {
       final res = await _dio.get<List<dynamic>>(ApiEndpoints.gifts);
       return [
-        for (final item in res.data!) _giftFromJson(item as Map<String, dynamic>),
+        for (final item in res.data!)
+          _giftFromJson(item as Map<String, dynamic>),
       ];
     });
   }

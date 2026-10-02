@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useAuth } from '../../auth/AuthContext';
+import { addDateRange } from '../../api/filters';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../api/client';
-import { ReasonDialog, Select, Tabs } from '../../components/form';
+import { Input, ReasonDialog, Select, Tabs } from '../../components/form';
 import { DataTable, PageHeader, Pager, type Column } from '../../components/table';
 import { Badge, fmtNum, fmtTL } from '../../components/ui';
 import { DownloadMenu } from '../../components/DownloadMenu';
@@ -77,24 +79,7 @@ export function FinancePage() {
       <PageHeader
         title="Finans"
         subtitle="Cüzdan defteri, yüklemeler, QR tahsilatları ve mutabakat"
-        actions={
-          <DownloadMenu
-            items={[
-              {
-                label: 'Excel defteri (.xlsx)',
-                hint: 'Özet + işlem tipi başına ayrı sayfa, marka biçimli',
-                path: '/admin/finance/ledger.xlsx',
-                fallbackName: 'dosso-dossi-cuzdan-defteri.xlsx',
-              },
-              {
-                label: 'CSV (.csv)',
-                hint: 'Ham veri — muhasebe yazılımına aktarım için',
-                path: '/admin/finance/ledger.csv',
-                fallbackName: 'dosso-dossi-cuzdan-defteri.csv',
-              },
-            ]}
-          />
-        }
+
       />
       <Tabs
         tabs={[
@@ -115,17 +100,30 @@ export function FinancePage() {
 }
 
 function LedgerTab() {
+  const [search, setSearch] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const validDates = !from || !to || from <= to;
   const [type, setType] = useState('');
   const [page, setPage] = useState(1);
 
   const q = useQuery({
-    queryKey: ['ledger', { type, page }],
+    queryKey: ['ledger', { type, page, search, from, to }],
+    enabled: validDates,
     queryFn: () => {
       const p = new URLSearchParams({ page: String(page), pageSize: '50' });
       if (type) p.set('type', type);
+      if (search) p.set('q', search);
+      addDateRange(p, from, to);
       return api<Ledger>(`/admin/finance/ledger?${p}`);
     },
   });
+
+  const exportFilters = new URLSearchParams();
+  if (type) exportFilters.set('type', type);
+  if (search) exportFilters.set('q', search);
+  addDateRange(exportFilters, from, to);
+  const exportQuery = exportFilters.size ? `?${exportFilters}` : '';
 
   const columns: Column<LedgerEntry>[] = [
     { key: 'date', header: 'Tarih', render: (e) => fmtDate(e.createdAt) },
@@ -162,6 +160,10 @@ function LedgerTab() {
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
+        <DownloadMenu disabled={!validDates} items={[
+          { label: 'Excel defteri (.xlsx)', hint: 'Seçili işlem tipindeki hareketler; en fazla 10.000 kayıt', path: `/admin/finance/ledger.xlsx${exportQuery}`, fallbackName: 'dosso-dossi-cuzdan-defteri.xlsx' },
+          { label: 'CSV (.csv)', hint: 'Seçili işlem tipindeki hareketler; en fazla 10.000 kayıt', path: `/admin/finance/ledger.csv${exportQuery}`, fallbackName: 'dosso-dossi-cuzdan-defteri.csv' },
+        ]} />
         <Select
           value={type}
           onChange={(e) => {
@@ -176,6 +178,10 @@ function LedgerTab() {
             </option>
           ))}
         </Select>
+        <Input aria-label="Hareket ara" placeholder="Müşteri, telefon veya açıklama" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+        <Input aria-label="Başlangıç tarihi" type="date" value={from} max={to || undefined} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
+        <Input aria-label="Bitiş tarihi" type="date" value={to} min={from || undefined} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
+        <span className="text-xs text-ink-muted">Tarihler cihazınızın saat dilimindedir.</span>
         <div className="flex flex-wrap gap-2">
           {q.data?.totalsByType.map((t) => (
             <Badge key={t.type}>
@@ -184,6 +190,8 @@ function LedgerTab() {
           ))}
         </div>
       </div>
+      {!validDates ? <p role="alert" className="text-sm text-bad">Bitiş tarihi başlangıçtan önce olamaz.</p> : null}
+      {q.error ? <p role="alert" className="text-sm text-bad">Hareketler yüklenemedi. <button onClick={() => void q.refetch()}>Yeniden dene</button></p> : null}
       <DataTable
         columns={columns}
         rows={q.data?.entries}
@@ -243,6 +251,8 @@ function PaymentsTab() {
 }
 
 function ChargesTab() {
+  const { admin } = useAuth();
+  const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
   const [voidId, setVoidId] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -293,7 +303,7 @@ function ChargesTab() {
       key: 'actions',
       header: '',
       render: (c) =>
-        c.status === 'APPROVED' ? (
+        canEdit && c.status === 'APPROVED' ? (
           <button
             onClick={() => setVoidId(c.id)}
             className="text-xs font-semibold text-bad hover:underline"

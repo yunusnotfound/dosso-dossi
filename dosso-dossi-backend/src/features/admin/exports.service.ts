@@ -1,7 +1,9 @@
 import type { WalletTxType } from '@prisma/client';
 import { toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
-import type { OrderFilters } from './orders.service.js';
+import { whereFrom, type OrderFilters } from './orders.service.js';
+import { ledgerWhere, type LedgerFilters } from './finance.service.js';
+import { MAX_EXPORT_ROWS, assertExportSize } from '../../lib/csv.js';
 import { buildWorkbook, type SheetSpec } from './xlsx.js';
 
 const TX_LABEL: Record<string, string> = {
@@ -33,30 +35,17 @@ interface LedgerRow {
 
 /// Cüzdan defteri çalışma kitabı: "Özet" + tip başına birer sayfa + "Tüm
 /// hareketler". Tipe göre ayrı sayfa, muhasebenin en çok istediği kırılım.
-export async function ledgerWorkbook(opts: {
-  type?: WalletTxType;
-  from?: Date;
-  to?: Date;
-}): Promise<Buffer> {
-  const where = {
-    ...(opts.type ? { type: opts.type } : {}),
-    ...(opts.from || opts.to
-      ? {
-          createdAt: {
-            ...(opts.from ? { gte: opts.from } : {}),
-            ...(opts.to ? { lte: opts.to } : {}),
-          },
-        }
-      : {}),
-  };
+export async function ledgerWorkbook(opts: LedgerFilters): Promise<Buffer> {
+  const where = ledgerWhere(opts);
 
   const rows = await prisma.walletTransaction.findMany({
     where,
     orderBy: { createdAt: 'desc' },
-    take: 10_000,
+    take: MAX_EXPORT_ROWS + 1,
     include: { wallet: { include: { user: { select: { name: true, phone: true } } } } },
   });
 
+  assertExportSize(rows);
   const data: LedgerRow[] = rows.map((t) => ({
     createdAt: t.createdAt,
     type: t.type,
@@ -158,23 +147,12 @@ interface OrderExportRow {
 
 /// Sipariş çalışma kitabı: "Özet" (şube kırılımı) + "Siparişler" + "Kalemler".
 export async function ordersWorkbook(f: OrderFilters): Promise<Buffer> {
-  const where = {
-    ...(f.status ? { status: f.status } : {}),
-    ...(f.branchId ? { branchId: f.branchId } : {}),
-    ...(f.from || f.to
-      ? {
-          createdAt: {
-            ...(f.from ? { gte: f.from } : {}),
-            ...(f.to ? { lte: f.to } : {}),
-          },
-        }
-      : {}),
-  };
+  const where = whereFrom(f);
 
   const orders = await prisma.order.findMany({
     where,
     orderBy: { createdAt: 'desc' },
-    take: 10_000,
+    take: MAX_EXPORT_ROWS + 1,
     include: {
       branch: { select: { name: true } },
       user: { select: { name: true, phone: true } },
@@ -182,6 +160,7 @@ export async function ordersWorkbook(f: OrderFilters): Promise<Buffer> {
     },
   });
 
+  assertExportSize(orders);
   const data: OrderExportRow[] = orders.map((o) => ({
     number: o.number,
     createdAt: o.createdAt,

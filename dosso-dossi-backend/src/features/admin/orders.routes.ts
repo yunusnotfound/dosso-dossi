@@ -29,6 +29,7 @@ adminOrdersRouter.get('/', requireAdmin(), async (req, res, next) => {
   try {
     res.json(
       await listOrders({
+        activeOnly: req.query.activeOnly === 'true',
         status: asStatus(req.query.status),
         branchId: scopeBranch(req.admin, asString(req.query.branchId)),
         q: asString(req.query.q),
@@ -47,6 +48,7 @@ adminOrdersRouter.get('/', requireAdmin(), async (req, res, next) => {
 adminOrdersRouter.get('/export.xlsx', requireAdmin(), async (req, res, next) => {
   try {
     const buffer = await ordersWorkbook({
+      activeOnly: req.query.activeOnly === 'true',
       status: asStatus(req.query.status),
       branchId: scopeBranch(req.admin, asString(req.query.branchId)),
       q: asString(req.query.q),
@@ -72,6 +74,7 @@ adminOrdersRouter.get('/export.xlsx', requireAdmin(), async (req, res, next) => 
 adminOrdersRouter.get('/export.csv', requireAdmin(), async (req, res, next) => {
   try {
     const csv = await exportCsv({
+      activeOnly: req.query.activeOnly === 'true',
       status: asStatus(req.query.status),
       branchId: scopeBranch(req.admin, asString(req.query.branchId)),
       q: asString(req.query.q),

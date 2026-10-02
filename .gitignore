@@ -11,3 +11,8 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+
+# Yerel video araçlarının kurulu bağımlılıkları ve Python önbelleği
+video-production/management-intro/tooling/python/
+__pycache__/
+*.pyc

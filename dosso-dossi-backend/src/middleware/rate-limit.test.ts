@@ -43,3 +43,17 @@ describe('makeRateLimiter', () => {
     expect(call(limiter)).toBeUndefined();
   });
 });
+
+describe('rate limiter bounded storage', () => {
+  it('bounds unique keys and reclaims expired entries even when every request has a new key', () => {
+    vi.useFakeTimers();
+    try {
+      const limiter = makeRateLimiter({ windowMs: 1000, max: 2, force: true, maxKeys: 100, keyFn: req => req.ip! });
+      for (let i = 0; i < 20_000; i++) limiter({ ip: String(i) } as Request, {} as Response, () => {});
+      expect(limiter.bucketCount()).toBe(100);
+      vi.advanceTimersByTime(1100);
+      limiter({ ip: 'new' } as Request, {} as Response, () => {});
+      expect(limiter.bucketCount()).toBe(1);
+    } finally { vi.useRealTimers(); }
+  });
+});

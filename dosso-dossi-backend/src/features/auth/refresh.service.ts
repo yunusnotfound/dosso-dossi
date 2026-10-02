@@ -45,15 +45,18 @@ export async function rotateRefreshToken(
     logger.warn(
       `Refresh token reuse tespit edildi (user ${existing.userId}) — tüm oturumlar iptal ediliyor`,
     );
-    await prisma.refreshToken.updateMany({
-      where: { userId: existing.userId, revokedAt: null },
-      data: { revokedAt: new Date() },
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: existing.userId }, data: { tokenVersion: { increment: 1 } } });
+      await tx.refreshToken.updateMany({ where: { userId: existing.userId, revokedAt: null }, data: { revokedAt: new Date() } });
     });
     throw AppError.unauthorized();
   }
   if (existing.expiresAt < new Date()) throw AppError.unauthorized();
 
   return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${existing.userId} FOR UPDATE`;
+    const user = await tx.user.findUnique({ where: { id: existing.userId } });
+    if (!user) throw AppError.unauthorized();
     const newRaw = await issueRefreshToken(tx, existing.userId, existing.deviceInfo);
     // Guard'lı revoke: eşzamanlı iki rotasyon isteğinden yalnız biri geçer;
     // guard'sız olsaydı tek token'dan iki geçerli zincir doğardı.
@@ -66,7 +69,7 @@ export async function rotateRefreshToken(
       },
     });
     if (revoked.count === 0) throw AppError.unauthorized();
-    return { token: signToken(existing.userId), refreshToken: newRaw };
+    return { token: signToken(existing.userId, user.tokenVersion), refreshToken: newRaw };
   });
 }
 

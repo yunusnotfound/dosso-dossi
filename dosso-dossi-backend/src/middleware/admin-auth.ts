@@ -24,8 +24,8 @@ declare module 'express-serve-static-core' {
 /// farklı sırla imzalandığı için zaten geçmez; `aud` ikinci bir kilit.
 const ADMIN_AUDIENCE = 'admin';
 
-export function signAdminToken(adminId: string): string {
-  return jwt.sign({ sub: adminId }, env.ADMIN_JWT_SECRET, {
+export function signAdminToken(adminId: string, tokenVersion = 0): string {
+  return jwt.sign({ sub: adminId, v: tokenVersion }, env.ADMIN_JWT_SECRET, {
     audience: ADMIN_AUDIENCE,
     expiresIn: env.ADMIN_JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
   });
@@ -47,22 +47,25 @@ export function requireAdmin(...roles: AdminRole[]) {
     }
 
     let adminId: string;
+    let tokenVersion: number;
     try {
       const payload = jwt.verify(header.slice(7), env.ADMIN_JWT_SECRET, {
         audience: ADMIN_AUDIENCE,
+        algorithms: ['HS256'],
       });
-      if (typeof payload === 'string' || typeof payload.sub !== 'string') {
+      if (typeof payload === 'string' || typeof payload.sub !== 'string' || (payload.v !== undefined && !Number.isInteger(payload.v))) {
         next(AppError.unauthorized());
         return;
       }
       adminId = payload.sub;
+      tokenVersion = payload.v ?? 0;
     } catch {
       next(AppError.unauthorized('Oturum süresi doldu, yeniden giriş yapın'));
       return;
     }
 
     const admin = await prisma.adminUser.findUnique({ where: { id: adminId } });
-    if (!admin || !admin.isActive) {
+    if (!admin || !admin.isActive || admin.tokenVersion !== tokenVersion) {
       next(AppError.unauthorized('Hesap pasif veya bulunamadı'));
       return;
     }

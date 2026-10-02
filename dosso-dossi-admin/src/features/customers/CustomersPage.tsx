@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '../../auth/AuthContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../api/client';
 import { Drawer, Field, Input, ReasonDialog, Select, Tabs } from '../../components/form';
@@ -27,7 +28,7 @@ interface CustomerList {
   customers: CustomerRow[];
 }
 
-interface CustomerDetail extends CustomerRow {
+interface CustomerDetail extends Pick<CustomerRow, 'id' | 'name' | 'phone' | 'email' | 'isBlocked' | 'balance' | 'orderCount' | 'createdAt'> {
   activeSessions: number;
   loyalty: { stamps: number; target: number; freeDrinks: number };
   transactions: {
@@ -147,6 +148,8 @@ export function CustomersPage() {
 type Action = 'balance' | 'loyalty' | 'block' | 'unblock' | 'sessions' | null;
 
 function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => void }) {
+  const { admin } = useAuth();
+  const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
   const [tab, setTab] = useState('wallet');
   const [action, setAction] = useState<Action>(null);
@@ -228,12 +231,12 @@ function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => voi
                   {data.isBlocked ? 'Donduruldu' : 'Aktif'}
                 </Badge>
                 <Badge>{fmtNum(data.activeSessions)} açık oturum</Badge>
-                <Badge>{fmtNum(data.orderCount)} sipariş</Badge>
+                <Badge>{Number.isFinite(data.orderCount) ? fmtNum(data.orderCount) : '—'} sipariş</Badge>
                 <span className="text-ink-muted">
                   Kayıt: {fmtDate(data.createdAt)}
                 </span>
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
+              {canEdit ? <div className="mt-4 flex flex-wrap gap-2">
                 <Button variant="ghost" onClick={() => setAction('balance')}>
                   Bakiye düzelt
                 </Button>
@@ -249,7 +252,7 @@ function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => voi
                 >
                   {data.isBlocked ? 'Dondurmayı kaldır' : 'Hesabı dondur'}
                 </Button>
-              </div>
+              </div> : null}
             </Card>
 
             <Tabs

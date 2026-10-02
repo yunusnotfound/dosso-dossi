@@ -102,7 +102,11 @@ class OrderTrackingScreen extends ConsumerWidget {
           child: Text(label, style: AppTypography.bodySecondary),
         ),
         Expanded(
-          child: Text(value, textAlign: TextAlign.right, style: AppTypography.body),
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: AppTypography.body,
+          ),
         ),
       ],
     );
@@ -121,10 +125,10 @@ class _StatusSteps extends StatelessWidget {
   ];
 
   int get _activeIndex => switch (status) {
-        'preparing' => 1,
-        'ready' || 'completed' => 2,
-        _ => 0,
-      };
+    'preparing' => 1,
+    'ready' || 'completed' => 2,
+    _ => 0,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -145,8 +149,9 @@ class _StatusSteps extends StatelessWidget {
                   child: Container(
                     width: 2,
                     height: 24,
-                    color:
-                        i <= _activeIndex ? AppColors.primary : AppColors.divider,
+                    color: i <= _activeIndex
+                        ? AppColors.primary
+                        : AppColors.divider,
                   ),
                 ),
               ),
@@ -157,19 +162,23 @@ class _StatusSteps extends StatelessWidget {
                   state: i < _activeIndex
                       ? _StepState.done
                       : i == _activeIndex
-                          ? _StepState.active
-                          : _StepState.pending,
+                      ? _StepState.active
+                      : _StepState.pending,
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Text(
-                    _steps[i].$2,
+                    status == 'completed' && i == 2
+                        ? 'Teslim edildi'
+                        : _steps[i].$2,
                     style: i <= _activeIndex
                         ? AppTypography.body
                         : AppTypography.bodySecondary,
                   ),
                 ),
-                if (i == _activeIndex && status != 'ready' && status != 'completed')
+                if (i == _activeIndex &&
+                    status != 'ready' &&
+                    status != 'completed')
                   const SizedBox(
                     width: 16,
                     height: 16,

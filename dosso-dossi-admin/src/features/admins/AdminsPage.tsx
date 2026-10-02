@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '../../auth/AuthContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../api/client';
 import { Drawer, Field, Input, Select, Tabs } from '../../components/form';
@@ -68,6 +69,8 @@ export function AdminsPage() {
 }
 
 function AdminsTab() {
+  const { admin: currentAdmin } = useAuth();
+  const [resetTarget, setResetTarget] = useState<AdminRow | null>(null);
   const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
@@ -89,6 +92,7 @@ function AdminsTab() {
         method: 'POST',
       }),
     onSuccess: (r) => {
+      setResetTarget(null);
       setTempPassword(r.tempPassword);
       refresh();
     },
@@ -126,9 +130,11 @@ function AdminsTab() {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            reset.mutate(a.id);
+            setResetTarget(a);
           }}
-          className="text-xs font-semibold text-brand hover:underline"
+          disabled={a.id === currentAdmin?.id || reset.isPending}
+          title={a.id === currentAdmin?.id ? 'Kendi şifreniz için sol menüde Şifremi değiştir seçin' : undefined}
+          className="text-xs font-semibold text-brand hover:underline disabled:opacity-50"
         >
           Şifre sıfırla
         </button>
@@ -142,6 +148,11 @@ function AdminsTab() {
         <Button onClick={() => setCreating(true)}>Yönetici ekle</Button>
       </div>
 
+      <Drawer open={!!resetTarget} title="Yönetici şifresini sıfırla" onClose={() => setResetTarget(null)}>
+        <p className="mb-4 text-sm">{resetTarget?.email} hesabının açık oturumları kapatılır ve geçici bir şifre oluşturulur. Yeni şifreyi ilgili yöneticiyle güvenli şekilde paylaşın.</p>
+        {reset.error ? <p role="alert" className="mb-3 text-sm text-bad">{reset.error.message}</p> : null}
+        <Button disabled={reset.isPending} onClick={() => resetTarget && reset.mutate(resetTarget.id)}>{reset.isPending ? 'Sıfırlanıyor…' : 'Şifreyi sıfırla'}</Button>
+      </Drawer>
       {tempPassword ? (
         <Card className="bg-warn-soft">
           <SectionTitle>Geçici şifre — bir daha gösterilmez</SectionTitle>

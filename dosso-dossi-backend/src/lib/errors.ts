@@ -18,6 +18,9 @@ export const ErrorCodes = {
   INVALID_STATUS_TRANSITION: 'INVALID_STATUS_TRANSITION',
   VOID_NOT_ALLOWED: 'VOID_NOT_ALLOWED',
   PAYMENT_NOT_PENDING: 'PAYMENT_NOT_PENDING',
+  IDEMPOTENCY_CONFLICT: 'IDEMPOTENCY_CONFLICT',
+  PRICE_CHANGED: 'PRICE_CHANGED',
+  ACCOUNT_BLOCKED: 'ACCOUNT_BLOCKED',
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
@@ -27,11 +30,21 @@ export class AppError extends Error {
     public readonly code: ErrorCode,
     public readonly status: number,
     message: string,
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'AppError';
   }
 
+  static idempotencyConflict(message = 'Bu işlem anahtarı farklı bir istek için kullanılmış') {
+    return new AppError(ErrorCodes.IDEMPOTENCY_CONFLICT, 409, message);
+  }
+  static priceChanged(total: number) {
+    return new AppError(ErrorCodes.PRICE_CHANGED, 409, 'Fiyat güncellendi, yeni tutarı onaylayın', { total });
+  }
+  static accountBlocked() {
+    return new AppError(ErrorCodes.ACCOUNT_BLOCKED, 403, 'Hesabınız işlemlere kapalı. Destek ile iletişime geçin.');
+  }
   static invalidOtp(message = 'Kod geçersiz veya süresi dolmuş') {
     return new AppError(ErrorCodes.INVALID_OTP, 400, message);
   }

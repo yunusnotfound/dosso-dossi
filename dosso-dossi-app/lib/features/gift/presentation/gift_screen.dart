@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/error_feedback.dart';
@@ -91,6 +92,18 @@ class _GiftScreenState extends ConsumerState<GiftScreen> {
       _noteController.clear();
       setState(() => _selectedDrink = null);
     } catch (e) {
+      if (e is ApiException && e.code == 'PRICE_CHANGED') {
+        try {
+          final updated = await ref.refresh(giftMenuProductsProvider.future);
+          if (mounted && _selectedDrink != null) {
+            setState(() {
+              _selectedDrink = updated
+                  .where((p) => p.id == _selectedDrink!.id)
+                  .firstOrNull;
+            });
+          }
+        } catch (_) {}
+      }
       if (mounted) showApiError(context, e);
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -169,7 +182,14 @@ class _GiftScreenState extends ConsumerState<GiftScreen> {
         ],
       );
     }
+    final catalog = ref.watch(giftMenuProductsProvider).value;
+    if (_selectedDrink != null && catalog != null) {
+      _selectedDrink = catalog
+          .where((p) => p.id == _selectedDrink!.id && p.stampMultiplier > 0)
+          .firstOrNull;
+    }
     final gifts = ref.watch(giftControllerProvider);
+    final giftsLoad = ref.watch(giftsLoadProvider);
     final amount = _giftAmount;
 
     return ScrollablePageScaffold(
@@ -211,6 +231,10 @@ class _GiftScreenState extends ConsumerState<GiftScreen> {
         const SizedBox(height: AppSpacing.xl),
         if (_tab == 0) ...[
           Text('HANGİ KAHVE', style: AppTypography.sectionLabel),
+          Text(
+            'Seçtiğin kahvenin bedeliyle 1 ikram kahve hakkı gönderilir. Alıcı, hakkını uygun içeceklerden birinde kullanır.',
+            style: AppTypography.bodySecondary,
+          ),
           const SizedBox(height: AppSpacing.md),
           _DrinkPicker(
             selected: _selectedDrink,
@@ -279,6 +303,18 @@ class _GiftScreenState extends ConsumerState<GiftScreen> {
                       : 'Hediye Gönder · ${formatTl(amount)}',
                 ),
         ),
+        if (giftsLoad.isLoading) const LinearProgressIndicator(),
+        if (giftsLoad.hasError) ...[
+          const Text('Hediye geçmişi yüklenemedi.'),
+          TextButton(
+            onPressed: () async {
+              try {
+                await ref.read(giftControllerProvider.notifier).refresh();
+              } catch (_) {}
+            },
+            child: const Text('Tekrar dene'),
+          ),
+        ],
         if (gifts.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.xxl),
           Text('GÖNDERİLEN HEDİYELER', style: AppTypography.sectionLabel),
@@ -354,7 +390,7 @@ class _DrinkPicker extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final products = ref.watch(menuProductsProvider);
+    final products = ref.watch(giftMenuProductsProvider);
 
     return products.when(
       skipError: true,

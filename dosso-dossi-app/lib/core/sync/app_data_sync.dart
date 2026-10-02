@@ -7,6 +7,8 @@ import '../../features/auth/application/auth_controller.dart';
 import '../../features/auth/application/guest_mode.dart';
 import '../../features/branches/application/branch_providers.dart';
 import '../../features/campaigns/application/campaign_providers.dart';
+import '../../features/campaigns/application/campaign_story_providers.dart';
+import '../../features/campaigns/application/public_config.dart';
 import '../../features/order/application/cart_controller.dart';
 import '../../features/order/application/menu_providers.dart';
 import '../../features/order/application/order_providers.dart';
@@ -37,9 +39,12 @@ final appDataSyncProvider = Provider.autoDispose<void>((ref) {
       'menu': () async {
         ref.invalidate(menuCategoriesProvider);
         ref.invalidate(menuProductsProvider);
+        ref.invalidate(giftMenuProductsProvider);
+        ref.invalidate(menuOptionsProvider);
         await Future.wait([
           ref.read(menuCategoriesProvider.future),
           ref.read(menuProductsProvider.future),
+          ref.read(menuOptionsProvider.future),
         ]);
       },
       'branches': () async {
@@ -48,7 +53,13 @@ final appDataSyncProvider = Provider.autoDispose<void>((ref) {
       },
       'campaigns': () async {
         ref.invalidate(campaignsProvider);
-        await ref.read(campaignsProvider.future);
+        ref.invalidate(campaignStoriesProvider);
+        ref.invalidate(publicConfigProvider);
+        await Future.wait([
+          ref.read(campaignsProvider.future),
+          ref.read(campaignStoriesProvider.future),
+          ref.read(publicConfigProvider.future),
+        ]);
         if (ref.mounted && signedIn()) {
           await ref.read(cartProvider.notifier).refreshPromo();
         }

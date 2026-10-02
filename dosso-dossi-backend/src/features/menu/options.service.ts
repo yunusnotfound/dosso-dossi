@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
+import { AppError } from '../../lib/errors.js';
 
 /// Opsiyon fiyat farkları artık DB'de (ProductOption) — panelden düzenlenir.
 /// Sipariş fiyatlaması her istekte DB'ye gitmesin diye kısa ömürlü önbellek:
@@ -9,25 +10,29 @@ const TTL_MS = 30_000;
 let cache: Map<string, number> | null = null;
 let loadedAt = 0;
 
-/// Kod içi son çare: tablo hiç doldurulmamışsa siparişler durmasın.
-const FALLBACK: Record<string, number> = {
-  'Yulaf sütü': 60,
-  'Badem sütü': 60,
-  'Çift shot': 40,
-};
-
 export async function loadOptionDeltas(): Promise<Map<string, number>> {
   if (cache && Date.now() - loadedAt < TTL_MS) return cache;
   const rows = await prisma.productOption.findMany({ where: { isActive: true } });
   const map = new Map<string, number>(
     rows.map((r) => [r.name, Number(r.priceDelta)]),
   );
-  if (map.size === 0) {
-    for (const [k, v] of Object.entries(FALLBACK)) map.set(k, v);
-  }
   cache = map;
   loadedAt = Date.now();
   return map;
+}
+
+/** Checkout reads current options, rather than accepting unknown names as free extras. */
+export async function loadOrderOptions(tx: Prisma.TransactionClient) {
+  const rows = await tx.productOption.findMany({ where: { isActive: true } });
+  const options = new Map(rows.map((row) => [`${row.group}:${row.name}`, Number(row.priceDelta)]));
+  return (group: 'milk' | 'shot', name: string): number => {
+    if (!name || (group === 'milk' && name === 'Normal süt') || (group === 'shot' && name === 'Tek shot')) return 0;
+    const delta = options.get(`${group}:${name}`);
+    if (delta === undefined) {
+      throw new AppError('VALIDATION_ERROR', 400, 'Seçilen ürün seçeneği artık mevcut değil');
+    }
+    return delta;
+  };
 }
 
 /// Panelden değişiklik sonrası önbelleği hemen düşür.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
@@ -16,6 +17,11 @@ class DossoDossiApp extends ConsumerWidget {
       title: 'Dosso Dossi',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      // Restore dark status-bar icons after the full-screen dark story reader.
+      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.dark,
+        child: child!,
+      ),
       routerConfig: router,
     );
   }

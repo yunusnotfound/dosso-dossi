@@ -188,3 +188,15 @@ kodları `UNAUTHORIZED` (401), `VALIDATION_ERROR` (400), `RATE_LIMITED`
 - `POST /orders` yanıtı ayrıca `subtotal`, `discount`, `freeDrinkDiscount`,
   `branchName` ve yapılandırılmış `items[]` (productName, unitPrice,
   isFreeDrink...) alanlarını içerir.
+
+## Güvenilirlik ekleri (02.10.2026)
+
+- `GET /config/public`: `{ stampTarget, topupThreshold, topupBonusDrinks, topupFirstOnly }`. Kimlik gerekmez. Değerler paneldeki doğrulanmış ayarlardan gelir.
+- Sipariş, hediye ve yükleme POST gövdeleri opsiyonel UUID `idempotencyKey` kabul eder. Anahtar kullanıcı ve endpoint kapsamındadır. Aynı anahtar + aynı içerik aynı sonucu döndürür; farklı içerik `409 IDEMPOTENCY_CONFLICT` alır. Eski istemci için alan opsiyonel tutuldu; yeni istemci belirsiz yanıt boyunca anahtarı kalıcı tutar.
+- `POST /orders` ve `POST /gifts` opsiyonel `expectedTotal` kabul eder. Güncel tutar farklıysa cüzdana dokunulmadan `409 PRICE_CHANGED`, `{ error: { code, message, details: { total } } }` döner. Yeni toplam yeniden onaylanmalıdır. Kahve hediyesi global katalog fiyatını kullanır; şube fiyatı sipariş içindir.
+- `GET /menu/products?branchId=...` seçili şubenin fiyat/müsaitliğini yansıtır. Aktif opsiyonlar menü opsiyon API'sinden okunur; pasif/bilinmeyen seçenek ödeme hesabında reddedilir.
+- `GET /me/wallet/payments/:id` yalnız sahibinin yükleme sonucunu sorgular; bu okuma sağlayıcıda yeni tahsilat başlatmaz.
+- `GET /admin/orders?activeOnly=true` yalnız RECEIVED/PREPARING/READY siparişleri sayfalar. Liste ve CSV/XLSX aynı filtre sözleşmesini paylaşır.
+- Finans defteri CSV/XLSX aynı `type`, `from`, `to`, `q` filtrelerini kullanır. 10.000 satır üstü açık hata; kısmi dosya döndürülmez.
+- `POST /admin/branches/:id/availability/:productId` gövdesinde `priceOverride` gönderilmezse mevcut fiyat korunur. `null` açıkça temizler.
+- Para girişleri en çok iki ondalık basamaktır. Ayarlar: hedef 1..100 tam sayı; ikram adedi 0..100 tam sayı; eşik 0,01..100000 TL; ilk-yükleme seçeneği gerçek boolean.

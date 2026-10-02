@@ -5,6 +5,7 @@ import { Checkbox, Drawer, Field, Input, Select, Tabs, Textarea } from '../../co
 import { DataTable, PageHeader, type Column } from '../../components/table';
 import { Badge, Button, Card, SectionTitle, fmtNum, fmtTL } from '../../components/ui';
 import { useAuth } from '../../auth/AuthContext';
+import { StoriesTab } from './StoriesTab';
 
 interface Campaign {
   id: string;
@@ -39,10 +40,11 @@ export function CampaignsPage() {
   const [tab, setTab] = useState('campaigns');
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Kampanyalar" subtitle="Kampanyalar, promosyon kodları ve sadakat kuralları" />
+      <PageHeader title="Kampanyalar" subtitle="Kampanyalar, ana sayfa hikâyeleri ve sadakat kuralları" />
       <Tabs
         tabs={[
           { id: 'campaigns', label: 'Kampanyalar' },
+          { id: 'stories', label: 'Hikâyeler' },
           { id: 'promos', label: 'Promosyon kodları' },
           { id: 'loyalty', label: 'Sadakat kuralları' },
         ]}
@@ -50,6 +52,7 @@ export function CampaignsPage() {
         onChange={setTab}
       />
       {tab === 'campaigns' ? <CampaignsTab /> : null}
+      {tab === 'stories' ? <StoriesTab /> : null}
       {tab === 'promos' ? <PromosTab /> : null}
       {tab === 'loyalty' ? <LoyaltyTab /> : null}
     </div>
@@ -57,6 +60,8 @@ export function CampaignsPage() {
 }
 
 function CampaignsTab() {
+  const { admin } = useAuth();
+  const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Campaign | null>(null);
 
@@ -104,7 +109,8 @@ function CampaignsTab() {
             e.stopPropagation();
             remove.mutate(c.id);
           }}
-          className="text-xs font-semibold text-bad hover:underline"
+          disabled={!canEdit || remove.isPending}
+          className="text-xs font-semibold text-bad hover:underline disabled:opacity-50"
         >
           Sil
         </button>
@@ -115,15 +121,16 @@ function CampaignsTab() {
   return (
     <>
       <div className="flex justify-end">
-        <Button onClick={() => setEditing({ ...EMPTY })}>Yeni kampanya</Button>
+        {canEdit ? <Button onClick={() => setEditing({ ...EMPTY })}>Yeni kampanya</Button> : null}
       </div>
       <DataTable
         columns={columns}
         rows={list.data}
         rowKey={(c) => c.id}
-        onRowClick={setEditing}
+        onRowClick={canEdit ? setEditing : undefined}
         loading={list.isLoading}
       />
+      {remove.error ? <p role="alert" className="text-sm text-bad">{remove.error.message}</p> : null}
       <CampaignDrawer
         campaign={editing}
         onClose={() => setEditing(null)}
@@ -241,6 +248,8 @@ function CampaignDrawer({
 }
 
 function PromosTab() {
+  const { admin } = useAuth();
+  const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
   const [form, setForm] = useState({ code: '', rate: 10, isActive: true });
   const [error, setError] = useState('');
@@ -303,7 +312,8 @@ function PromosTab() {
       render: (p) => (
         <button
           onClick={() => remove.mutate(p.code)}
-          className="text-xs font-semibold text-bad hover:underline"
+          disabled={!canEdit || remove.isPending}
+          className="text-xs font-semibold text-bad hover:underline disabled:opacity-50"
         >
           Sil
         </button>
@@ -321,7 +331,7 @@ function PromosTab() {
           loading={list.isLoading}
         />
       </div>
-      <Card>
+      {canEdit ? <Card>
         <SectionTitle>Kod ekle</SectionTitle>
         <div className="flex flex-col gap-3">
           <Field label="Kod">
@@ -347,100 +357,95 @@ function PromosTab() {
             Kaydet
           </Button>
         </div>
-      </Card>
+      </Card> : null}
+      {remove.error ? <p role="alert" className="text-sm text-bad">{remove.error.message}</p> : null}
     </div>
   );
 }
 
-const SETTING_LABELS: Record<string, { label: string; hint: string }> = {
+const SETTING_LABELS = {
   'loyalty.stampTarget': {
     label: 'Damga hedefi',
-    hint: 'Kaç damgada bir ikram kahve verilir.',
+    hint: '1–100 tam sayı. Başlamış kart mevcut hedefi ve damgalarıyla tamamlanır; yeni hedef sonraki karta uygulanır.',
+    min: 1, max: 100, step: 1,
   },
   'loyalty.topUpBonusThreshold': {
     label: 'Yükleme eşiği (₺)',
-    hint: 'Bu tutar ve üzeri yüklemede ikram verilir.',
+    hint: '0,01–100.000 ₺, en fazla iki ondalık. Bu tutar ve üzeri yüklemede ikram verilir.',
+    min: 0.01, max: 100_000, step: 0.01,
   },
   'loyalty.topUpBonusDrinks': {
     label: 'Yükleme ikramı (adet)',
-    hint: 'Eşiği geçen yüklemede verilecek ikram kahve sayısı.',
+    hint: '0–100 tam sayı. 0 seçildiğinde yükleme ikramı verilmez.',
+    min: 0, max: 100, step: 1,
   },
   'loyalty.topUpBonusFirstOnly': {
     label: 'Yalnız ilk yükleme',
-    hint: 'Açıkken ikram sadece hesabın ilk yüklemesinde verilir (tek seferlik).',
+    hint: 'Açıkken ikram sadece hesabın ilk yüklemesinde verilir. İlk yükleme eşiğin altındaysa sonraki yüklemede hak doğmaz.',
+    min: 0, max: 1, step: 1,
   },
-};
+} as const;
+type SettingKey = keyof typeof SETTING_LABELS;
 
 function LoyaltyTab() {
   const { admin } = useAuth();
-  const qc = useQueryClient();
-  const [error, setError] = useState('');
-
   const settings = useQuery({
     queryKey: ['settings'],
-    queryFn: () => api<Record<string, unknown>>('/admin/settings'),
+    queryFn: () => api<Record<SettingKey, number | boolean>>('/admin/settings'),
   });
-  const save = useMutation({
-    mutationFn: (p: { key: string; value: unknown }) =>
-      api('/admin/settings', { method: 'POST', body: p }),
-    onSuccess: () => {
-      setError('');
-      void qc.invalidateQueries({ queryKey: ['settings'] });
-    },
-    onError: (e) => setError(e instanceof ApiError ? e.message : 'Kaydedilemedi'),
-  });
-
-  const canEdit = admin?.role === 'SUPER_ADMIN';
-
   return (
     <Card>
       <SectionTitle>Sadakat ve yükleme kuralları</SectionTitle>
       <p className="mb-4 text-sm text-ink-muted">
-        Bu değerler uygulamanın ve backend'in davranışını doğrudan belirler; her
-        değişiklik kim yaptı bilgisiyle kayda geçer.
-        {canEdit ? null : ' Değiştirmek için süper yönetici yetkisi gerekir.'}
+        Her satırı kontrol edip Kaydet ile uygulayın. Değişiklikler işlem geçmişine kaydedilir.
+        {admin?.role === 'SUPER_ADMIN' ? null : ' Değiştirmek için süper yönetici yetkisi gerekir.'}
       </p>
-
+      {settings.isLoading ? <p role="status">Kurallar yükleniyor…</p> : null}
+      {settings.error ? <p role="alert" className="text-sm text-bad">Kurallar yüklenemedi. <button onClick={() => void settings.refetch()}>Yeniden dene</button></p> : null}
       <div className="flex flex-col gap-4">
-        {Object.entries(settings.data ?? {}).map(([key, value]) => {
-          const meta = SETTING_LABELS[key] ?? { label: key, hint: '' };
-          const isBool = typeof value === 'boolean';
-          return (
-            <div
-              key={key}
-              className="flex items-center justify-between gap-4 rounded-[--radius-chip] bg-surface-sunken px-4 py-3"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-ink">{meta.label}</p>
-                <p className="text-xs text-ink-muted">{meta.hint}</p>
-              </div>
-              {isBool ? (
-                <Checkbox
-                  label={value ? 'Açık' : 'Kapalı'}
-                  checked={value as boolean}
-                  onChange={(v) => canEdit && save.mutate({ key, value: v })}
-                />
-              ) : (
-                <Input
-                  type="number"
-                  disabled={!canEdit}
-                  defaultValue={Number(value)}
-                  onBlur={(e) => {
-                    const next = Number(e.target.value);
-                    if (next !== Number(value)) save.mutate({ key, value: next });
-                  }}
-                  className="w-32"
-                />
-              )}
-            </div>
-          );
-        })}
+        {settings.data && (Object.keys(SETTING_LABELS) as SettingKey[]).map((key) => (
+          <SettingEditor key={`${key}:${settings.data![key]}`} settingKey={key} value={settings.data![key]} canEdit={admin?.role === 'SUPER_ADMIN'} />
+        ))}
       </div>
-      {error ? (
-        <p className="mt-3 rounded-[--radius-chip] bg-bad-soft px-3 py-2 text-sm text-bad">
-          {error}
-        </p>
-      ) : null}
     </Card>
+  );
+}
+
+function SettingEditor({ settingKey, value, canEdit }: { settingKey: SettingKey; value: number | boolean; canEdit: boolean }) {
+  const qc = useQueryClient();
+  const meta = SETTING_LABELS[settingKey];
+  const isBool = settingKey === 'loyalty.topUpBonusFirstOnly';
+  const [draft, setDraft] = useState(String(value));
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+  const numeric = Number(draft);
+  const valid = isBool || (draft.trim() !== '' && Number.isFinite(numeric) && numeric >= meta.min && numeric <= meta.max &&
+    (meta.step === 1 ? Number.isInteger(numeric) : /^\d+(?:\.\d{1,2})?$/.test(draft)));
+  const changed = draft !== String(value);
+  const save = useMutation({
+    mutationFn: () => {
+      if (!valid) throw new Error('Geçerli aralıkta bir değer girin.');
+      return api('/admin/settings', { method: 'POST', body: { key: settingKey, value: isBool ? draft === 'true' : numeric } });
+    },
+    onSuccess: () => {
+      setError('');
+      setSaved(true);
+      void qc.invalidateQueries({ queryKey: ['settings'] });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'Kaydedilemedi'),
+  });
+  return (
+    <form className="rounded-[--radius-chip] bg-surface-sunken px-4 py-3" onSubmit={(e) => { e.preventDefault(); if (valid && canEdit && changed) save.mutate(); }}>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-ink">{meta.label}</p><p className="text-xs text-ink-muted">{meta.hint}</p></div>
+        {isBool ? <Checkbox label={draft === 'true' ? 'Açık' : 'Kapalı'} checked={draft === 'true'} disabled={!canEdit || save.isPending} onChange={(v) => { setDraft(String(v)); setSaved(false); }} /> : (
+          <Input aria-label={meta.label} type="number" required min={meta.min} max={meta.max} step={meta.step} disabled={!canEdit || save.isPending} value={draft} onChange={(e) => { setDraft(e.target.value); setSaved(false); }} className="w-32" />
+        )}
+        {canEdit ? <Button type="submit" disabled={!changed || !valid || save.isPending}>{save.isPending ? 'Kaydediliyor…' : 'Kaydet'}</Button> : null}
+      </div>
+      {!valid ? <p role="alert" className="mt-2 text-sm text-bad">{meta.hint}</p> : null}
+      {error ? <p role="alert" className="mt-2 text-sm text-bad">{error}</p> : null}
+      {saved ? <p role="status" className="mt-2 text-sm text-ok">Kaydedildi.</p> : null}
+    </form>
   );
 }

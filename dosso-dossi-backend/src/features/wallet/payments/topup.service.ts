@@ -3,8 +3,12 @@ import { env } from '../../../config/env.js';
 import { AppError } from '../../../lib/errors.js';
 import { dec, toMoney } from '../../../lib/money.js';
 import { prisma } from '../../../lib/prisma.js';
+import { assertActiveUser } from '../../../lib/active-user.js';
+import { lockUsers } from '../../../lib/financial-locks.js';
+import { lockFinancialRequest, saveFinancialResult } from '../../../lib/idempotency.js';
 import { paymentProvider } from './dev-payment-provider.js';
 import { getSetting } from '../../settings/settings.service.js';
+import { journalMetadata, loyaltyState } from '../../loyalty/loyalty-journal.js';
 
 // CEO kampanyası: kullanıcının İLK bakiye yüklemesi eşiği geçiyorsa ikram
 // kahve verilir. Tek seferliktir: ilk yükleme eşiğin altındaysa da hak düşer,
@@ -26,24 +30,44 @@ export interface TopUpResult {
 export async function startTopUp(
   userId: string,
   amount: number,
+  idempotencyKey?: string,
+  savedCardId?: string,
 ): Promise<TopUpResult> {
-  const intent = await prisma.paymentIntent.create({
-    data: { userId, amount: dec(amount), provider: env.PAYMENT_PROVIDER },
+  const money = dec(amount);
+  const prepared = await prisma.$transaction(async (tx) => {
+    await lockUsers(tx, [userId]);
+    await assertActiveUser(tx, userId);
+    const request = await lockFinancialRequest(tx, userId, 'topup', idempotencyKey, { amount, savedCardId });
+    if (request?.response) {
+      return { cached: request.response as unknown as TopUpResult, intentId: '', created: false, requestId: request.id };
+    }
+    if (request?.resourceId) {
+      return { intentId: request.resourceId, created: false, requestId: request.id };
+    }
+    const intent = await tx.paymentIntent.create({
+      data: { userId, amount: money, provider: env.PAYMENT_PROVIDER },
+    });
+    if (request) await tx.financialRequest.update({ where: { id: request.id }, data: { resourceId: intent.id } });
+    return { intentId: intent.id, created: true, requestId: request?.id };
   });
+  if (prepared.cached) return prepared.cached;
+  // The durable intent is already attached to the client key. A retry never charges again.
+  if (!prepared.created) return getTopUpResult(userId, prepared.intentId);
+  const intentId = prepared.intentId;
 
   const payment = await paymentProvider.createPayment({
-    intentId: intent.id,
+    intentId,
     userId,
     amount,
   });
   await prisma.paymentIntent.update({
-    where: { id: intent.id },
+    where: { id: intentId },
     data: { providerRef: payment.providerRef, redirectUrl: payment.redirectUrl },
   });
 
   if (payment.status === 'failed') {
     await prisma.paymentIntent.update({
-      where: { id: intent.id },
+      where: { id: intentId },
       data: { status: 'FAILED' },
     });
     throw AppError.paymentNotPending('Ödeme sağlayıcı tarafından reddedildi');
@@ -53,14 +77,31 @@ export async function startTopUp(
     return {
       balance: toMoney(wallet.balance),
       bonusDrinks: 0,
-      paymentId: intent.id,
+      paymentId: intentId,
       status: 'pending',
       redirectUrl: payment.redirectUrl,
     };
   }
 
-  const confirmed = await confirmTopUp(intent.id);
-  return { ...confirmed, paymentId: intent.id, status: 'succeeded' };
+  const confirmed = await confirmTopUp(intentId);
+  const result: TopUpResult = { ...confirmed, paymentId: intentId, status: 'succeeded' };
+  await saveFinancialResult(prisma, prepared.requestId, result, intentId);
+  return result;
+}
+
+/** Only the owner may reconcile an ambiguous top-up response. No provider call occurs here. */
+export async function getTopUpResult(userId: string, paymentId: string): Promise<TopUpResult> {
+  const intent = await prisma.paymentIntent.findFirst({ where: { id: paymentId, userId } });
+  if (!intent) throw AppError.notFound('Ödeme bulunamadı');
+  if (intent.status === 'FAILED' || intent.status === 'EXPIRED') throw AppError.paymentNotPending();
+  const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId } });
+  return {
+    paymentId: intent.id,
+    status: intent.status === 'SUCCEEDED' ? 'succeeded' : 'pending',
+    balance: toMoney(wallet.balance),
+    bonusDrinks: intent.bonusDrinks,
+    ...(intent.redirectUrl ? { redirectUrl: intent.redirectUrl } : {}),
+  };
 }
 
 /// Onayı işler; paymentId ile idempotent. startTopUp (dev, anında) bu
@@ -77,6 +118,10 @@ export async function confirmTopUpTx(
   intentId: string,
 ): Promise<{ balance: number; bonusDrinks: number }> {
   {
+    const pending = await tx.paymentIntent.findUnique({ where: { id: intentId } });
+    if (!pending) throw AppError.notFound('Ödeme bulunamadı');
+    await lockUsers(tx, [pending.userId]);
+    await assertActiveUser(tx, pending.userId);
     const claimed = await tx.paymentIntent.updateMany({
       where: { id: intentId, status: 'PENDING' },
       data: { status: 'SUCCEEDED', confirmedAt: new Date() },
@@ -105,9 +150,9 @@ export async function confirmTopUpTx(
     const previousTopUps = await tx.walletTransaction.count({
       where: { walletId: walletBefore.id, type: 'TOPUP' },
     });
-    const firstOnly = await getSetting<boolean>('loyalty.topUpBonusFirstOnly');
-    const threshold = await getSetting<number>('loyalty.topUpBonusThreshold');
-    const drinks = await getSetting<number>('loyalty.topUpBonusDrinks');
+    const firstOnly = await getSetting<boolean>('loyalty.topUpBonusFirstOnly', tx);
+    const threshold = await getSetting<number>('loyalty.topUpBonusThreshold', tx);
+    const drinks = await getSetting<number>('loyalty.topUpBonusDrinks', tx);
     const eligible = (!firstOnly || previousTopUps === 0) && amount >= threshold;
     const bonusDrinks = eligible ? drinks : 0;
 
@@ -126,6 +171,7 @@ export async function confirmTopUpTx(
     });
 
     if (bonusDrinks > 0) {
+      const before = await tx.loyaltyAccount.findUniqueOrThrow({ where: { userId: intent.userId } });
       await tx.paymentIntent.update({
         where: { id: intentId },
         data: { bonusDrinks },
@@ -139,6 +185,7 @@ export async function confirmTopUpTx(
           accountId: loyalty.id,
           type: 'TOPUP_BONUS',
           title: `Yükle Kazan — ${bonusDrinks} ikram kahve`,
+          metadata: journalMetadata({ kind: 'grant', before: loyaltyState(before), freeDrinks: bonusDrinks }),
         },
       });
     }

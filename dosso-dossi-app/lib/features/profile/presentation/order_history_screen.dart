@@ -17,11 +17,34 @@ class OrderHistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orders = ref.watch(ordersProvider);
+    final load = ref.watch(ordersLoadProvider);
 
     return ScrollablePageScaffold.slivers(
       title: 'Geçmiş Siparişler',
       slivers: [
-        orders.isEmpty
+        if (load.isLoading)
+          const SliverToBoxAdapter(child: LinearProgressIndicator()),
+        if (load.hasError)
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                const Text(
+                  'Siparişler yüklenemedi. Önceki kayıtlar güncel olmayabilir.',
+                ),
+                TextButton(
+                  onPressed: () async {
+                    try {
+                      await ref.read(ordersProvider.notifier).refresh();
+                    } catch (_) {}
+                  },
+                  child: const Text('Tekrar dene'),
+                ),
+              ],
+            ),
+          ),
+        orders.isEmpty && (load.isLoading || load.hasError)
+            ? const SliverToBoxAdapter(child: SizedBox.shrink())
+            : orders.isEmpty
             ? SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(
@@ -47,9 +70,8 @@ class OrderHistoryScreen extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   final order = orders[index];
                   return GestureDetector(
-                    onTap: order.isActive
-                        ? () => context.push(Routes.orderTrackingPath(order.id))
-                        : null,
+                    onTap: () =>
+                        context.push(Routes.orderTrackingPath(order.id)),
                     child: Container(
                       padding: const EdgeInsets.all(AppSpacing.lg),
                       decoration: BoxDecoration(
@@ -63,11 +85,9 @@ class OrderHistoryScreen extends ConsumerWidget {
                             children: [
                               Text(order.id, style: AppTypography.title),
                               const Spacer(),
-                              if (order.isActive) ...[
+                              ...[
                                 Text(
-                                  order.status == 'preparing'
-                                      ? 'Hazırlanıyor'
-                                      : 'Alındı',
+                                  order.statusLabel,
                                   style: AppTypography.badge.copyWith(
                                     color: AppColors.primary,
                                   ),

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '../../auth/AuthContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../api/client';
 import { ReasonDialog, Select, Tabs } from '../../components/form';
@@ -60,6 +61,8 @@ export function PosPage() {
 }
 
 function HealthTab() {
+  const { admin } = useAuth();
+  const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ['pos-health'],
@@ -106,6 +109,7 @@ function HealthTab() {
 
       <section>
         <SectionTitle>İletilemeyen siparişler (outbox)</SectionTitle>
+        {retry.error ? <p role="alert" className="mb-3 text-sm text-bad">{retry.error.message}</p> : null}
         {q.data?.outbox.length === 0 ? (
           <EmptyState>Bekleyen sipariş yok — tüm siparişler POS'a iletildi.</EmptyState>
         ) : (
@@ -129,7 +133,7 @@ function HealthTab() {
                     <Button
                       variant="ghost"
                       onClick={() => retry.mutate(o.id)}
-                      disabled={retry.isPending}
+                      disabled={!canEdit || retry.isPending}
                     >
                       Yeniden ilet
                     </Button>
@@ -145,6 +149,8 @@ function HealthTab() {
 }
 
 function EventsTab() {
+  const { admin } = useAuth();
+  const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
   const [status, setStatus] = useState('');
   const [source, setSource] = useState('');
@@ -197,7 +203,7 @@ function EventsTab() {
       key: 'actions',
       header: '',
       render: (e) =>
-        e.status === 'FAILED' ? (
+        canEdit && e.status === 'FAILED' ? (
           <button
             onClick={(ev) => {
               ev.stopPropagation();

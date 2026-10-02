@@ -67,6 +67,7 @@ export async function updateAdmin(
   input: { name?: string; role?: AdminRole; branchId?: string | null; isActive?: boolean },
 ) {
   return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(734682001)`;
     const before = await tx.adminUser.findUnique({ where: { id } });
     if (!before) throw AppError.notFound('Yönetici bulunamadı');
 
@@ -93,6 +94,7 @@ export async function updateAdmin(
     };
     // Şube yalnız BRANCH_MANAGER'da anlamlı; rol değişince temizlenir.
     if (role === 'BRANCH_MANAGER') {
+      if (!(input.branchId === undefined ? before.branchId : input.branchId)) throw AppError.forbidden('Şube müdürü için şube seçilmeli');
       if (input.branchId !== undefined) {
         data.branch = input.branchId
           ? { connect: { id: input.branchId } }
@@ -104,7 +106,7 @@ export async function updateAdmin(
 
     const after = await tx.adminUser.update({ where: { id }, data });
     // Yetki daraldıysa açık oturumlar da düşsün.
-    if (input.isActive === false || (input.role && input.role !== before.role)) {
+    if (input.isActive === false || (input.role && input.role !== before.role) || (input.branchId !== undefined && input.branchId !== before.branchId)) {
       await revokeAllSessions(tx, id);
     }
     await audit(tx, req, {

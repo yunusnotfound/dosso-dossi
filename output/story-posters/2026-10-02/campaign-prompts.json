@@ -1,0 +1,60 @@
+{
+  "created": "2026-10-02",
+  "method": "Built-in image_gen",
+  "status": "approved_and_published",
+  "posters": [
+    {
+      "id": "03-yukle-kazan",
+      "refs": [
+        "/Users/berkaydemir/dosso-dossi/output/story-posters/2026-10-02/02-kahve-keyfi-evinde.png",
+        "/Users/berkaydemir/dosso-dossi/dosso-dossi-app/assets/images/yukle_kazan_cup.png",
+        "/Users/berkaydemir/dosso-dossi/dosso-dossi-app/assets/images/onboarding_hediye_kutusu.png",
+        "/Users/berkaydemir/dosso-dossi/dosso-dossi-app/assets/images/logo.png"
+      ],
+      "prompt": "Use case: ads-marketing / compositing. Create ONE finished portrait 9:16 campaign poster for Dosso Dossi Coffee's in-app story, at least 1080x1920 or equivalent. Input 1 is STYLE REFERENCE ONLY: match its elegant cream/beige photographic art direction, bold orange type, quality and restraint, but NOT its text or bean bags. Input 2 is the actual Dosso branded cup with orange lid, coffee beans and leaves to use as product compositing source. Input 3 is the actual cream gift box with orange satin bow and Dosso logo: use this exact branded gift identity. Input 4 is the actual circular logo. Preserve the logo illustration and correct DOSSO DOSSI COFFEE lettering and actual product shapes.\n\nDesign: luminous warm cream #FBF8F2 / beige #EBE1DA setting, Dosso orange #EF6024 headline and dark coffee-brown #2E211A supporting text. Sophisticated commercial still-life: generous cream cup with orange lid beside the recognizable gift box on staggered warm stone and muted orange plinths, subtle real contact shadows and soft warm daylight. Small cluster of coffee beans and restrained leaves. Spacious yet visually rich photographic advertising, no floating confetti, no excessive ornaments. Products hero in lower middle, completely visible with logos front facing.\n\nLayout: one edge-to-edge portrait, no phone mockup, no rounded border, no UI. TOP 12.5% MUST REMAIN CALM EMPTY BACKGROUND for existing app story header. Place a small exact circular logo centered at approx 15.5% height, logo diameter no more than 5% total image height. Main title begins below 21% height, large and beautiful, modern heavy sans-serif, left aligned or carefully balanced centered. Clear 7% side margins. Main campaign amount and benefit easy to read; prioritize 5 kahve in display typography. Keep footnote at 91% height readable, bottom 5% quiet.\n\nExact Turkish text, with all accents:\nMain headline:\n\"Yükle\"\n\"Kazan\"\nSecondary eyebrow:\n\"İlk yüklemene özel\"\nOffer, exact:\n\"1.000 ₺ ve üzeri yükle,\"\n\"5 kahve hediye kazan.\"\nSmall informational note:\n\"Yalnızca ilk bakiye yüklemesinde,\"\n\"tek seferde 1.000 ₺ ve üzeri için geçerlidir.\"\n\nDo not invent prices, expiration dates, discounts or other conditions. Do not imply every top-up earns gifts. No CTA button (the app supplies it), no progress bars, close icons, phone UI, stars or extra branding. Carefully avoid text overlapping cup/gift or illegible fine print. Professional polished final ad coordinated with the reference."
+    },
+    {
+      "id": "04-bes-damga-bir-ikram",
+      "refs": [
+        "/Users/berkaydemir/dosso-dossi/output/story-posters/2026-10-02/01-serinligin-uc-hali.png",
+        "/Users/berkaydemir/dosso-dossi/dosso-dossi-app/assets/images/yukle_kazan_cup.png",
+        "/Users/berkaydemir/dosso-dossi/dosso-dossi-app/assets/images/logo.png"
+      ],
+      "prompt": "Use case: ads-marketing / compositing. Create ONE finished portrait 9:16 campaign poster for Dosso Dossi Coffee's in-app story, at least 1080x1920 or equivalent. Input 1 is STYLE REFERENCE ONLY: match the warm cream photographic setting, refined orange typography and professional restrained commercial style; do NOT copy its cold drinks or text. Input 2 is the actual cream branded takeaway cup with orange lid, coffee beans and green leaves. Use this actual recognizable cup identity, preserving the exact Dosso logo and orange lid. Input 3 is the exact circular brand logo for a small logo at top.\n\nArt direction: warm luminous cream #FBF8F2 and beige #EBE1DA, striking Dosso orange #EF6024 title, coffee-brown #2E211A secondary type. Photographic still life featuring ONE generous beautiful branded hot coffee cup, orange lid, on warm stone/orange layered low podiums, with several beans and subtle fresh green leaves around its base. Gentle natural light and grounded shadows, premium boutique coffee campaign. Full cup visible, brand label prominent. No generic replacement logo, no floating props, no confetti.\n\nMobile composition: one edge-to-edge vertical poster; no frame, no phone/device UI. Reserve the TOP 12.5% entirely quiet for the native story overlay. Small exact circular logo centered around 15.5% image height, no larger than 5% total height. Headline starts below 21% height. Cup hero large in lower-middle, airy warm studio background. 7% side safe margins. Bottom 5% quiet. Include a tasteful small informational row of EXACTLY FIVE cream circular coffee-bean stamp medallions in orange, labeled 1, 2, 3, 4, 5, as a static explanatory diagram around lower section or between title and cup. It should signify completing five stamps, not personal live progress; no fraction 3/5 or 'Kahve ilerlemem'. All five stamp symbols identical. Avoid extra circles or misleading sixth stamp.\n\nExact Turkish text with correct characters:\nSmall eyebrow:\n\"KAHVE İÇTİKÇE KAHVE KAZAN\"\nLarge main headline, two lines:\n\"5 damga,\"\n\"1 ikram.\"\nSupporting line:\n\"Kahve keyfin hediyeye dönüşsün.\"\nSmall explanatory note near bottom above safe margin:\n\"Damga kazandıran içeceklerle kartını tamamla,\"\n\"1 ikram kahve kazan.\"\n\nDo NOT say the fifth coffee is free: reward follows completing five stamps. Do not add price, expiry, discount or unprovided conditions. No baked-in CTA button because native app provides it; no status bar, story progress bar, close button or app navigation. Keep all text separated from cup and easily readable. Deliver thoughtful, finished, professional photographic advertising matching the reference campaign family."
+    }
+  ],
+  "revisionPrompt": "Make one precise layout correction to this finished Dosso Dossi story poster. Keep ALL typography, wording, amounts, campaign conditions, products, gift box if present, cup branding, colors, photographic scene and all other elements exactly unchanged. Only change the standalone circular brand logo at the top center: reduce it to approximately 75 pixels diameter relative to this 941x1672 image, and position its center at x=470, y=250 so its top edge is at about y=212. Erase the old logo cleanly, restoring the same cream background and light/shadow seamlessly. The TOP 210 pixels must contain background only, no logo or lettering, to leave room for the app story overlay. The small repositioned logo must remain sharp, circular, and preserve exact DOSSO DOSSI COFFEE brand artwork. Keep the existing copy below in its original place, no other changes or added elements. Output the same portrait aspect ratio and full poster.",
+  "deliverables": [
+    {
+      "id": "03-yukle-kazan",
+      "file": "03-yukle-kazan.png"
+    },
+    {
+      "id": "04-bes-damga-bir-ikram",
+      "file": "04-bes-damga-bir-ikram.png"
+    }
+  ],
+  "approvedAt": "2026-10-02T17:45:09.972Z",
+  "publication": [
+    {
+      "id": "story-coffee-rewards",
+      "title": "Kahve Kazan",
+      "action": "kahve-ictikce",
+      "imageUrl": "/media/stories/aa585afcbf4c9dcab6f5a698a8b5e3045dfaa2c3a6cfda9f5fb2ddf0d3afe8d2.webp",
+      "file": "04-bes-damga-bir-ikram.png"
+    },
+    {
+      "id": "story-topup-rewards",
+      "title": "Yükle Kazan",
+      "action": "yukle-kazan",
+      "imageUrl": "/media/stories/f5fa3be3d9365d6e2d533183ebefdaa4d8d9f6f5eabe5229c240b8d75d86806a.webp",
+      "file": "03-yukle-kazan.png"
+    }
+  ],
+  "appPreviews": {
+    "coffee": "dosso-dossi-app/assets/images/campaign_bes_damga_approved.webp",
+    "topup": "dosso-dossi-app/assets/images/campaign_yukle_kazan_approved.webp",
+    "placement": "Sana Özel",
+    "audience": "members_and_guests"
+  }
+}

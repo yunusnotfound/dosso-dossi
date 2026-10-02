@@ -3,7 +3,9 @@ import 'package:dio/dio.dart';
 /// Backend'in sözleşme hata biçimi: { "error": { "code", "message" } }
 /// DioException'ı yakalayıp kullanıcıya gösterilebilir hale getirir.
 class ApiException implements Exception {
-  const ApiException({required this.code, required this.message});
+  const ApiException({required this.code, required this.message, this.details});
+
+  final Map<String, dynamic>? details;
 
   /// docs/API_CONTRACT.md'deki hata kodu: INSUFFICIENT_BALANCE, INVALID_OTP...
   final String code;
@@ -20,7 +22,11 @@ class ApiException implements Exception {
       if (error is Map<String, dynamic>) {
         return ApiException(
           code: (error['code'] as String?) ?? 'INTERNAL',
-          message: (error['message'] as String?) ?? 'Beklenmeyen bir hata oluştu',
+          details: error['details'] is Map
+              ? Map<String, dynamic>.from(error['details'] as Map)
+              : null,
+          message:
+              (error['message'] as String?) ?? 'Beklenmeyen bir hata oluştu',
         );
       }
     }

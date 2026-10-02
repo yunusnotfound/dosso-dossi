@@ -9,7 +9,9 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "e2e": "node e2e/smoke.mjs",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "test:regression": "node e2e/regression.mjs",
+    "test:stories": "node e2e/stories.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",

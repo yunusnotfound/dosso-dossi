@@ -55,6 +55,7 @@ class CartState {
     this.discountRate = 0,
     this.useFreeDrink = false,
     this.catalogNotice,
+    this.quotedTotal,
   });
 
   final List<CartItem> items;
@@ -69,9 +70,13 @@ class CartState {
   /// Explains live price changes or unavailable items removed from this cart.
   final String? catalogNotice;
 
+  /// Authoritative changed total, shown for a fresh explicit confirmation.
+  /// Any cart/catalog edit drops the quote through copyWith.
+  final double? quotedTotal;
+
   int get count => items.fold(0, (sum, item) => sum + item.quantity);
   double get subtotal => items.fold(0, (sum, item) => sum + item.total);
-  double get discount => subtotal * discountRate;
+  double get discount => (subtotal * discountRate * 100).round() / 100;
 
   /// İkrama uygun (damga kazandıran = içecek) en yüksek birim fiyatlı ürün.
   CartItem? get freeDrinkItem {
@@ -88,6 +93,7 @@ class CartState {
       useFreeDrink ? (freeDrinkItem?.unitPrice ?? 0) : 0;
 
   double get total {
+    if (quotedTotal != null) return quotedTotal!;
     final t = subtotal - discount - freeDrinkDiscount;
     return t < 0 ? 0 : t;
   }
@@ -103,6 +109,7 @@ class CartState {
     double? discountRate,
     bool? useFreeDrink,
     String? catalogNotice,
+    double? quotedTotal,
     bool clearPromo = false,
   }) => CartState(
     items: items ?? this.items,
@@ -110,5 +117,6 @@ class CartState {
     discountRate: clearPromo ? 0 : (discountRate ?? this.discountRate),
     useFreeDrink: useFreeDrink ?? this.useFreeDrink,
     catalogNotice: catalogNotice ?? this.catalogNotice,
+    quotedTotal: quotedTotal,
   );
 }

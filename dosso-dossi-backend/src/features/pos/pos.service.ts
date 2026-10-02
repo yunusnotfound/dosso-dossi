@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import { assertActiveUser } from '../../lib/active-user.js';
 import { AppError } from '../../lib/errors.js';
 import { dec, toMoney } from '../../lib/money.js';
 import type { ChargeInput } from './pos.schemas.js';
@@ -29,6 +30,9 @@ export async function chargeQrCode(
     if (token.expiresAt.getTime() < Date.now() - QR_CHARGE_GRACE_MS) {
       throw AppError.invalidQr('Kodun süresi doldu, müşteri yenilesin');
     }
+
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${token.userId} FOR UPDATE`;
+    await assertActiveUser(tx, token.userId);
 
     // Çifte okutma yarışı: tüketimi atomik yap
     const consumed = await tx.qrToken.updateMany({

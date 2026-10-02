@@ -1,0 +1,49 @@
+{
+  "created": "2026-10-02",
+  "method": "Built-in image_gen",
+  "purpose": "Transparent story cover artwork, separate from full-size posters",
+  "specs": [
+    {
+      "id": "story-cover-drinks",
+      "refs": [
+        "/Users/berkaydemir/dosso-dossi/dosso-dossi-backend/uploads/products/fragola-limone.webp",
+        "/Users/berkaydemir/dosso-dossi/dosso-dossi-backend/uploads/products/dolce-mocha-freddo.webp"
+      ],
+      "prompt": "Use case: compositing / background-extraction. Create ONE square transparent PNG product cutout for an 88px circular story thumbnail in the Dosso Dossi Coffee app. Use the two supplied real branded drink product images: pink Fragola Limone and brown Dolce Mocha Freddo. Preserve their recognizable original cups, orange straws, lids, actual Dosso Dossi logos and drink colors. Arrange the pink drink front-left and the iced brown coffee slightly behind-right as ONE compact balanced product group, each cup fully visible except slight natural overlap, both logos visible. Products should read strongly at small icon size. Clean crisp cutout edges, premium soft studio light, no heavy shadow. The compact group should fill approximately 80% of the square canvas height and 75% width, centered with transparent margin around all sides, safe for circular masking. No separate headline, no labels, no decorative text, no white rectangle, no backdrop, no scene, no floor, no podium, no border, no circle outline. Output actual alpha transparency behind and around the cups; do not paint a checkerboard. The ONLY visible content should be the two branded drinks. 1024x1024 square PNG with genuine alpha."
+    },
+    {
+      "id": "story-cover-beans",
+      "refs": [
+        "/Users/berkaydemir/Downloads/kolombiya.png",
+        "/Users/berkaydemir/Downloads/kenya.png"
+      ],
+      "prompt": "Use case: compositing / background-extraction. Create ONE square transparent PNG product cutout for an 88px circular story thumbnail in the Dosso Dossi Coffee app. Use the two supplied real branded 250g coffee bags: Colombia/Kolombiya and Kenya. Preserve their original white/cream pouch shapes, orange label stripes, actual Dosso Dossi circular logos, recognizable label design and product names. Cleanly remove the white canvas and photographic background around each pouch. Arrange Colombia prominently front-left and Kenya slightly behind-right as a compact overlapping family group. Both brand logos and orange stripe accents remain visible. Pouches nearly front-facing with a subtle angle and soft premium studio lighting. The product group should be large and recognizable at tiny size, filling about 78% canvas height and 75% width, centered with enough transparent margins so the whole group is safe inside a circular mask. Add at most 3 small coffee beans directly at the base if they improve balance, no additional decoration. No titles, no external lettering, no poster, no labels outside packaging, no floor, no pedestal, no frame, no drawn circle. Output 1024x1024 square with genuine ALPHA TRANSPARENT background, not white, beige or a painted checkerboard. Only the bags and optional few beans should be visible."
+    },
+    {
+      "id": "story-cover-coffee",
+      "refs": [
+        "/Users/berkaydemir/dosso-dossi/dosso-dossi-app/assets/images/yukle_kazan_cup.png"
+      ],
+      "prompt": "Use case: background-extraction / product-mockup. Prepare one clean premium product cutout for a small circular story thumbnail in the Dosso Dossi Coffee mobile app. Use the supplied exact cream branded takeaway coffee cup with orange lid, preserving its logo illustration and DOSSO DOSSI COFFEE lettering. Remove ALL background, colored glows, floor, shadows around the product and leaves. Keep the full cup, with at most three coffee beans clustered very closely at its base. Center the cup on a 1024x1024 square, with the cup taking about 80% of total canvas height, and its whole lid and base visible. Maintain the original actual product appearance, paper texture, orange lid, front-facing readable brand logo and attractive soft light. No new headline, no new text or badge, no frame, no circle outline, no props around edges, no podium. Output a genuine alpha-transparent PNG: the only opaque content is the cup and optional three beans. No rectangular background, no glow, no fake checkerboard. This must remain immediately recognizable at 88px."
+    }
+  ],
+  "assets": [
+    {
+      "action": "kahve-ictikce",
+      "file": "dosso-dossi-app/assets/images/story_cover_coffee.webp"
+    },
+    {
+      "action": "yukle-kazan",
+      "file": "dosso-dossi-app/assets/images/onboarding_hediye_kutusu.png",
+      "source": "Existing branded transparent gift asset"
+    },
+    {
+      "action": "siparis",
+      "file": "dosso-dossi-app/assets/images/story_cover_drinks.webp"
+    },
+    {
+      "action": "online-magaza",
+      "file": "dosso-dossi-app/assets/images/story_cover_beans.webp"
+    }
+  ]
+}

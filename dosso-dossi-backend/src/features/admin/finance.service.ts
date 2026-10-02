@@ -1,5 +1,6 @@
 import type { Prisma, WalletTxType } from '@prisma/client';
 import type { Request } from 'express';
+import { csvCell, MAX_EXPORT_ROWS, assertExportSize } from '../../lib/csv.js';
 import { toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
 import { voidCharge } from '../pos/pos.service.js';
@@ -10,21 +11,35 @@ function dayRange(from?: Date, to?: Date): Prisma.DateTimeFilter | undefined {
   return { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) };
 }
 
-/// Cüzdan hareket defteri — tip/tarih filtreli.
-export async function ledger(opts: {
+export interface LedgerFilters {
   type?: WalletTxType;
   from?: Date;
   to?: Date;
+  q?: string;
+}
+export function ledgerWhere(opts: LedgerFilters): Prisma.WalletTransactionWhereInput {
+  const createdAt = dayRange(opts.from, opts.to);
+  const q = opts.q?.trim();
+  const digits = q?.replace(/\D/g, '');
+  return {
+    ...(opts.type ? { type: opts.type } : {}),
+    ...(createdAt ? { createdAt } : {}),
+    ...(q ? { OR: [
+      { note: { contains: q, mode: 'insensitive' as const } },
+      { wallet: { user: { name: { contains: q, mode: 'insensitive' as const } } } },
+      ...(digits ? [{ wallet: { user: { phone: { contains: digits } } } }] : []),
+    ] } : {}),
+  };
+}
+
+/// Cüzdan hareket defteri — tip/tarih filtreli.
+export async function ledger(opts: LedgerFilters & {
   page?: number;
   pageSize?: number;
 }) {
   const page = Math.max(1, opts.page ?? 1);
   const pageSize = Math.min(200, Math.max(10, opts.pageSize ?? 50));
-  const createdAt = dayRange(opts.from, opts.to);
-  const where: Prisma.WalletTransactionWhereInput = {
-    ...(opts.type ? { type: opts.type } : {}),
-    ...(createdAt ? { createdAt } : {}),
-  };
+  const where = ledgerWhere(opts);
 
   const [rows, total, sums] = await Promise.all([
     prisma.walletTransaction.findMany({
@@ -181,28 +196,16 @@ export async function reconciliation(days = 7): Promise<ReconciliationRow[]> {
 }
 
 /// Muhasebe dışa aktarımı (Excel-TR uyumlu: BOM + `;`).
-export async function ledgerCsv(opts: {
-  type?: WalletTxType;
-  from?: Date;
-  to?: Date;
-}): Promise<string> {
-  const { entries } = await ledger({ ...opts, pageSize: 200, page: 1 });
+export async function ledgerCsv(opts: LedgerFilters): Promise<string> {
+  const entries = await prisma.walletTransaction.findMany({
+    where: ledgerWhere(opts), orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: MAX_EXPORT_ROWS + 1,
+    include: { wallet: { include: { user: { select: { name: true, phone: true } } } } },
+  });
+  assertExportSize(entries);
   const head = ['Tarih', 'Tip', 'Tutar', 'Bakiye sonrası', 'Müşteri', 'Telefon', 'Not'];
-  const lines = entries.map((e) =>
-    [
-      e.createdAt,
-      e.type,
-      e.amount,
-      e.balanceAfter,
-      e.customerName,
-      e.customerPhone,
-      e.note,
-    ]
-      .map((v) => {
-        const s = String(v);
-        return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-      })
-      .join(';'),
-  );
-  return `﻿${head.join(';')}\n${lines.join('\n')}`;
+  const lines = entries.map((e) => [
+    e.createdAt.toISOString(), e.type, toMoney(e.amount), toMoney(e.balanceAfter),
+    e.wallet.user.name, e.wallet.user.phone, e.note,
+  ].map(csvCell).join(';'));
+  return `\uFEFF${head.join(';')}\n${lines.join('\n')}`;
 }

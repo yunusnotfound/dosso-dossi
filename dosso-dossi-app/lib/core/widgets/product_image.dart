@@ -44,46 +44,41 @@ class ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final grid = product.gridImage;
-    if (preferGrid && grid != null) {
-      // Vitrin kareleri artık şeffaf ürün çekimleri: cover ile doldurmak
-      // geniş kadrajlı olanları (kulplu kupalar) kenarlardan kırpıyordu.
-      // contain hepsini aynı ölçekte, kırpmadan kutuya oturtur.
+    final sources = <String>{
+      if (preferGrid && product.gridImage?.trim().isNotEmpty == true)
+        product.gridImage!,
+      ...product.images.where((src) => src.trim().isNotEmpty),
+      if (product.gridImage?.trim().isNotEmpty == true) product.gridImage!,
+    }.toList();
+    Widget source(int index) {
+      if (index >= sources.length) return _emoji();
+      final src = sources[index];
       return Container(
-        color: Colors.white,
+        color: background == Colors.transparent
+            ? Colors.transparent
+            : Colors.white,
         alignment: Alignment.center,
-        child: CachedNetworkImage(
-          imageUrl: ApiEndpoints.mediaUrl(grid),
-          fit: BoxFit.contain,
-          width: double.infinity,
-          height: double.infinity,
-          memCacheWidth: memCacheWidth,
-          fadeInDuration: const Duration(milliseconds: 150),
-          placeholder: (_, _) => _emoji(),
-          errorWidget: (_, _, _) => _emoji(),
-        ),
+        child: src.startsWith('/') || src.startsWith('http')
+            ? CachedNetworkImage(
+                imageUrl: ApiEndpoints.mediaUrl(src),
+                fit: BoxFit.contain,
+                memCacheWidth: memCacheWidth,
+                fadeInDuration: const Duration(milliseconds: 150),
+                placeholder: (_, _) => _emoji(),
+                errorWidget: (_, _, _) => source(index + 1),
+              )
+            : Image.asset(
+                src,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => source(index + 1),
+              ),
       );
     }
-    if (product.images.isEmpty) return _emoji();
-    final src = product.images.first;
-    if (src.startsWith('/') || src.startsWith('http')) {
-      return Container(
-        color: Colors.white,
-        alignment: Alignment.center,
-        child: CachedNetworkImage(
-          imageUrl: ApiEndpoints.mediaUrl(src),
-          fit: BoxFit.contain,
-          memCacheWidth: memCacheWidth,
-          fadeInDuration: const Duration(milliseconds: 150),
-          placeholder: (_, _) => _emoji(),
-          errorWidget: (_, _, _) => _emoji(),
-        ),
-      );
-    }
-    return Container(
-      color: Colors.white,
-      alignment: Alignment.center,
-      child: Image.asset(src, fit: BoxFit.contain),
+
+    return Semantics(
+      image: true,
+      label: product.name,
+      child: ExcludeSemantics(child: source(0)),
     );
   }
 }

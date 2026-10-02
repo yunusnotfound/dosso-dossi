@@ -10,7 +10,7 @@ interface Item {
 
 /// Dışa aktarma menüsü. İndirme yetkili fetch ile yapılır — düz bağlantı
 /// Authorization başlığı taşıyamadığı için 401 alırdı.
-export function DownloadMenu({ items }: { items: Item[] }) {
+export function DownloadMenu({ items, disabled = false }: { items: Item[]; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -42,11 +42,12 @@ export function DownloadMenu({ items }: { items: Item[] }) {
   return (
     <div className="relative" ref={ref}>
       <button
+        disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         className="inline-flex items-center gap-2 rounded-[--radius-pill] bg-surface px-5 py-2.5 text-sm font-semibold text-ink ring-1 ring-line hover:bg-surface-sunken"
       >
         Dışa aktar
-        <span className="text-xs text-ink-muted">▾</span>
+        <span aria-hidden="true" className="text-xs text-ink-muted">▾</span>
       </button>
 
       {open ? (
@@ -55,7 +56,7 @@ export function DownloadMenu({ items }: { items: Item[] }) {
             <button
               key={item.path}
               onClick={() => void run(item)}
-              disabled={busy !== null}
+              disabled={disabled || busy !== null}
               className="flex w-full flex-col items-start gap-0.5 border-b border-line px-4 py-3 text-left last:border-0 hover:bg-surface-tint disabled:opacity-50"
             >
               <span className="text-sm font-semibold text-ink">

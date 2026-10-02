@@ -4,7 +4,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { Button, Card } from '../../components/ui';
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, notice } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -64,6 +64,7 @@ export function LoginPage() {
               />
             </label>
 
+            {notice ? <p role="status" className="text-sm text-ink-muted">{notice}</p> : null}
             {error ? (
               <p
                 role="alert"

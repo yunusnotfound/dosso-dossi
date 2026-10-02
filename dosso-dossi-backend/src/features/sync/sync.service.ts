@@ -17,7 +17,7 @@ export type SyncRevisions = Record<SyncDomain, string>;
 const sources: Record<SyncDomain, readonly string[]> = {
   menu: ['Product', 'Category', 'ProductOption', 'BranchProduct'],
   branches: ['Branch', 'BranchProduct'],
-  campaigns: ['Campaign', 'PromoCode', 'Setting'],
+  campaigns: ['Campaign', 'CampaignStory', 'PromoCode', 'Setting'],
   loyalty: ['LoyaltyAccount', 'Setting', 'Order:order.cancel'],
   wallet: ['Wallet', 'PosCharge', 'Order:order.cancel'],
   orders: ['Order'],

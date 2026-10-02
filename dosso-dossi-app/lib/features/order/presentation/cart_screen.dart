@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../auth/presentation/guest_gate.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/network/api_exception.dart';
+import '../application/menu_providers.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/error_feedback.dart';
@@ -15,7 +17,6 @@ import '../../wallet/application/wallet_providers.dart';
 import '../application/cart_controller.dart';
 import '../application/order_providers.dart';
 import '../domain/cart.dart';
-import '../domain/product_options.dart';
 import 'order_screen.dart' show showBranchPicker;
 import 'widgets/option_selector.dart';
 
@@ -54,9 +55,17 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     // Konuk ödeme yapamaz: giriş istemi açılır.
     if (blockedForGuest(context, ref, action: 'Sipariş vermek')) return;
     final branch = ref.read(activeBranchProvider).value;
-    if (branch == null) return;
+    if (branch == null || !branch.isOpen) {
+      showApiError(
+        context,
+        const ApiException(
+          code: 'BRANCH_UNAVAILABLE',
+          message: 'Sipariş için açık bir şube seç.',
+        ),
+      );
+      return;
+    }
     final pickupLabel = _slots(branch.prepMinutes)[_slotIndex];
-    final displayedTotal = ref.read(cartProvider).total;
 
     setState(() => _paying = true);
     try {
@@ -75,16 +84,6 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         );
         return;
       }
-      // Sunucu tutarı yeniden hesaplar; ekrandakinden saparsa kullanıcıyı bilgilendir
-      if ((record.total - displayedTotal).abs() > 0.01) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Güncel tutar: ${formatTl(record.total)} olarak alındı',
-            ),
-          ),
-        );
-      }
       context.go(Routes.orderSuccess);
     } catch (e) {
       if (mounted) showApiError(context, e);
@@ -98,6 +97,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final cart = ref.watch(cartProvider);
     final branch = ref.watch(activeBranchProvider);
     final wallet = ref.watch(walletProvider);
+    final menu = ref.watch(menuProductsProvider);
+    final options = ref.watch(menuOptionsProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text('Sepet (${cart.count})')),
@@ -124,6 +125,18 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     child: ListView(
                       padding: const EdgeInsets.all(AppSpacing.page),
                       children: [
+                        if (menu.hasError || options.hasError) ...[
+                          const Text(
+                            'Güncel fiyatlar yüklenemedi. Ödemeden önce tekrar dene.',
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              ref.invalidate(menuProductsProvider);
+                              ref.invalidate(menuOptionsProvider);
+                            },
+                            child: const Text('Fiyatları yenile'),
+                          ),
+                        ],
                         if (cart.catalogNotice != null)
                           Padding(
                             padding: const EdgeInsets.only(
@@ -138,7 +151,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           skipError: true,
                           skipLoadingOnReload: true,
                           loading: () => const SizedBox.shrink(),
-                          error: (e, _) => const SizedBox.shrink(),
+                          error: (e, _) => Text(
+                            'Şube yüklenemedi veya sipariş alınabilen şube yok.',
+                            style: AppTypography.bodySecondary,
+                          ),
                           data: (b) => _BranchCard(
                             name: b.name,
                             address: b.address,
@@ -216,7 +232,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         const SizedBox(height: AppSpacing.lg),
                         wallet.when(
                           loading: () => const SizedBox.shrink(),
-                          error: (e, _) => const SizedBox.shrink(),
+                          error: (e, _) => Text(
+                            'Şube yüklenemedi veya sipariş alınabilen şube yok.',
+                            style: AppTypography.bodySecondary,
+                          ),
                           data: (w) => Container(
                             padding: const EdgeInsets.all(AppSpacing.lg),
                             decoration: BoxDecoration(
@@ -282,7 +301,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       AppSpacing.md,
                     ),
                     child: FilledButton(
-                      onPressed: _paying ? null : _pay,
+                      onPressed:
+                          _paying ||
+                              !branch.hasValue ||
+                              branch.value?.isOpen != true ||
+                              menu.isLoading ||
+                              menu.hasError ||
+                              options.isLoading ||
+                              options.hasError
+                          ? null
+                          : _pay,
                       child: _paying
                           ? const SizedBox(
                               width: 24,
@@ -308,8 +336,20 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   void _editItem(int index, CartItem item) {
-    var milk = item.milk;
-    var shot = item.shot;
+    final options = ref.read(menuOptionsProvider).value;
+    if (options == null) {
+      showApiError(
+        context,
+        const ApiException(
+          code: 'OPTIONS_UNAVAILABLE',
+          message: 'Seçenekler yüklenemedi. Tekrar dene.',
+        ),
+      );
+      ref.invalidate(menuOptionsProvider);
+      return;
+    }
+    var milk = options.resolveMilk(item.milk);
+    var shot = options.resolveShot(item.shot);
 
     showModalBottomSheet<void>(
       context: context,
@@ -335,14 +375,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 OptionSelector(
                   label: 'Süt',
-                  options: ProductOptions.milks,
+                  options: options.milks,
                   selected: milk,
                   onChanged: (o) => setSheetState(() => milk = o),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 OptionSelector(
                   label: 'Shot',
-                  options: ProductOptions.shots,
+                  options: options.shots,
                   selected: shot,
                   onChanged: (o) => setSheetState(() => shot = o),
                 ),

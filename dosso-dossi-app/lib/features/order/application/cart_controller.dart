@@ -1,7 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_config.dart';
+import '../../../core/network/runtime_mode.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/session_scope.dart';
 import '../../branches/domain/branch.dart';
 import '../../campaigns/data/campaign_repository.dart';
 import '../../rewards/application/loyalty_providers.dart';
@@ -10,6 +11,7 @@ import '../data/order_repository.dart';
 import '../domain/cart.dart';
 import '../domain/order_record.dart';
 import '../domain/menu.dart';
+import '../domain/product_options.dart';
 import 'menu_providers.dart';
 import 'order_providers.dart';
 
@@ -18,8 +20,24 @@ final cartProvider = NotifierProvider<CartController, CartState>(
 );
 
 class CartController extends Notifier<CartState> {
+  Future<OrderRecord?>? _checkoutPending;
+
   @override
   CartState build() {
+    _checkoutPending = null;
+    ref.listen(selectedBranchProvider, (_, next) {
+      if (state.quotedTotal != null) state = state.copyWith();
+    });
+    ref.listen(loyaltyStatusProvider, (_, next) {
+      if (next.hasValue &&
+          (next.value?.freeDrinks ?? 0) < 1 &&
+          state.useFreeDrink) {
+        state = state.copyWith(useFreeDrink: false);
+      }
+    });
+    ref.listen(menuOptionsProvider, (_, next) {
+      if (next.hasValue && !next.hasError) _reconcileOptions(next.requireValue);
+    });
     ref.listen(menuProductsProvider, (_, next) {
       if (!next.isLoading && !next.hasError && next.hasValue) {
         _reconcileProducts(next.requireValue);
@@ -59,13 +77,39 @@ class CartController extends Notifier<CartState> {
     );
   }
 
+  void _reconcileOptions(MenuOptions options) {
+    var changed = false;
+    final items = state.items.map((item) {
+      if (!item.product.hasOptions) return item;
+      final milk = options.resolveMilk(item.milk);
+      final shot = options.resolveShot(item.shot);
+      changed |=
+          milk.name != item.milk.name ||
+          milk.priceDelta != item.milk.priceDelta ||
+          shot.name != item.shot.name ||
+          shot.priceDelta != item.shot.priceDelta;
+      return item.copyWith(milk: milk, shot: shot);
+    }).toList();
+    if (changed) {
+      state = state.copyWith(
+        items: items,
+        catalogNotice:
+            'Seçenekler ve fiyatlar güncellendi. Ödemeden önce kontrol et.',
+      );
+    }
+  }
+
   Future<void> refreshPromo() async {
+    final scope = ref.read(sessionScopeProvider);
+    final epoch = scope.revision;
     final code = state.promoCode;
     if (code == null) return;
     final result = await ref
         .read(campaignRepositoryProvider)
         .validateCode(code);
-    if (!ref.mounted || state.promoCode != code) return;
+    if (!ref.mounted || scope.revision != epoch || state.promoCode != code) {
+      return;
+    }
     state = result.valid
         ? state.copyWith(discountRate: result.discountRate)
         : state.copyWith(clearPromo: true);
@@ -98,11 +142,16 @@ class CartController extends Notifier<CartState> {
   /// Kodu doğrular (kural sunucuda / mock'ta sabit liste);
   /// geçerliyse uygular ve true döner.
   Future<bool> applyPromo(String code) async {
+    final epoch = ref.read(sessionScopeProvider).revision;
     final normalized = code.trim().toUpperCase();
     final result = await ref
         .read(campaignRepositoryProvider)
         .validateCode(normalized);
-    if (!result.valid) return false;
+    if (!ref.mounted ||
+        ref.read(sessionScopeProvider).revision != epoch ||
+        !result.valid) {
+      return false;
+    }
     state = state.copyWith(
       promoCode: normalized,
       discountRate: result.discountRate,
@@ -123,11 +172,32 @@ class CartController extends Notifier<CartState> {
   Future<OrderRecord?> checkout({
     required Branch branch,
     required String pickupLabel,
-  }) async {
-    final cart = state;
-    if (cart.items.isEmpty) return null;
+  }) {
+    if (_checkoutPending != null) return _checkoutPending!;
+    final future = _checkout(branch: branch, pickupLabel: pickupLabel);
+    _checkoutPending = future;
+    return future.whenComplete(() {
+      if (identical(_checkoutPending, future)) _checkoutPending = null;
+    });
+  }
 
-    if (AppConfig.useMocks) {
+  Future<OrderRecord?> _checkout({
+    required Branch branch,
+    required String pickupLabel,
+  }) async {
+    final scope = ref.read(sessionScopeProvider);
+    final epoch = scope.revision;
+    final cart = state;
+    final selectedBranchId = ref.read(selectedBranchProvider)?.id;
+    if (cart.items.isEmpty) return null;
+    if (!branch.isOpen) {
+      throw const ApiException(
+        code: 'BRANCH_CLOSED',
+        message: 'Bu şube şu anda kapalı.',
+      );
+    }
+
+    if (!ref.read(apiModeProvider)) {
       return _checkoutMock(cart, branch: branch, pickupLabel: pickupLabel);
     }
 
@@ -135,12 +205,51 @@ class CartController extends Notifier<CartState> {
       final record = await ref
           .read(orderRepositoryProvider)
           .placeOrder(branch: branch, pickupLabel: pickupLabel, cart: cart);
+      if (!ref.mounted || scope.revision != epoch) {
+        throw const ApiException(
+          code: 'SESSION_CHANGED',
+          message: 'Oturum değişti. Sipariş geçmişini kontrol et.',
+        );
+      }
       ref.read(ordersProvider.notifier).add(record);
       ref.invalidate(walletProvider);
       ref.invalidate(loyaltyStatusProvider);
       state = const CartState();
       return record;
     } on ApiException catch (e) {
+      if (e.code == 'PRICE_CHANGED' && ref.mounted && scope.revision == epoch) {
+        try {
+          await Future.wait([
+            ref.refresh(menuProductsProvider.future),
+            ref.refresh(menuOptionsProvider.future),
+            refreshPromo(),
+          ]);
+        } catch (_) {
+          /* Preserve the authoritative price-change result. */
+        }
+        if (!ref.mounted || scope.revision != epoch) rethrow;
+        final total = e.details?['total'];
+        final sameItems =
+            state.items.length == cart.items.length &&
+            state.items.indexed.every(
+              (entry) =>
+                  entry.$2.mergeKey == cart.items[entry.$1].mergeKey &&
+                  entry.$2.quantity == cart.items[entry.$1].quantity,
+            );
+        if (total is num &&
+            total.isFinite &&
+            total >= 0 &&
+            sameItems &&
+            ref.read(selectedBranchProvider)?.id == selectedBranchId &&
+            state.promoCode == cart.promoCode &&
+            state.useFreeDrink == cart.useFreeDrink) {
+          state = state.copyWith(
+            quotedTotal: total.toDouble(),
+            catalogNotice:
+                'Fiyat güncellendi. Yeni toplamı kontrol edip tekrar onayla; ödeme alınmadı.',
+          );
+        }
+      }
       if (e.code == 'INSUFFICIENT_BALANCE') return null;
       rethrow;
     }
@@ -151,7 +260,10 @@ class CartController extends Notifier<CartState> {
     required Branch branch,
     required String pickupLabel,
   }) async {
+    final scope = ref.read(sessionScopeProvider);
+    final epoch = scope.revision;
     final paid = await ref.read(walletProvider.notifier).pay(cart.total);
+    if (!ref.mounted || scope.revision != epoch) return null;
     if (!paid) return null;
 
     // İkram kullanıldıysa hakkı düş ve geçmişe işle.

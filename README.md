@@ -27,10 +27,13 @@ npm install
 npm run prisma:migrate           # migration + client üretimi
 npm run prisma:seed              # menü, şubeler, kampanyalar, promo kodlar
 npm run dev                      # http://localhost:3000
-npm test                         # vitest + supertest (dosso_dossi_test DB)
+TEST_DATABASE_URL=postgresql://dosso:dosso@localhost:5433/dosso_dossi_test npm test
+# Yalnız ayrı test DB: fixture tabloları sıfırlanır. Ayrı container için aşağıdaki rehber.
 ```
 
-Geliştirme modunda OTP kodu konsola yazılır; `111111` her zaman geçerlidir.
+Geliştirme SMS adaptörü kodu konsola yazar. `111111` yalnız `OTP_DEV_MODE=true` iken geçerlidir. Backend ve veritabanı bu aşamada bilinçli olarak local çalışır.
+
+Var olan verileri koruyarak kurulum güncellemek için `npx prisma migrate deploy && npx prisma generate` kullanın. `npm run build && npm start` derlenmiş sunucuyu başlatır.
 
 ### Yönetim paneli
 
@@ -72,3 +75,5 @@ flutter build ios --dart-define-from-file=dart_defines.json
 - [docs/API_CONTRACT.md](docs/API_CONTRACT.md) — REST API sözleşmesi
 - [docs/KERZZ_POS_ENTEGRASYON.md](docs/KERZZ_POS_ENTEGRASYON.md) — POS entegrasyon planı
 - [docs/ROADMAP.md](docs/ROADMAP.md) — yol haritası
+
+- [docs/RELIABILITY_WORK.md](docs/RELIABILITY_WORK.md) — bağımsız düzeltmeler, test izolasyonu, veri geçişi ve bakım kararları

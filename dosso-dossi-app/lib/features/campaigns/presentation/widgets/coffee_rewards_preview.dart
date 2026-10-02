@@ -1,26 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../application/public_config.dart';
 
-import '../../../../core/constants/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/brand_logo.dart';
 import '../../../../core/widgets/coffee_bean_icon.dart';
 import 'campaign_progress_card.dart';
+import 'campaign_portrait_poster.dart';
 
 /// Yükle Kazan ile aynı krem zemin ve süslü bardak görselini kullanan vitrin.
-class CoffeeRewardsPreview extends StatelessWidget {
+class CoffeeRewardsPreview extends ConsumerWidget {
   const CoffeeRewardsPreview({
     super.key,
     this.showProgress = false,
     this.compact = false,
+    this.fillHeight = false,
   });
 
   final bool showProgress;
   final bool compact;
+  final bool fillHeight;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (fillHeight) {
+      return CampaignPortraitPoster(
+        kicker: 'KAHVE İÇTİKÇE KAHVE KAZAN',
+        title: '${ref.watch(currentStampTargetProvider)} damga,\n1 ikram.',
+        description: 'Sevdiğin kahve, bir sonraki hediyen.',
+        footer: showProgress
+            ? const CampaignProgressCard(interactive: false, compact: true)
+            : DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceTint,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    'Her kahveyle hediyene yaklaş',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.badge.copyWith(
+                      color: AppColors.coffeeDark,
+                    ),
+                  ),
+                ),
+              ),
+      );
+    }
     return ColoredBox(
       color: AppColors.campaignBackground,
       child: Padding(
@@ -68,7 +97,7 @@ class CoffeeRewardsPreview extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${AppConfig.stampsPerReward} damga,',
+                        '${ref.watch(currentStampTargetProvider)} damga,',
                         style: AppTypography.displayLarge.copyWith(
                           fontSize: 34,
                           color: AppColors.primary,

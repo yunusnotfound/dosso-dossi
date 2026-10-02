@@ -8,12 +8,14 @@ import { requestLogger } from './middleware/request-logger.js';
 import { requireAuth } from './middleware/auth.js';
 import { authRouter } from './features/auth/auth.routes.js';
 import { branchesRouter } from './features/branches/branches.routes.js';
+import { storiesRouter } from './features/campaign-stories/stories.routes.js';
 import { campaignsRouter } from './features/campaigns/campaigns.routes.js';
 import { giftsRouter } from './features/gifts/gifts.routes.js';
 import { loyaltyRouter } from './features/loyalty/loyalty.routes.js';
 import { meRouter } from './features/me/me.routes.js';
 import { menuRouter } from './features/menu/menu.routes.js';
 import { ordersRouter } from './features/orders/orders.routes.js';
+import { publicSettings } from './features/settings/settings.service.js';
 import { syncRouter } from './features/sync/sync.routes.js';
 import { posRouter } from './features/pos/pos.routes.js';
 import { walletRouter } from './features/wallet/wallet.routes.js';
@@ -73,8 +75,13 @@ export function createApp(): express.Express {
   app.use('/auth', authRouter);
   app.use('/menu', menuRouter);
   app.use('/branches', branchesRouter);
+  app.use('/campaign-stories', storiesRouter);
   app.use('/campaigns', campaignsRouter); // validate-code kendi içinde auth'lu
   app.use('/sync', syncRouter);
+  app.get('/config/public', async (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    try { res.json(await publicSettings()); } catch (err) { next(err); }
+  });
   app.use('/webhooks/kerzz', posAuth('POS_WEBHOOK_SECRET'), kerzzWebhooksRouter);
   app.use(
     '/webhooks/payment',

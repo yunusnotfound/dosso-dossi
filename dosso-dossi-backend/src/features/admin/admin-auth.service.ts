@@ -51,15 +51,16 @@ export async function login(
   }
 
   const refreshToken = await prisma.$transaction(async (tx) => {
-    await tx.adminUser.update({
-      where: { id: admin.id },
+    const accepted = await tx.adminUser.updateMany({
+      where: { id: admin.id, passwordHash: admin.passwordHash, isActive: true, tokenVersion: admin.tokenVersion },
       data: { lastLoginAt: new Date() },
     });
+    if (!accepted.count) throw AppError.unauthorized('Hesap bilgileri değişti, yeniden giriş yapın');
     return issueRefreshToken(tx, admin.id, deviceInfo);
   });
 
   return {
-    token: signAdminToken(admin.id),
+    token: signAdminToken(admin.id, admin.tokenVersion),
     refreshToken,
     admin: {
       id: admin.id,
@@ -102,10 +103,7 @@ export async function rotate(
     logger.warn(
       `Admin refresh token reuse tespit edildi (admin ${existing.adminId}) — tüm oturumlar iptal ediliyor`,
     );
-    await prisma.adminRefreshToken.updateMany({
-      where: { adminId: existing.adminId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    await prisma.$transaction((tx) => revokeAllSessions(tx, existing.adminId));
     throw AppError.unauthorized();
   }
   if (existing.expiresAt < new Date()) throw AppError.unauthorized();
@@ -117,6 +115,9 @@ export async function rotate(
   if (!admin?.isActive) throw AppError.unauthorized('Hesap pasif');
 
   return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "AdminUser" WHERE id = ${existing.adminId} FOR UPDATE`;
+    const current = await tx.adminUser.findUnique({ where: { id: existing.adminId } });
+    if (!current?.isActive) throw AppError.unauthorized();
     const newRaw = await issueRefreshToken(tx, existing.adminId, existing.deviceInfo);
     // Guard'lı revoke: eşzamanlı iki rotasyondan yalnız biri geçer.
     const revoked = await tx.adminRefreshToken.updateMany({
@@ -128,7 +129,7 @@ export async function rotate(
       },
     });
     if (revoked.count === 0) throw AppError.unauthorized();
-    return { token: signAdminToken(existing.adminId), refreshToken: newRaw };
+    return { token: signAdminToken(existing.adminId, current.tokenVersion), refreshToken: newRaw };
   });
 }
 
@@ -144,6 +145,7 @@ export async function revokeAllSessions(
   tx: Prisma.TransactionClient,
   adminId: string,
 ): Promise<void> {
+  await tx.adminUser.update({ where: { id: adminId }, data: { tokenVersion: { increment: 1 } } });
   await tx.adminRefreshToken.updateMany({
     where: { adminId, revokedAt: null },
     data: { revokedAt: new Date() },
@@ -165,7 +167,11 @@ export async function changePassword(
 
   const passwordHash = await hashPassword(newPassword);
   await prisma.$transaction(async (tx) => {
-    await tx.adminUser.update({ where: { id: adminId }, data: { passwordHash } });
+    const updated = await tx.adminUser.updateMany({
+      where: { id: adminId, passwordHash: admin.passwordHash, tokenVersion: admin.tokenVersion, isActive: true },
+      data: { passwordHash },
+    });
+    if (!updated.count) throw AppError.unauthorized('Oturum veya şifre değişti; yeniden giriş yapın');
     await revokeAllSessions(tx, adminId);
   });
 }
