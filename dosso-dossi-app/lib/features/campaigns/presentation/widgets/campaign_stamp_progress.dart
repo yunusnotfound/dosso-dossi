@@ -37,9 +37,14 @@ class CampaignProgressHeading extends StatelessWidget {
 }
 
 class CampaignStampProgress extends StatelessWidget {
-  const CampaignStampProgress({super.key, required this.status});
+  const CampaignStampProgress({
+    super.key,
+    required this.status,
+    this.compact = false,
+  });
 
   final LoyaltyStatus status;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -72,35 +77,40 @@ class CampaignStampProgress extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.md),
+        SizedBox(height: compact ? AppSpacing.sm : AppSpacing.md),
         ExcludeSemantics(child: CampaignStampTrack(status: status)),
-        const SizedBox(height: AppSpacing.sm),
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.sm,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceTint.withValues(alpha: 0.55),
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.card_giftcard_rounded,
-                size: 27,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(
-                  '${status.target} kahvede 1 ikram kahve seni bekliyor!',
-                  style: AppTypography.body.copyWith(fontSize: 14, height: 1.3),
+        if (!compact) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceTint.withValues(alpha: 0.55),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.card_giftcard_rounded,
+                  size: 27,
+                  color: AppColors.primary,
                 ),
-              ),
-            ],
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    '${status.target} kahvede 1 ikram kahve seni bekliyor!',
+                    style: AppTypography.body.copyWith(
+                      fontSize: 14,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

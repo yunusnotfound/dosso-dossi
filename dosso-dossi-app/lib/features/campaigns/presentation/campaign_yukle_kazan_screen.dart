@@ -9,12 +9,11 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/brand_logo.dart';
 import '../../../routing/app_router.dart';
 import '../../auth/presentation/guest_gate.dart';
-import 'widgets/campaign_progress_card.dart';
 import 'widgets/campaign_wallet_card.dart';
 import 'widgets/load_rewards_hero.dart';
 import 'widgets/load_rewards_offer.dart';
 
-/// Ana sayfadaki Yükle-Kazan kutusunun canlı cüzdan ve damga görünümü.
+/// İlk yükleme teklifini ve hesaptaki canlı cüzdan bilgisini gösterir.
 class CampaignYukleKazanScreen extends ConsumerWidget {
   const CampaignYukleKazanScreen({super.key});
 
@@ -84,8 +83,6 @@ class CampaignYukleKazanScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 const LoadRewardsHero(),
-                const SizedBox(height: AppSpacing.md),
-                const CampaignProgressCard(),
                 const SizedBox(height: AppSpacing.md),
                 CampaignWalletCard(
                   onTopUp: () => openWallet(topUp: true),

@@ -8,11 +8,12 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../routing/app_router.dart';
 import '../../../campaigns/application/campaign_providers.dart';
 import '../../../campaigns/domain/campaign.dart';
+import '../../../campaigns/presentation/widgets/coffee_rewards_preview.dart';
 import 'load_rewards_campaign_card.dart';
 
 /// Afiş kartları 4:5 dikey oranda; carousel yüksekliği buna göre seçildi ki
 /// afiş kırpılmadan bütün olarak görünsün.
-const double _carouselHeight = 230;
+const double _carouselHeight = 300;
 const double _afisCardWidth = _carouselHeight * 0.8;
 
 /// "Sana Özel" yatay kampanya kartları.
@@ -27,7 +28,7 @@ class CampaignCarousel extends ConsumerWidget {
       skipError: true,
       skipLoadingOnReload: true,
       loading: () => const SizedBox(
-        height: 180,
+        height: _carouselHeight,
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => const SizedBox.shrink(),
@@ -39,17 +40,9 @@ class CampaignCarousel extends ConsumerWidget {
           separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
           itemBuilder: (context, index) {
             final campaign = items[index];
-            // 5+1 kampanyası: kartın kendisi afiş; dokununca kampanya
-            // sayfası açılır.
+            // Kampanya listesindeki yeni krem tasarımla aynı içerik.
             if (campaign.id == 'kahve-ictikce') {
-              return const _AfisCard(
-                assetPath: 'assets/images/kahve_ictikce_afis.jpg',
-                route: Routes.campaignKahve,
-                label: 'İçtikçe kazan kampanyası: 5 al, 1 hediye',
-                // Afiş 51x117 dikey: kartta üst blok (başlık + "5 kahve
-                // sizden / 1 kahve bizden") görünsün.
-                alignment: Alignment.topCenter,
-              );
+              return const _CoffeeRewardsCard();
             }
             // Hediye kutusundan açılan yeni ekranın aynı görsel ve metinleri.
             if (campaign.id == 'yukle-kazan') {
@@ -66,41 +59,35 @@ class CampaignCarousel extends ConsumerWidget {
   }
 }
 
-/// Arka planı kampanya afişinin kendisi olan kart.
-/// Üzerine hiçbir metin basılmaz; afişin kendi tipografisi görünür.
-class _AfisCard extends StatelessWidget {
-  const _AfisCard({
-    required this.assetPath,
-    required this.route,
-    required this.label,
-    this.alignment = Alignment.center,
-  });
-
-  /// Afiş kart oranından uzunsa hangi kısmının görüneceği (uzun dikey
-  /// afişlerde başlığın kalması için üstten hizalanır).
-  final Alignment alignment;
-
-  final String assetPath;
-  final String route;
-  final String label;
+/// Yeni kahve kampanyası tasarımını kırpmadan küçük karta sığdırır.
+class _CoffeeRewardsCard extends StatelessWidget {
+  const _CoffeeRewardsCard();
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: label,
-      child: GestureDetector(
-        onTap: () => context.push(route),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+      label: 'Kahve İçtikçe Kahve Kazan kampanyası',
+      child: Material(
+        color: AppColors.campaignBackground,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => context.push(Routes.campaignKahve),
           child: SizedBox(
             width: _afisCardWidth,
             height: _carouselHeight,
-            // Afiş 4:5, kart da 4:5 — cover kırpma yapmadan tam oturur.
-            child: Image.asset(
-              assetPath,
-              fit: BoxFit.cover,
-              alignment: alignment,
+            child: const ExcludeSemantics(
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: SizedBox(
+                  width: 360,
+                  child: CoffeeRewardsPreview(
+                    showProgress: true,
+                    compact: true,
+                  ),
+                ),
+              ),
             ),
           ),
         ),

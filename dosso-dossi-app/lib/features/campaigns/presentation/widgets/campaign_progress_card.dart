@@ -11,12 +11,21 @@ import 'campaign_stamp_progress.dart';
 
 /// Kampanya sayfasında hesaptaki gerçek kahve damgalarını gösterir.
 class CampaignProgressCard extends ConsumerWidget {
-  const CampaignProgressCard({super.key});
+  const CampaignProgressCard({
+    super.key,
+    this.interactive = true,
+    this.compact = false,
+  });
+
+  /// Önizleme kartının tamamı ayrıntıyı açar; içinde ikinci bir düğme olmaz.
+  final bool interactive;
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (ref.watch(guestModeProvider)) {
       return _CardSurface(
+        compact: compact,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -26,16 +35,18 @@ class CampaignProgressCard extends ConsumerWidget {
               'Kahve damgalarını ve ikramlarını görmek için giriş yap.',
               style: AppTypography.bodySecondary,
             ),
-            const SizedBox(height: AppSpacing.sm),
-            TextButton.icon(
-              onPressed: () => showGuestSignInSheet(
-                context,
-                ref,
-                action: 'Kahve ilerlemeni görmek',
+            if (interactive) ...[
+              const SizedBox(height: AppSpacing.sm),
+              TextButton.icon(
+                onPressed: () => showGuestSignInSheet(
+                  context,
+                  ref,
+                  action: 'Kahve ilerlemeni görmek',
+                ),
+                icon: const Icon(Icons.login_rounded, size: 18),
+                label: const Text('Giriş yap / Üye ol'),
               ),
-              icon: const Icon(Icons.login_rounded, size: 18),
-              label: const Text('Giriş yap / Üye ol'),
-            ),
+            ],
           ],
         ),
       );
@@ -43,8 +54,10 @@ class CampaignProgressCard extends ConsumerWidget {
 
     final loyalty = ref.watch(loyaltyStatusProvider);
     return _CardSurface(
+      compact: compact,
       child: loyalty.when(
-        data: (status) => CampaignStampProgress(status: status),
+        data: (status) =>
+            CampaignStampProgress(status: status, compact: compact),
         loading: () => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -78,12 +91,14 @@ class CampaignProgressCard extends ConsumerWidget {
               'Kahve damgaların şu anda yüklenemedi.',
               style: AppTypography.bodySecondary,
             ),
-            const SizedBox(height: AppSpacing.xs),
-            TextButton.icon(
-              onPressed: () => ref.invalidate(loyaltyStatusProvider),
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Tekrar dene'),
-            ),
+            if (interactive) ...[
+              const SizedBox(height: AppSpacing.xs),
+              TextButton.icon(
+                onPressed: () => ref.invalidate(loyaltyStatusProvider),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Tekrar dene'),
+              ),
+            ],
           ],
         ),
       ),
@@ -92,14 +107,15 @@ class CampaignProgressCard extends ConsumerWidget {
 }
 
 class _CardSurface extends StatelessWidget {
-  const _CardSurface({required this.child});
+  const _CardSurface({required this.child, this.compact = false});
 
   final Widget child;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: EdgeInsets.all(compact ? AppSpacing.md : AppSpacing.lg),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(28),
