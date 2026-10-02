@@ -1,155 +1,190 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../routing/app_router.dart';
+import '../../../core/widgets/scrollable_page_scaffold.dart';
 import '../application/campaign_providers.dart';
-import '../domain/campaign.dart';
+import 'widgets/campaign_discovery_card.dart';
 
-/// Kampanyanın afiş görseli ve dokununca açılacak sayfası.
-/// Ana sayfadaki "Sana Özel" şeridiyle aynı görseller kullanılır.
-typedef _Poster = ({String asset, String route});
-
-const _posters = <String, _Poster>{
-  'kahve-ictikce': (
-    asset: 'assets/images/kahve_ictikce_afis.jpg',
-    route: Routes.campaignKahve,
-  ),
-  'yukle-kazan': (
-    asset: 'assets/images/yukle_kazan_afis.jpg',
-    route: Routes.campaignYukleKazan,
-  ),
-};
-
-/// Kampanyalar sayfası: her kampanya kendi afişiyle listelenir.
-/// Ana sayfadaki "Tümü" bağlantısından üste açılır.
+/// API sırasını koruyan, marka renkleriyle hazırlanmış kampanya vitrini.
 class CampaignsScreen extends ConsumerWidget {
   const CampaignsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final campaigns = ref.watch(campaignsProvider);
-
-    return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.page),
-          children: [
-            Row(
-              children: [
-                BackButton(onPressed: () => context.pop()),
-                const SizedBox(width: AppSpacing.xs),
-                Text('Kampanyalar', style: AppTypography.displayLarge),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            campaigns.when(
-              skipError: true,
-              skipLoadingOnReload: true,
-              loading: () => const Padding(
-                padding: EdgeInsets.all(AppSpacing.xxl),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, _) => Text(
-                'Kampanyalar yüklenemedi',
-                style: AppTypography.bodySecondary,
-              ),
-              data: (list) => Column(
-                children: [
-                  for (final campaign in list) ...[
-                    if (_posters[campaign.id] case final poster?)
-                      _PosterCard(poster: poster, title: campaign.title)
-                    else
-                      _TextCampaignCard(campaign: campaign),
+    return ScrollablePageScaffold(
+      title: 'Kampanyalar',
+      children: [
+        const _CampaignIntro(),
+        const SizedBox(height: AppSpacing.xxxl),
+        campaigns.when(
+          skipError: true,
+          skipLoadingOnReload: true,
+          loading: () => const Padding(
+            padding: EdgeInsets.all(AppSpacing.xxxl),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, _) => _CampaignMessage(
+            title: 'Kampanyalara ulaşamadık',
+            message: 'Bağlantını kontrol edip yeniden deneyebilirsin.',
+            onRetry: () => ref.invalidate(campaignsProvider),
+          ),
+          data: (list) => list.isEmpty
+              ? const _CampaignMessage(
+                  title: 'Yeni fırsatlar yolda',
+                  message:
+                      'Kahve keyfine eşlik edecek kampanyalar burada olacak.',
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'KEŞFET & KAZAN',
+                            style: AppTypography.sectionLabel.copyWith(
+                              color: AppColors.coffeeDark,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: AppSpacing.xs,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                          ),
+                          child: Text(
+                            '${list.length} kampanya',
+                            style: AppTypography.badge.copyWith(fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: AppSpacing.lg),
+                    for (final campaign in list) ...[
+                      CampaignDiscoveryCard(campaign: campaign),
+                      const SizedBox(height: AppSpacing.xxl),
+                    ],
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.favorite_outline_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Flexible(
+                          child: Text(
+                            'Kahvenin yanında güzel şeyler var.',
+                            style: AppTypography.bodySecondary.copyWith(
+                              fontSize: 12,
+                              color: AppColors.coffeeDark,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
-                ],
-              ),
-            ),
-          ],
+                ),
         ),
-      ),
+      ],
     );
   }
 }
 
-/// Kampanya afişi: tam genişlikte, üzerine yazı basılmadan.
-/// Afişler 4:5 dikey olduğu için oran sabitlenir, görsel kırpılmaz.
-class _PosterCard extends StatelessWidget {
-  const _PosterCard({required this.poster, required this.title});
-
-  final _Poster poster;
-  final String title;
+class _CampaignIntro extends StatelessWidget {
+  const _CampaignIntro();
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: '$title kampanyası',
-      child: GestureDetector(
-        onTap: () => context.push(poster.route),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          child: AspectRatio(
-            aspectRatio: 4 / 5,
-            child: Image.asset(poster.asset, fit: BoxFit.cover),
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Kahve keyfin\nkatlansın.',
+                style: AppTypography.displayLarge.copyWith(
+                  fontSize: 34,
+                  color: AppColors.coffeeDark,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Fırsatları keşfet,\nkahvene hediyeler ekle.',
+                style: AppTypography.bodySecondary.copyWith(
+                  color: AppColors.coffeeDark,
+                  height: 1.5,
+                ),
+              ),
+            ],
           ),
         ),
-      ),
+        const SizedBox(width: AppSpacing.md),
+        Image.asset(
+          'assets/images/onboarding_hediye_kutusu.png',
+          width: 112,
+          height: 132,
+          fit: BoxFit.contain,
+          excludeFromSemantics: true,
+        ),
+      ],
     );
   }
 }
 
-/// Afişi olmayan kampanyalar için sade kart.
-class _TextCampaignCard extends StatelessWidget {
-  const _TextCampaignCard({required this.campaign});
-
-  final Campaign campaign;
+class _CampaignMessage extends StatelessWidget {
+  const _CampaignMessage({
+    required this.title,
+    required this.message,
+    this.onRetry,
+  });
+  final String title;
+  final String message;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       decoration: BoxDecoration(
+        color: AppColors.campaignBackground,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.coffeeDark, Color(0xFF4A3628)],
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xs,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.gold,
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-            ),
-            child: Text(
-              campaign.badge,
-              style: AppTypography.badge.copyWith(color: AppColors.onGold),
-            ),
+          const Icon(
+            Icons.local_offer_outlined,
+            color: AppColors.primary,
+            size: 32,
           ),
           const SizedBox(height: AppSpacing.md),
+          Text(title, style: AppTypography.title),
+          const SizedBox(height: AppSpacing.sm),
           Text(
-            campaign.title,
-            style: AppTypography.title.copyWith(color: AppColors.textOnDark),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            campaign.description,
+            message,
             style: AppTypography.bodySecondary.copyWith(
-              color: AppColors.textOnDarkMuted,
+              color: AppColors.coffeeDark,
             ),
           ),
+          if (onRetry != null) ...[
+            const SizedBox(height: AppSpacing.lg),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Tekrar dene'),
+            ),
+          ],
         ],
       ),
     );
