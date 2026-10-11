@@ -36,7 +36,9 @@ class OptionSelector extends StatelessWidget {
                 onTap: () => onChanged(option),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.sm,
+                  ),
                   decoration: BoxDecoration(
                     color: option.name == selected.name
                         ? AppColors.coffeeDark

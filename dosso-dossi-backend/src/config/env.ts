@@ -37,6 +37,9 @@ const envSchema = z
       .default('false')
       .transform((v) => v === 'true'),
     PORT: z.coerce.number().default(3000),
+    // Geliştirme API'si varsayılan olarak yalnız bu bilgisayardan erişilir.
+    // Cihaz testi/container deployment için HOST açıkça verilebilir.
+    HOST: z.string().trim().min(1).optional(),
     LOG_LEVEL: z.string().default('info'),
     OTP_DEV_MODE: z
       .string()
@@ -88,4 +91,8 @@ const envSchema = z
     }
   });
 
-export const env = envSchema.parse(process.env);
+const parsed = envSchema.parse(process.env);
+export const env = {
+  ...parsed,
+  HOST: parsed.HOST ?? (parsed.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1'),
+};

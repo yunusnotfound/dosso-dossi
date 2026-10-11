@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../application/public_config.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/constants/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/coffee_bean_icon.dart';
 
-class LoadRewardsOffer extends StatelessWidget {
+class LoadRewardsOffer extends ConsumerWidget {
   const LoadRewardsOffer({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rules = ref.watch(campaignRulesProvider);
     final amount = NumberFormat.decimalPattern(
       'tr_TR',
-    ).format(AppConfig.topUpBonusThreshold);
+    ).format(rules.topupThreshold);
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -40,7 +42,9 @@ class LoadRewardsOffer extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'İLK YÜKLEMEYE ÖZEL',
+                        rules.topupFirstOnly
+                            ? 'İLK YÜKLEMEYE ÖZEL'
+                            : 'YÜKLEMEYE ÖZEL',
                         style: AppTypography.badge.copyWith(
                           fontSize: 10,
                           letterSpacing: 1,
@@ -79,7 +83,7 @@ class LoadRewardsOffer extends StatelessWidget {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          '${AppConfig.topUpBonusDrinks} kahve',
+                          '${rules.topupBonusDrinks} kahve',
                           style: AppTypography.title.copyWith(
                             fontSize: 25,
                             color: AppColors.primary,

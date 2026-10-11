@@ -27,7 +27,8 @@ const _categoryEmojis = <String, String>{
 };
 
 class ApiMenuRepository implements MenuRepository {
-  ApiMenuRepository(this._dio);
+  ApiMenuRepository(this._dio, {this.branchId});
+  final String? branchId;
 
   final Dio _dio;
 
@@ -48,9 +49,13 @@ class ApiMenuRepository implements MenuRepository {
   @override
   Future<List<Product>> getProducts() {
     return apiCall(() async {
-      final res = await _dio.get<List<dynamic>>(ApiEndpoints.menuProducts);
+      final res = await _dio.get<List<dynamic>>(
+        ApiEndpoints.menuProducts,
+        queryParameters: {if (branchId != null) 'branchId': branchId},
+      );
       return [
-        for (final item in res.data!) _productFromJson(item as Map<String, dynamic>),
+        for (final item in res.data!)
+          _productFromJson(item as Map<String, dynamic>),
       ];
     });
   }

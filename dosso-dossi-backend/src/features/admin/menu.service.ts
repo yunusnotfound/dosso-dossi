@@ -5,6 +5,7 @@ import { dec, toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
 import { invalidateOptionCache } from '../menu/options.service.js';
 import { audit } from './audit.js';
+import { withAdminMutation } from '../../lib/admin-idempotency.js';
 
 // ── Kategoriler ─────────────────────────────────────────────────────
 
@@ -121,6 +122,7 @@ export async function listProducts(f: ProductFilters) {
       categoryName: p.category.name,
       description: p.description,
       imageUrl: p.imageUrl,
+      gridImageUrl: p.gridImageUrl,
       sizeMl: p.sizeMl,
       stampMultiplier: p.stampMultiplier,
       isNew: p.isNew,
@@ -208,6 +210,7 @@ export async function setProductActive(
 }
 
 export interface BulkPriceInput {
+  idempotencyKey: string;
   categoryId?: string;
   /// Yüzde zam (10 ⇒ %10) veya sabit tutar (₺). Biri verilir.
   percent?: number;
@@ -223,7 +226,9 @@ export async function bulkPrice(req: Request, input: BulkPriceInput) {
   if (input.percent === undefined && input.amount === undefined) {
     throw AppError.notFound('percent veya amount verilmeli');
   }
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => withAdminMutation(tx, req.admin.id, 'product.bulkPrice', input.idempotencyKey, input, async () => {
+    // Serialize relative updates, including different operator intents.
+    await tx.$queryRaw`SELECT id FROM "Product" ORDER BY id FOR UPDATE`;
     const products = await tx.product.findMany({
       where: input.categoryId ? { categoryId: input.categoryId } : {},
     });
@@ -252,7 +257,7 @@ export async function bulkPrice(req: Request, input: BulkPriceInput) {
       reason: input.reason,
     });
     return { updated: changes.length, changes };
-  });
+  }));
 }
 
 // ── Şube × ürün müsaitlik matrisi ───────────────────────────────────
@@ -295,10 +300,9 @@ export async function setAvailability(
     });
     const data = {
       isAvailable: input.isAvailable,
-      priceOverride:
-        input.priceOverride === null || input.priceOverride === undefined
-          ? null
-          : dec(input.priceOverride),
+      ...(input.priceOverride === undefined ? {} : {
+        priceOverride: input.priceOverride === null ? null : dec(input.priceOverride),
+      }),
     };
     const after = await tx.branchProduct.upsert({
       where: { branchId_productId: { branchId, productId } },
@@ -332,7 +336,7 @@ export async function saveOption(
   const saved = await prisma.$transaction(async (tx) => {
     const before = input.id
       ? await tx.productOption.findUnique({ where: { id: input.id } })
-      : null;
+      : await tx.productOption.findUnique({ where: { group_name: { group: input.group, name: input.name } } });
     const data = {
       group: input.group,
       name: input.name,
@@ -342,7 +346,7 @@ export async function saveOption(
     };
     const after = input.id
       ? await tx.productOption.update({ where: { id: input.id }, data })
-      : await tx.productOption.create({ data });
+      : await tx.productOption.upsert({ where: { group_name: { group: input.group, name: input.name } }, create: data, update: data });
     await audit(tx, req, {
       action: before ? 'option.update' : 'option.create',
       entity: 'ProductOption',

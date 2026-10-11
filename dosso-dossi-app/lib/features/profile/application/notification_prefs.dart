@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_config.dart';
+import '../../../core/network/runtime_mode.dart';
+import '../../../core/network/session_scope.dart';
 import '../../../core/storage/local_storage.dart';
 import '../data/notification_prefs_repository.dart';
 import '../domain/notification_prefs_model.dart';
@@ -11,13 +12,20 @@ export '../domain/notification_prefs_model.dart';
 /// senkronlanır. Gerçek push aboneliği Firebase entegrasyonunda bağlanacak.
 final notificationPrefsProvider =
     NotifierProvider<NotificationPrefsController, NotificationPrefs>(
-        NotificationPrefsController.new);
+      NotificationPrefsController.new,
+    );
 
 class NotificationPrefsController extends Notifier<NotificationPrefs> {
+  int _version = 0;
+  Future<void> _writes = Future.value();
+  NotificationPrefs? _confirmed;
   @override
   NotificationPrefs build() {
+    _version++;
+    _writes = Future.value();
+    _confirmed = null;
     final prefs = ref.watch(sharedPreferencesProvider);
-    if (!AppConfig.useMocks) {
+    if (ref.read(apiModeProvider)) {
       Future.microtask(_loadFromApi);
     }
     return NotificationPrefs(
@@ -28,30 +36,55 @@ class NotificationPrefsController extends Notifier<NotificationPrefs> {
   }
 
   Future<void> _loadFromApi() async {
+    if (!ref.mounted) return;
+    final version = _version;
+    final scope = ref.read(sessionScopeProvider);
+    final epoch = scope.revision;
     try {
-      final remote =
-          await ref.read(notificationPrefsRepositoryProvider).getPrefs();
+      final remote = await ref
+          .read(notificationPrefsRepositoryProvider)
+          .getPrefs();
+      if (!ref.mounted || epoch != scope.revision || version != _version) {
+        return;
+      }
+      _confirmed = remote;
       _cache(remote);
       state = remote;
     } catch (_) {
-      // Ağ hatasında yerel önbellek geçerli kalır.
+      /* Keep the last local choice; never overwrite a newer edit. */
     }
   }
 
   void update(NotificationPrefs next) {
-    final previous = state;
+    final version = ++_version;
+    final scope = ref.read(sessionScopeProvider);
+    final epoch = scope.revision;
+    _confirmed ??= state;
     _cache(next);
     state = next;
-    if (!AppConfig.useMocks) {
-      // Sunucuya arka planda yazılır; reddederse yerel değer geri alınır
-      // (sessiz kalıcı sapma olmaz, anahtar eski konumuna döner).
-      ref.read(notificationPrefsRepositoryProvider).savePrefs(next).catchError((
-        _,
-      ) {
-        _cache(previous);
-        state = previous;
-      });
+    if (!ref.read(apiModeProvider)) {
+      _confirmed = next;
+      return;
     }
+    final repository = ref.read(notificationPrefsRepositoryProvider);
+    _writes = _writes.then((_) async {
+      if (!ref.mounted || epoch != scope.revision) return;
+      try {
+        await repository.savePrefs(next);
+        if (!ref.mounted || epoch != scope.revision) return;
+        _confirmed = next;
+        if (version == _version) {
+          ref.read(notificationSaveErrorProvider.notifier).set(null);
+        }
+      } catch (error) {
+        if (!ref.mounted || epoch != scope.revision || version != _version) {
+          return;
+        }
+        state = _confirmed!;
+        _cache(state);
+        ref.read(notificationSaveErrorProvider.notifier).set(error);
+      }
+    });
   }
 
   void _cache(NotificationPrefs prefs) {
@@ -60,4 +93,15 @@ class NotificationPrefsController extends Notifier<NotificationPrefs> {
     store.setBool('notif_orders', prefs.orderStatus);
     store.setBool('notif_sms', prefs.sms);
   }
+}
+
+final notificationSaveErrorProvider =
+    NotifierProvider<NotificationSaveErrorController, Object?>(
+      NotificationSaveErrorController.new,
+    );
+
+class NotificationSaveErrorController extends Notifier<Object?> {
+  @override
+  Object? build() => null;
+  void set(Object? value) => state = value;
 }

@@ -1,0 +1,355 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-30T13:28:35.055Z",
+  "appUrl": "http://localhost:5173",
+  "script": "tooling/capture-admin.mjs",
+  "fixtureOnly": true,
+  "realBackendRequests": 0,
+  "serverWrites": 0,
+  "fixtureAccount": {
+    "id": "presentation-super-admin",
+    "email": "sunum@example.test",
+    "name": "Sunum Yöneticisi",
+    "role": "SUPER_ADMIN",
+    "branchId": null
+  },
+  "requiredVideoLabel": "Örnek verilerle gösterim",
+  "captures": [
+    {
+      "id": "admin_dashboard",
+      "route": "/",
+      "file": "screens/admin_dashboard.png",
+      "title": "Panel",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "captureOrigin": "Actual local React admin UI, unchanged; Playwright screenshot",
+      "dataOrigin": "Synthetic read-only route fixtures; public product metadata copied from repository seed",
+      "requiredVideoLabel": "Örnek verilerle gösterim",
+      "caveat": "Figures are synthetic, not company performance."
+    },
+    {
+      "id": "admin_orders",
+      "route": "/siparisler",
+      "file": "screens/admin_orders.png",
+      "title": "Siparişler",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "captureOrigin": "Actual local React admin UI, unchanged; Playwright screenshot",
+      "dataOrigin": "Synthetic read-only route fixtures; public product metadata copied from repository seed",
+      "requiredVideoLabel": "Örnek verilerle gösterim",
+      "caveat": "Example statuses, no actual preparation or POS delivery."
+    },
+    {
+      "id": "admin_menu",
+      "route": "/menu",
+      "file": "screens/admin_menu.png",
+      "title": "Menü",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "captureOrigin": "Actual local React admin UI, unchanged; Playwright screenshot",
+      "dataOrigin": "Synthetic read-only route fixtures; public product metadata copied from repository seed",
+      "requiredVideoLabel": "Örnek verilerle gösterim",
+      "caveat": ""
+    },
+    {
+      "id": "admin_branches",
+      "route": "/subeler",
+      "file": "screens/admin_branches.png",
+      "title": "Şubeler",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "captureOrigin": "Actual local React admin UI, unchanged; Playwright screenshot",
+      "dataOrigin": "Synthetic read-only route fixtures; public product metadata copied from repository seed",
+      "requiredVideoLabel": "Örnek verilerle gösterim",
+      "caveat": ""
+    },
+    {
+      "id": "admin_campaigns",
+      "route": "/kampanyalar",
+      "file": "screens/admin_campaigns.png",
+      "title": "Kampanyalar",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "captureOrigin": "Actual local React admin UI, unchanged; Playwright screenshot",
+      "dataOrigin": "Synthetic read-only route fixtures; public product metadata copied from repository seed",
+      "requiredVideoLabel": "Örnek verilerle gösterim",
+      "caveat": ""
+    },
+    {
+      "id": "admin_loyalty",
+      "route": "/kampanyalar",
+      "file": "screens/admin_loyalty.png",
+      "title": "Kampanyalar",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "captureOrigin": "Actual local React admin UI, unchanged; Playwright screenshot",
+      "dataOrigin": "Synthetic read-only route fixtures; public product metadata copied from repository seed",
+      "requiredVideoLabel": "Örnek verilerle gösterim",
+      "caveat": "Stamp-target setting is not connected end-to-end; embedded mobile campaign copy remains static."
+    },
+    {
+      "id": "admin_customers",
+      "route": "/musteriler",
+      "file": "screens/admin_customers.png",
+      "title": "Müşteriler",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "captureOrigin": "Actual local React admin UI, unchanged; Playwright screenshot",
+      "dataOrigin": "Synthetic read-only route fixtures; public product metadata copied from repository seed",
+      "requiredVideoLabel": "Örnek verilerle gösterim",
+      "caveat": ""
+    },
+    {
+      "id": "admin_customer_detail",
+      "route": "/musteriler",
+      "file": "screens/admin_customer_detail.png",
+      "title": "Müşteriler",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "captureOrigin": "Actual local React admin UI, unchanged; Playwright screenshot",
+      "dataOrigin": "Synthetic read-only route fixtures; public product metadata copied from repository seed",
+      "requiredVideoLabel": "Örnek verilerle gösterim",
+      "caveat": "Synthetic customer; no financial or account action clicked."
+    },
+    {
+      "id": "admin_finance",
+      "route": "/finans",
+      "file": "screens/admin_finance.png",
+      "title": "Finans",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "captureOrigin": "Actual local React admin UI, unchanged; Playwright screenshot",
+      "dataOrigin": "Synthetic read-only route fixtures; public product metadata copied from repository seed",
+      "requiredVideoLabel": "Örnek verilerle gösterim",
+      "caveat": ""
+    },
+    {
+      "id": "admin_payments",
+      "route": "/finans",
+      "file": "screens/admin_payments.png",
+      "title": "Finans",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "captureOrigin": "Actual local React admin UI, unchanged; Playwright screenshot",
+      "dataOrigin": "Synthetic read-only route fixtures; public product metadata copied from repository seed",
+      "requiredVideoLabel": "Örnek verilerle gösterim",
+      "caveat": "Dev payment examples; no bank charge."
+    },
+    {
+      "id": "admin_pos",
+      "route": "/pos",
+      "file": "screens/admin_pos.png",
+      "title": "POS İzleme",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "captureOrigin": "Actual local React admin UI, unchanged; Playwright screenshot",
+      "dataOrigin": "Synthetic read-only route fixtures; public product metadata copied from repository seed",
+      "requiredVideoLabel": "Örnek verilerle gösterim",
+      "caveat": "Simulated webhook event metadata; not proof of a live terminal connection."
+    },
+    {
+      "id": "admin_administration",
+      "route": "/yonetim",
+      "file": "screens/admin_administration.png",
+      "title": "Yönetim",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "captureOrigin": "Actual local React admin UI, unchanged; Playwright screenshot",
+      "dataOrigin": "Synthetic read-only route fixtures; public product metadata copied from repository seed",
+      "requiredVideoLabel": "Örnek verilerle gösterim",
+      "caveat": ""
+    }
+  ],
+  "fixtureRequests": [
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/orders"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/menu/categories"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/menu/products"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/branches"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/campaigns"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/campaigns"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/customers"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/customers"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/customers/sample-customer-1"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/finance/ledger"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/finance/ledger"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/finance/payments"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/pos/health"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/admins"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/branches"
+    }
+  ],
+  "blockedRequests": [],
+  "pageErrors": []
+}

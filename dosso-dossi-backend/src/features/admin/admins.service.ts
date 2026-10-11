@@ -5,6 +5,7 @@ import { AppError } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
 import { hashPassword, revokeAllSessions } from './admin-auth.service.js';
 import { audit } from './audit.js';
+import { TEMP_PASSWORD_TTL_MS } from './temporary-password.js';
 
 export async function listAdmins() {
   const rows = await prisma.adminUser.findMany({
@@ -19,6 +20,8 @@ export async function listAdmins() {
     branchId: a.branchId,
     branchName: a.branch?.name ?? null,
     isActive: a.isActive,
+    mustChangePassword: a.mustChangePassword,
+    tempPasswordExpiresAt: a.tempPasswordExpiresAt?.toISOString() ?? null,
     lastLoginAt: a.lastLoginAt?.toISOString() ?? null,
     createdAt: a.createdAt.toISOString(),
   }));
@@ -28,7 +31,7 @@ export async function listAdmins() {
 export async function createAdmin(
   req: Request,
   input: { email: string; name: string; role: AdminRole; branchId?: string | null },
-): Promise<{ id: string; tempPassword: string }> {
+): Promise<{ id: string; tempPassword: string; tempPasswordExpiresAt: string }> {
   const email = input.email.trim().toLowerCase();
   if (input.role === 'BRANCH_MANAGER' && !input.branchId) {
     throw AppError.notFound('Şube müdürü için şube seçilmeli');
@@ -38,6 +41,7 @@ export async function createAdmin(
 
   const tempPassword = randomBytes(12).toString('base64url');
   const passwordHash = await hashPassword(tempPassword);
+  const tempPasswordExpiresAt = new Date(Date.now() + TEMP_PASSWORD_TTL_MS);
 
   const created = await prisma.$transaction(async (tx) => {
     const admin = await tx.adminUser.create({
@@ -47,6 +51,8 @@ export async function createAdmin(
         role: input.role,
         branchId: input.role === 'BRANCH_MANAGER' ? input.branchId : null,
         passwordHash,
+        mustChangePassword: true,
+        tempPasswordExpiresAt,
       },
     });
     await audit(tx, req, {
@@ -58,7 +64,7 @@ export async function createAdmin(
     return admin;
   });
 
-  return { id: created.id, tempPassword };
+  return { id: created.id, tempPassword, tempPasswordExpiresAt: tempPasswordExpiresAt.toISOString() };
 }
 
 export async function updateAdmin(
@@ -67,6 +73,7 @@ export async function updateAdmin(
   input: { name?: string; role?: AdminRole; branchId?: string | null; isActive?: boolean },
 ) {
   return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(734682001)`;
     const before = await tx.adminUser.findUnique({ where: { id } });
     if (!before) throw AppError.notFound('Yönetici bulunamadı');
 
@@ -93,6 +100,7 @@ export async function updateAdmin(
     };
     // Şube yalnız BRANCH_MANAGER'da anlamlı; rol değişince temizlenir.
     if (role === 'BRANCH_MANAGER') {
+      if (!(input.branchId === undefined ? before.branchId : input.branchId)) throw AppError.forbidden('Şube müdürü için şube seçilmeli');
       if (input.branchId !== undefined) {
         data.branch = input.branchId
           ? { connect: { id: input.branchId } }
@@ -104,7 +112,7 @@ export async function updateAdmin(
 
     const after = await tx.adminUser.update({ where: { id }, data });
     // Yetki daraldıysa açık oturumlar da düşsün.
-    if (input.isActive === false || (input.role && input.role !== before.role)) {
+    if (input.isActive === false || (input.role && input.role !== before.role) || (input.branchId !== undefined && input.branchId !== before.branchId)) {
       await revokeAllSessions(tx, id);
     }
     await audit(tx, req, {
@@ -122,15 +130,16 @@ export async function updateAdmin(
 export async function resetPassword(
   req: Request,
   id: string,
-): Promise<{ tempPassword: string }> {
+): Promise<{ tempPassword: string; tempPasswordExpiresAt: string }> {
   const admin = await prisma.adminUser.findUnique({ where: { id } });
   if (!admin) throw AppError.notFound('Yönetici bulunamadı');
 
   const tempPassword = randomBytes(12).toString('base64url');
   const passwordHash = await hashPassword(tempPassword);
+  const tempPasswordExpiresAt = new Date(Date.now() + TEMP_PASSWORD_TTL_MS);
 
   await prisma.$transaction(async (tx) => {
-    await tx.adminUser.update({ where: { id }, data: { passwordHash } });
+    await tx.adminUser.update({ where: { id }, data: { passwordHash, mustChangePassword: true, tempPasswordExpiresAt } });
     await revokeAllSessions(tx, id);
     await audit(tx, req, {
       action: 'admin.resetPassword',
@@ -139,7 +148,7 @@ export async function resetPassword(
       reason: 'Şifre sıfırlandı',
     });
   });
-  return { tempPassword };
+  return { tempPassword, tempPasswordExpiresAt: tempPasswordExpiresAt.toISOString() };
 }
 
 /// Audit tarayıcısı: kim, ne, ne zaman.

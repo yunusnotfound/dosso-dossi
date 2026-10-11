@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { makeRateLimiter } from '../../middleware/rate-limit.js';
 import { validate } from '../../middleware/validate.js';
 import { placeOrderSchema } from './orders.schemas.js';
-import { getOrder, listOrders, placeOrder } from './orders.service.js';
+import { getOrder, listOrders, listOrderPage, placeOrder } from './orders.service.js';
+import { parseHistoryPage } from '../../lib/history-page.js';
 
 const orderLimiter = makeRateLimiter({ windowMs: 60_000, max: 10 });
 
@@ -18,7 +19,10 @@ ordersRouter.post('/', orderLimiter, validate(placeOrderSchema), async (req, res
 
 ordersRouter.get('/', async (req, res, next) => {
   try {
-    res.json(await listOrders(req.userId));
+    const page = parseHistoryPage(req.query);
+    res.json(req.query.paginated === 'true' || req.query.cursor !== undefined
+      ? await listOrderPage(req.userId, page)
+      : await listOrders(req.userId));
   } catch (err) {
     next(err);
   }

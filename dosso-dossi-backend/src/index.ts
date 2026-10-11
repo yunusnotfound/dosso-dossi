@@ -5,8 +5,8 @@ import { prisma } from './lib/prisma.js';
 import { startForwardSweep } from './features/orders/pos-client.js';
 
 const app = createApp();
-const server = app.listen(env.PORT, () => {
-  logger.info(`Dosso Dossi API dinliyor: http://localhost:${env.PORT}`);
+const server = app.listen(env.PORT, env.HOST, () => {
+  logger.info(`Dosso Dossi API dinliyor: http://${env.HOST}:${env.PORT}`);
 });
 
 startForwardSweep();

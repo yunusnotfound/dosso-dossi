@@ -1,5 +1,15 @@
 import type { Gift, Prisma } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
+import { lockUsers } from '../../lib/financial-locks.js';
+import { journalMetadata, loyaltyState } from '../loyalty/loyalty-journal.js';
+import { emitNotification } from '../notifications/notifications.service.js';
+
+/** Caller locks recipient phone, then the user. Safe for login and explicit retry. */
+export async function claimPendingGiftsForUser(tx: Prisma.TransactionClient, userId: string, phone: string): Promise<number> {
+  const pending = await tx.gift.findMany({ where: { recipientPhone: phone, status: 'PENDING' } });
+  for (const gift of pending) await claimGiftForUser(tx, gift, userId);
+  return pending.length;
+}
 
 /// Hediyeyi alıcıya işler: bakiye hediyesi cüzdana, içecek hediyesi
 /// ikram hakkına dönüşür. Hem kayıt anında (auth) hem gönderim anında
@@ -9,6 +19,7 @@ export async function claimGiftForUser(
   giftReference: Pick<Gift, 'id'>,
   userId: string,
 ): Promise<void> {
+  await lockUsers(tx, [userId]);
   const gift = await tx.gift.findUnique({ where: { id: giftReference.id } });
   if (!gift) throw AppError.notFound('Hediye bulunamadı');
   const recipient = await tx.user.findUnique({
@@ -47,6 +58,7 @@ export async function claimGiftForUser(
       },
     });
   } else {
+    const before = await tx.loyaltyAccount.findUniqueOrThrow({ where: { userId } });
     const loyalty = await tx.loyaltyAccount.update({
       where: { userId },
       data: { freeDrinks: { increment: 1 } },
@@ -56,7 +68,13 @@ export async function claimGiftForUser(
         accountId: loyalty.id,
         type: 'GIFT_DRINK_RECEIVED',
         title: `Hediye: ${gift.label}`,
+        metadata: journalMetadata({ kind: 'grant', before: loyaltyState(before), freeDrinks: 1 }),
       },
     });
   }
+  await emitNotification(tx, {
+    userId, kind: 'GIFT_RECEIVED', dedupeKey: `gift:${gift.id}`,
+    title: 'Hediyen geldi', body: 'Hediyen hesabına eklendi.',
+    targetPath: gift.type === 'DRINK' ? '/ikramlarim' : '/tara-ode',
+  });
 }

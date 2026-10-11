@@ -1,29 +1,15 @@
-import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiError, api } from '../../api/client';
+import { useState } from 'react';
+import { ApiError, api, readApi } from '../../api/client';
+import { promoExpiryPatch } from '../../api/promo-expiry';
+import { fmtNum, fmtTL } from '../../api/format';
+import type { Campaign, Promo } from '../../api/schemas';
+import { campaignSchema, promoSchema, settingsSchema } from '../../api/schemas';
+import { useAuth } from '../../auth/auth-state';
 import { Checkbox, Drawer, Field, Input, Select, Tabs, Textarea } from '../../components/form';
 import { DataTable, PageHeader, type Column } from '../../components/table';
-import { Badge, Button, Card, SectionTitle, fmtNum, fmtTL } from '../../components/ui';
-import { useAuth } from '../../auth/AuthContext';
-
-interface Campaign {
-  id: string;
-  title: string;
-  badge: string;
-  description: string;
-  style: 'orange' | 'dark';
-  sortOrder: number;
-  isActive: boolean;
-}
-
-interface Promo {
-  code: string;
-  discountRate: number;
-  isActive: boolean;
-  expiresAt: string | null;
-  usageCount: number;
-  totalDiscount: number;
-}
+import { Badge, Button, Card, SectionTitle, } from '../../components/ui';
+import { StoriesTab } from './StoriesTab';
 
 const EMPTY: Campaign = {
   id: '',
@@ -39,10 +25,11 @@ export function CampaignsPage() {
   const [tab, setTab] = useState('campaigns');
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Kampanyalar" subtitle="Kampanyalar, promosyon kodları ve sadakat kuralları" />
+      <PageHeader title="Kampanyalar" subtitle="Kampanyalar, ana sayfa hikâyeleri ve sadakat kuralları" />
       <Tabs
         tabs={[
           { id: 'campaigns', label: 'Kampanyalar' },
+          { id: 'stories', label: 'Hikâyeler' },
           { id: 'promos', label: 'Promosyon kodları' },
           { id: 'loyalty', label: 'Sadakat kuralları' },
         ]}
@@ -50,6 +37,7 @@ export function CampaignsPage() {
         onChange={setTab}
       />
       {tab === 'campaigns' ? <CampaignsTab /> : null}
+      {tab === 'stories' ? <StoriesTab /> : null}
       {tab === 'promos' ? <PromosTab /> : null}
       {tab === 'loyalty' ? <LoyaltyTab /> : null}
     </div>
@@ -57,12 +45,14 @@ export function CampaignsPage() {
 }
 
 function CampaignsTab() {
+  const { admin } = useAuth();
+  const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Campaign | null>(null);
 
   const list = useQuery({
     queryKey: ['campaigns'],
-    queryFn: () => api<Campaign[]>('/admin/campaigns'),
+    queryFn: ({ signal }) => readApi(campaignSchema.array(), '/admin/campaigns', { signal }),
   });
   const refresh = () => void qc.invalidateQueries({ queryKey: ['campaigns'] });
   const remove = useMutation({
@@ -104,7 +94,8 @@ function CampaignsTab() {
             e.stopPropagation();
             remove.mutate(c.id);
           }}
-          className="text-xs font-semibold text-bad hover:underline"
+          disabled={!canEdit || remove.isPending}
+          className="text-xs font-semibold text-bad hover:underline disabled:opacity-50"
         >
           Sil
         </button>
@@ -115,15 +106,16 @@ function CampaignsTab() {
   return (
     <>
       <div className="flex justify-end">
-        <Button onClick={() => setEditing({ ...EMPTY })}>Yeni kampanya</Button>
+        {canEdit ? <Button onClick={() => setEditing({ ...EMPTY })}>Yeni kampanya</Button> : null}
       </div>
       <DataTable
         columns={columns}
         rows={list.data}
         rowKey={(c) => c.id}
-        onRowClick={setEditing}
-        loading={list.isLoading}
+        onRowClick={canEdit ? setEditing : undefined}
+        loading={list.isLoading} error={list.error} onRetry={() => void list.refetch()}
       />
+      {remove.error ? <p role="alert" className="text-sm text-bad">{remove.error.message}</p> : null}
       <CampaignDrawer
         campaign={editing}
         onClose={() => setEditing(null)}
@@ -231,7 +223,7 @@ function CampaignDrawer({
           onChange={(v) => set('isActive', v)}
         />
         {error ? (
-          <p className="rounded-[--radius-chip] bg-bad-soft px-3 py-2 text-sm text-bad">
+          <p className="rounded-chip bg-bad-soft px-3 py-2 text-sm text-bad">
             {error}
           </p>
         ) : null}
@@ -241,13 +233,17 @@ function CampaignDrawer({
 }
 
 function PromosTab() {
+  const { admin } = useAuth();
+  const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
   const [form, setForm] = useState({ code: '', rate: 10, isActive: true });
+  const [expiryAction, setExpiryAction] = useState<'keep' | 'set' | 'clear'>('keep');
+  const [expiry, setExpiry] = useState('');
   const [error, setError] = useState('');
 
   const list = useQuery({
     queryKey: ['promos'],
-    queryFn: () => api<Promo[]>('/admin/promos'),
+    queryFn: ({ signal }) => readApi(promoSchema.array(), '/admin/promos', { signal }),
   });
   const refresh = () => void qc.invalidateQueries({ queryKey: ['promos'] });
 
@@ -260,11 +256,13 @@ function PromosTab() {
           // Panelde yüzde girilir, sözleşme oran bekler (10 → 0.10)
           discountRate: Number(form.rate) / 100,
           isActive: form.isActive,
-          expiresAt: null,
+          ...promoExpiryPatch(expiryAction, expiry),
         },
       }),
     onSuccess: () => {
       setForm({ code: '', rate: 10, isActive: true });
+      setExpiryAction('keep');
+      setExpiry('');
       setError('');
       refresh();
     },
@@ -283,6 +281,7 @@ function PromosTab() {
       numeric: true,
       render: (p) => `%${Math.round(p.discountRate * 100)}`,
     },
+    { key: 'expiry', header: 'Son kullanım', render: (p) => p.expiresAt ? new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', dateStyle: 'short', timeStyle: 'short' }).format(new Date(p.expiresAt)) : 'Süresiz' },
     { key: 'usage', header: 'Kullanım', numeric: true, render: (p) => fmtNum(p.usageCount) },
     {
       key: 'total',
@@ -302,8 +301,9 @@ function PromosTab() {
       header: '',
       render: (p) => (
         <button
-          onClick={() => remove.mutate(p.code)}
-          className="text-xs font-semibold text-bad hover:underline"
+          onClick={(event) => { event.stopPropagation(); remove.mutate(p.code); }}
+          disabled={!canEdit || remove.isPending}
+          className="text-xs font-semibold text-bad hover:underline disabled:opacity-50"
         >
           Sil
         </button>
@@ -318,11 +318,12 @@ function PromosTab() {
           columns={columns}
           rows={list.data}
           rowKey={(p) => p.code}
-          loading={list.isLoading}
+          onRowClick={canEdit ? (promo) => { setForm({ code: promo.code, rate: promo.discountRate * 100, isActive: promo.isActive }); setExpiryAction('keep'); setExpiry(''); setError(''); } : undefined}
+          loading={list.isLoading} error={list.error} onRetry={() => void list.refetch()}
         />
       </div>
-      <Card>
-        <SectionTitle>Kod ekle</SectionTitle>
+      {canEdit ? <Card>
+        <SectionTitle>Kod ekle / düzenle</SectionTitle>
         <div className="flex flex-col gap-3">
           <Field label="Kod">
             <Input
@@ -337,110 +338,113 @@ function PromosTab() {
               onChange={(e) => setForm((f) => ({ ...f, rate: Number(e.target.value) }))}
             />
           </Field>
+          <Field label="Son kullanma tarihi" hint="Tüm tarihler İstanbul saatidir. Mevcut kodun tarihini kaldırmak için açıkça Süresiz yap seçin.">
+            <Select value={expiryAction} onChange={(event) => setExpiryAction(event.target.value as 'keep' | 'set' | 'clear')}>
+              <option value="keep">Mevcut tarihi koru</option>
+              <option value="set">Tarih belirle / değiştir</option>
+              <option value="clear">Süresiz yap</option>
+            </Select>
+          </Field>
+          {expiryAction === 'set' ? <Field label="Tarih ve saat (İstanbul)"><Input type="datetime-local" value={expiry} onChange={(event) => setExpiry(event.target.value)} /></Field> : null}
           <Checkbox
             label="Aktif"
             checked={form.isActive}
             onChange={(v) => setForm((f) => ({ ...f, isActive: v }))}
           />
           {error ? <p className="text-sm text-bad">{error}</p> : null}
-          <Button onClick={() => save.mutate()} disabled={!form.code || save.isPending}>
+          <Button onClick={() => save.mutate()} disabled={!form.code.trim() || save.isPending || (expiryAction === 'set' && !expiry)}>
             Kaydet
           </Button>
         </div>
-      </Card>
+      </Card> : null}
+      {remove.error ? <p role="alert" className="text-sm text-bad">{remove.error.message}</p> : null}
     </div>
   );
 }
 
-const SETTING_LABELS: Record<string, { label: string; hint: string }> = {
+const SETTING_LABELS = {
   'loyalty.stampTarget': {
     label: 'Damga hedefi',
-    hint: 'Kaç damgada bir ikram kahve verilir.',
+    hint: '1–100 tam sayı. Başlamış kart mevcut hedefi ve damgalarıyla tamamlanır; yeni hedef sonraki karta uygulanır.',
+    min: 1, max: 100, step: 1,
   },
   'loyalty.topUpBonusThreshold': {
     label: 'Yükleme eşiği (₺)',
-    hint: 'Bu tutar ve üzeri yüklemede ikram verilir.',
+    hint: '0,01–100.000 ₺, en fazla iki ondalık. Bu tutar ve üzeri yüklemede ikram verilir.',
+    min: 0.01, max: 100_000, step: 0.01,
   },
   'loyalty.topUpBonusDrinks': {
     label: 'Yükleme ikramı (adet)',
-    hint: 'Eşiği geçen yüklemede verilecek ikram kahve sayısı.',
+    hint: '0–100 tam sayı. 0 seçildiğinde yükleme ikramı verilmez.',
+    min: 0, max: 100, step: 1,
   },
   'loyalty.topUpBonusFirstOnly': {
     label: 'Yalnız ilk yükleme',
-    hint: 'Açıkken ikram sadece hesabın ilk yüklemesinde verilir (tek seferlik).',
+    hint: 'Açıkken ikram sadece hesabın ilk yüklemesinde verilir. İlk yükleme eşiğin altındaysa sonraki yüklemede hak doğmaz.',
+    min: 0, max: 1, step: 1,
   },
-};
+} as const;
+type SettingKey = keyof typeof SETTING_LABELS;
 
 function LoyaltyTab() {
   const { admin } = useAuth();
-  const qc = useQueryClient();
-  const [error, setError] = useState('');
-
   const settings = useQuery({
     queryKey: ['settings'],
-    queryFn: () => api<Record<string, unknown>>('/admin/settings'),
+    queryFn: ({ signal }) => readApi(settingsSchema, '/admin/settings', { signal }),
   });
-  const save = useMutation({
-    mutationFn: (p: { key: string; value: unknown }) =>
-      api('/admin/settings', { method: 'POST', body: p }),
-    onSuccess: () => {
-      setError('');
-      void qc.invalidateQueries({ queryKey: ['settings'] });
-    },
-    onError: (e) => setError(e instanceof ApiError ? e.message : 'Kaydedilemedi'),
-  });
-
-  const canEdit = admin?.role === 'SUPER_ADMIN';
-
   return (
     <Card>
       <SectionTitle>Sadakat ve yükleme kuralları</SectionTitle>
       <p className="mb-4 text-sm text-ink-muted">
-        Bu değerler uygulamanın ve backend'in davranışını doğrudan belirler; her
-        değişiklik kim yaptı bilgisiyle kayda geçer.
-        {canEdit ? null : ' Değiştirmek için süper yönetici yetkisi gerekir.'}
+        Her satırı kontrol edip Kaydet ile uygulayın. Değişiklikler işlem geçmişine kaydedilir.
+        {admin?.role === 'SUPER_ADMIN' ? null : ' Değiştirmek için süper yönetici yetkisi gerekir.'}
       </p>
-
+      {settings.isLoading ? <p role="status">Kurallar yükleniyor…</p> : null}
+      {settings.error ? <p role="alert" className="text-sm text-bad">Kurallar yüklenemedi. <button onClick={() => void settings.refetch()}>Yeniden dene</button></p> : null}
       <div className="flex flex-col gap-4">
-        {Object.entries(settings.data ?? {}).map(([key, value]) => {
-          const meta = SETTING_LABELS[key] ?? { label: key, hint: '' };
-          const isBool = typeof value === 'boolean';
-          return (
-            <div
-              key={key}
-              className="flex items-center justify-between gap-4 rounded-[--radius-chip] bg-surface-sunken px-4 py-3"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-ink">{meta.label}</p>
-                <p className="text-xs text-ink-muted">{meta.hint}</p>
-              </div>
-              {isBool ? (
-                <Checkbox
-                  label={value ? 'Açık' : 'Kapalı'}
-                  checked={value as boolean}
-                  onChange={(v) => canEdit && save.mutate({ key, value: v })}
-                />
-              ) : (
-                <Input
-                  type="number"
-                  disabled={!canEdit}
-                  defaultValue={Number(value)}
-                  onBlur={(e) => {
-                    const next = Number(e.target.value);
-                    if (next !== Number(value)) save.mutate({ key, value: next });
-                  }}
-                  className="w-32"
-                />
-              )}
-            </div>
-          );
-        })}
+        {settings.data && (Object.keys(SETTING_LABELS) as SettingKey[]).map((key) => (
+          <SettingEditor key={`${key}:${settings.data![key]}`} settingKey={key} value={settings.data![key]} canEdit={admin?.role === 'SUPER_ADMIN'} />
+        ))}
       </div>
-      {error ? (
-        <p className="mt-3 rounded-[--radius-chip] bg-bad-soft px-3 py-2 text-sm text-bad">
-          {error}
-        </p>
-      ) : null}
     </Card>
+  );
+}
+
+function SettingEditor({ settingKey, value, canEdit }: { settingKey: SettingKey; value: number | boolean; canEdit: boolean }) {
+  const qc = useQueryClient();
+  const meta = SETTING_LABELS[settingKey];
+  const isBool = settingKey === 'loyalty.topUpBonusFirstOnly';
+  const [draft, setDraft] = useState(String(value));
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+  const numeric = Number(draft);
+  const valid = isBool || (draft.trim() !== '' && Number.isFinite(numeric) && numeric >= meta.min && numeric <= meta.max &&
+    (meta.step === 1 ? Number.isInteger(numeric) : /^\d+(?:\.\d{1,2})?$/.test(draft)));
+  const changed = draft !== String(value);
+  const save = useMutation({
+    mutationFn: () => {
+      if (!valid) throw new Error('Geçerli aralıkta bir değer girin.');
+      return api('/admin/settings', { method: 'POST', body: { key: settingKey, value: isBool ? draft === 'true' : numeric } });
+    },
+    onSuccess: () => {
+      setError('');
+      setSaved(true);
+      void qc.invalidateQueries({ queryKey: ['settings'] });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'Kaydedilemedi'),
+  });
+  return (
+    <form className="rounded-chip bg-surface-sunken px-4 py-3" onSubmit={(e) => { e.preventDefault(); if (valid && canEdit && changed) save.mutate(); }}>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-ink">{meta.label}</p><p className="text-xs text-ink-muted">{meta.hint}</p></div>
+        {isBool ? <Checkbox label={draft === 'true' ? 'Açık' : 'Kapalı'} checked={draft === 'true'} disabled={!canEdit || save.isPending} onChange={(v) => { setDraft(String(v)); setSaved(false); }} /> : (
+          <Input aria-label={meta.label} type="number" required min={meta.min} max={meta.max} step={meta.step} disabled={!canEdit || save.isPending} value={draft} onChange={(e) => { setDraft(e.target.value); setSaved(false); }} className="w-32" />
+        )}
+        {canEdit ? <Button type="submit" disabled={!changed || !valid || save.isPending}>{save.isPending ? 'Kaydediliyor…' : 'Kaydet'}</Button> : null}
+      </div>
+      {!valid ? <p role="alert" className="mt-2 text-sm text-bad">{meta.hint}</p> : null}
+      {error ? <p role="alert" className="mt-2 text-sm text-bad">{error}</p> : null}
+      {saved ? <p role="status" className="mt-2 text-sm text-ok">Kaydedildi.</p> : null}
+    </form>
   );
 }

@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../features/account/presentation/account_requests_screen.dart';
+import '../features/account/presentation/data_export_screen.dart';
+import '../features/account/presentation/notifications_screen.dart';
 
 import '../features/auth/application/auth_controller.dart';
 import '../features/auth/application/guest_mode.dart';
@@ -23,6 +26,7 @@ import '../features/order/presentation/order_screen.dart';
 import '../features/order/presentation/order_success_screen.dart';
 import '../features/order/presentation/order_tracking_screen.dart';
 import '../features/order/presentation/product_detail_screen.dart';
+import '../features/order/domain/order_record.dart';
 import '../features/profile/presentation/faq_screen.dart';
 import '../features/profile/presentation/kvkk_screen.dart';
 import '../features/profile/presentation/notification_prefs_screen.dart';
@@ -70,6 +74,9 @@ abstract final class Routes {
   // Profil alt sayfaları
   static const personalInfo = '/profil/bilgiler';
   static const notificationPrefs = '/profil/bildirimler';
+  static const notifications = '/profil/bildirim-kutusu';
+  static const accountRequests = '/profil/hesap-talepleri';
+  static const dataExport = '/profil/verilerim';
   static const savedCards = '/profil/kartlar';
   static const orderHistory = '/profil/siparisler';
   static const favorites = '/profil/favoriler';
@@ -79,6 +86,8 @@ abstract final class Routes {
   static const kvkk = '/profil/kvkk';
 
   static String productPath(String id) => '/urun/$id';
+  static String orderSuccessPath(String id) =>
+      '$orderSuccess?id=${Uri.encodeQueryComponent(id)}';
   static String orderTrackingPath(String id) => '/siparis-takip/$id';
   static String branchDetailPath(String id) => '/subeler/$id';
 }
@@ -195,7 +204,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.orderSuccess,
-        builder: (context, state) => const OrderSuccessScreen(),
+        redirect: (context, state) =>
+            (state.uri.queryParameters['id'] ?? '').isEmpty
+            ? Routes.orderHistory
+            : null,
+        builder: (context, state) => OrderSuccessScreen(
+          orderId: state.uri.queryParameters['id']!,
+          initialOrder: state.extra is OrderRecord
+              ? state.extra as OrderRecord
+              : null,
+        ),
       ),
       GoRoute(
         path: Routes.orderTracking,
@@ -217,6 +235,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.notificationPrefs,
         builder: (context, state) => const NotificationPrefsScreen(),
+      ),
+      GoRoute(
+        path: Routes.notifications,
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: Routes.accountRequests,
+        builder: (context, state) => const AccountRequestsScreen(),
+      ),
+      GoRoute(
+        path: Routes.dataExport,
+        builder: (context, state) => const DataExportScreen(),
       ),
       GoRoute(
         path: Routes.savedCards,

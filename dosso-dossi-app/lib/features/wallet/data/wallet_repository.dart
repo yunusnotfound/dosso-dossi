@@ -8,7 +8,16 @@ import 'mock_wallet_repository.dart';
 
 /// Bakiye yükleme sonucu; bonus sunucuda hesaplanır.
 class TopUpResult {
-  const TopUpResult({required this.balance, required this.bonusDrinks});
+  const TopUpResult({
+    required this.balance,
+    required this.bonusDrinks,
+    this.status = 'succeeded',
+    this.paymentId,
+  });
+
+  final String status;
+  final String? paymentId;
+  bool get isPending => status == 'pending';
 
   final double balance;
 

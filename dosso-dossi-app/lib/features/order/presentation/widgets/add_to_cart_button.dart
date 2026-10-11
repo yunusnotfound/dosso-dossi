@@ -38,11 +38,15 @@ class _AddToCartButtonState extends ConsumerState<AddToCartButton> {
   void _add() {
     // Konuk sipariş veremez: giriş istemi açılır, sepete eklenmez.
     if (blockedForGuest(context, ref, action: 'Sipariş vermek')) return;
-    ref.read(cartProvider.notifier).add(CartItem(
-          product: widget.product,
-          milk: ProductOptions.defaultMilk,
-          shot: ProductOptions.defaultShot,
-        ));
+    ref
+        .read(cartProvider.notifier)
+        .add(
+          CartItem(
+            product: widget.product,
+            milk: ProductOptions.defaultMilk,
+            shot: ProductOptions.defaultShot,
+          ),
+        );
     setState(() => _added = true);
     _resetTimer?.cancel();
     _resetTimer = Timer(const Duration(milliseconds: 1800), () {
@@ -52,39 +56,47 @@ class _AddToCartButtonState extends ConsumerState<AddToCartButton> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      // Eklendi durumundayken tekrar dokunuş da ekler; buton kilitlenmez.
+    return Semantics(
+      button: true,
+      label: '${widget.product.name}, sepete ekle',
+      excludeSemantics: true,
       onTap: _add,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        height: 38,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: _added ? AppColors.primary : Colors.transparent,
-          border: Border.all(color: AppColors.primary, width: 1.4),
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-        ),
-        // Dar grid hücrelerinde "Sepete eklendi" sığmazsa kırpılmak
-        // yerine küçülür.
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_added) ...[
-                const Icon(Icons.check, size: 17, color: Colors.white),
-                const SizedBox(width: AppSpacing.xs),
-              ],
-              Text(
-                _added ? 'Sepete eklendi' : 'Sepete ekle',
-                maxLines: 1,
-                style: AppTypography.body.copyWith(
-                  color: _added ? Colors.white : AppColors.primary,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        // Eklendi durumundayken tekrar dokunuş da ekler; buton kilitlenmez.
+        onTap: _add,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          constraints: const BoxConstraints(minHeight: 48),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _added ? AppColors.primary : Colors.transparent,
+            border: Border.all(color: AppColors.primary, width: 1.4),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_added) ...[
+                  const Icon(Icons.check, size: 17, color: Colors.white),
+                  const SizedBox(width: AppSpacing.xs),
+                ],
+                Flexible(
+                  child: Text(
+                    _added ? 'Sepete eklendi' : 'Sepete ekle',
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.body.copyWith(
+                      color: _added ? Colors.white : AppColors.primary,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

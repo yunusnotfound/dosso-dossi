@@ -98,7 +98,7 @@ export async function upsertPromo(
     const data = {
       discountRate: input.discountRate,
       isActive: input.isActive,
-      expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+      ...(input.expiresAt === undefined ? {} : { expiresAt: input.expiresAt === null ? null : new Date(input.expiresAt) }),
     };
     const after = await tx.promoCode.upsert({
       where: { code },

@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import type { Request } from 'express';
 import { prisma } from '../../lib/prisma.js';
+import { recordAuditRevision } from '../sync/sync.service.js';
 
 /// Panelden yapılan her yazmanın izi. Para ve sadakat düzeltmelerinde
 /// `reason` zorunludur — çağıran servis boş bırakmamalıdır.
@@ -20,6 +21,11 @@ export async function audit(
   req: Request,
   input: AuditInput,
 ): Promise<void> {
+  // A standalone audit and its revision must commit together too.
+  if (tx === prisma) {
+    await prisma.$transaction((transaction) => audit(transaction, req, input));
+    return;
+  }
   await tx.auditLog.create({
     data: {
       adminId: req.admin.id,
@@ -32,6 +38,7 @@ export async function audit(
       ip: req.ip ?? '',
     },
   });
+  await recordAuditRevision(tx, input);
 }
 
 /// Transaction dışı (salt okuma sonrası) iz düşmek için.

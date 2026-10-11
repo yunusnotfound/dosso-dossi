@@ -15,16 +15,17 @@ function hash(code: string): string {
 }
 
 export async function sendOtp(phone: string): Promise<void> {
-  const recent = await prisma.otpCode.count({
-    where: { phone, createdAt: { gte: new Date(Date.now() - SEND_WINDOW_MS) } },
-  });
-  if (recent >= SEND_LIMIT) {
-    throw AppError.rateLimited('Çok fazla kod istendi, lütfen sonra deneyin');
-  }
-
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
-  await prisma.otpCode.create({
-    data: { phone, codeHash: hash(code), expiresAt: new Date(Date.now() + OTP_TTL_MS) },
+  await prisma.$transaction(async (tx) => {
+    // Telefon kotası aynı anda gelen isteklerde de tek kontrol/yazım olsun.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`otp-send:${phone}`}, 0))`;
+    const recent = await tx.otpCode.count({
+      where: { phone, createdAt: { gte: new Date(Date.now() - SEND_WINDOW_MS) } },
+    });
+    if (recent >= SEND_LIMIT) throw AppError.rateLimited('Çok fazla kod istendi, lütfen sonra deneyin');
+    await tx.otpCode.create({
+      data: { phone, codeHash: hash(code), expiresAt: new Date(Date.now() + OTP_TTL_MS) },
+    });
   });
   await smsProvider.send(
     phone,
@@ -37,21 +38,21 @@ export async function consumeOtp(phone: string, code: string): Promise<void> {
   if (env.OTP_DEV_MODE && code === DEV_MASTER_CODE) return;
 
   const latest = await prisma.otpCode.findFirst({
-    where: { phone, consumedAt: null },
+    where: { phone },
     orderBy: { createdAt: 'desc' },
   });
-  if (!latest || latest.expiresAt < new Date() || latest.attempts >= MAX_ATTEMPTS) {
+  if (!latest || latest.consumedAt || latest.expiresAt <= new Date() || latest.attempts >= MAX_ATTEMPTS) {
     throw AppError.invalidOtp();
   }
+  const eligible = {
+    id: latest.id, consumedAt: null, expiresAt: { gt: new Date() }, attempts: { lt: MAX_ATTEMPTS },
+  };
   if (latest.codeHash !== hash(code)) {
-    await prisma.otpCode.update({
-      where: { id: latest.id },
-      data: { attempts: { increment: 1 } },
-    });
+    await prisma.otpCode.updateMany({ where: eligible, data: { attempts: { increment: 1 } } });
     throw AppError.invalidOtp();
   }
-  await prisma.otpCode.update({
-    where: { id: latest.id },
-    data: { consumedAt: new Date() },
+  const consumed = await prisma.otpCode.updateMany({
+    where: eligible, data: { consumedAt: new Date() },
   });
+  if (!consumed.count) throw AppError.invalidOtp();
 }

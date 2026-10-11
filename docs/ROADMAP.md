@@ -1,62 +1,75 @@
 # Dosso Dossi — Yol Haritası
 
-Kahve dükkânı sadakat + sipariş uygulaması (Flutter, iOS + Android).
+Güncelleme: 7 Ekim 2026. Bu belge uygulanan özelliklerle henüz dış bilgi veya
+sağlayıcı bekleyen işleri ayırır. API ayrıntıları: [API_CONTRACT.md](API_CONTRACT.md).
 
-## Kararlar
-- **Veri:** Şimdilik mock repository'ler; REST API sonra yazılacak. Sözleşme: `API_CONTRACT.md`
-- **Ödeme:** Simülasyon (gerçek sağlayıcı sonraki fazda)
-- **Giriş:** Telefon + SMS kodu (simüle)
-- **State:** Riverpod · **Navigasyon:** GoRouter · **Font:** Baloo 2
-- **Sadakat kampanyaları (CEO onaylı):** (1) 5 kahve alana 1 kahve — damga hedefi dolunca ikram hakkına dönüşür; (2) tek seferde 1.000 ₺+ bakiye yükleyene 5 ikram kahve. Eşikler `lib/core/constants/app_config.dart` içinden değişir.
-- **POS entegrasyonu:** Yazarkasa entegrasyonu **Kerzz POS** ile yapılacak (CEO teknik ekiple görüştürecek). Hazırlık notları ve teknik ekibe sorulacak sorular: `docs/KERZZ_POS_ENTEGRASYON.md`
-- **Ürün görselleri:** Çekirdek kahve (250 gr / 1 kg), mug ve içecek/yiyecek fotoğrafları marka ekibinden gelecek; şimdilik emoji yer tutucu kullanılıyor.
-- **Menü:** Resmi fiyat listesi (Tem 2026) birebir işlendi — 16 kategori, ~200 ürün, `mock_menu_repository.dart` tek dosyada. 9 içecek kategorisi + Kahvaltılıklar, Tatlılar, Kek & Kurabiye, Sandviç & Tost, Atıştırmalıklar, Çekirdek Kahveler, Termos & Mug. Süt ekstraları +60 ₺, çift shot +40 ₺ (`product_options.dart`). Boy seçeneği yok (ürün boyları sabit: 14/16 oz). Damga yalnızca kahve kategorilerinde.
-- **Şubeler:** Resmi mağaza listesindeki 4 gerçek şube (Tem 2026) — Beylikdüzü Vadi Loca (08:00–01:00), Beylikdüzü Son Durak (24 saat), Vatan Caddesi (08:00–24:00), Diyarbakır Stad (08:00–01:00). Uygulama içi şube değiştirme Faz 3'te eklendi.
+## Mevcut yapı
 
-## Fazlar
+- **Mobil:** Flutter, Riverpod ve GoRouter. Normal geliştirme çalıştırması gerçek
+  yerel REST API'yi kullanır; mock repository'ler test ve açıkça seçilen demo modu içindir.
+- **Backend:** Express + TypeScript, Prisma ve PostgreSQL. Menü, şube, müşteri,
+  cüzdan, sipariş, hediye, sadakat, kampanya ve yönetim API'leri uygulanmıştır.
+- **Yönetim paneli:** React + TypeScript. Ayrı yönetici oturumu; super admin,
+  yönetici, şube yöneticisi ve görüntüleyici yetkileri; işlem denetim kayıtları.
+- **Veri kaynağı:** Ürünler, fiyatlar, şube müsaitliği, seçenek ücretleri ve kampanya
+  ayarları backend/panel üzerinden yönetilir. Mobildeki mock katalog üretim veri kaynağı değildir.
+- **Görseller:** Ürün grid/detay görselleri ve marka kampanya görselleri uygulamaya
+  entegredir; tüm katalog artık yalnız emoji yer tutucularından oluşmaz.
+- **Çalışma ortamı:** Yayın aşamasına kadar yerel API ile geliştirme devam eder.
+  Bu çalışma yerel veritabanı bağlantı/servis yapılandırmasını değiştirmez.
 
-- [x] **Faz 0 — Temel:** proje iskeleti, tema sistemi (`lib/core/theme/`), 5 sekmeli alt menü, API istemci iskeleti
-- [x] **Faz 1 — Giriş:** onboarding, telefon + SMS kod ekranı, oturum saklama
-- [x] **Faz 2 — Ana Sayfa:** selamlama, damga kartı (3/5), Dosso Kart + Yükle, "Sana Özel" kampanya kartları, yakın şube
-- [x] **Faz 3 — Sipariş:** şube seçici + uygulama içi şube değiştirme, menü + kategoriler + arama, ürün detay (boy/süt/shot), sepet, pickup saati, kampanya kodu, ödeme simülasyonu
-- [x] **Faz 4 — Tara & Öde:** Dosso Kart görseli, 60 sn yenilenen QR + barkod, bakiye yükleme (hızlı tutarlar + serbest tutar)
-- [x] **Faz 5 — İkramlarım:** damga ilerlemesi, damga → ikram dönüşümü, sepette ikram kullanma, yükleme bonusu (1.000 ₺ → 5 ikram), ikram geçmişi
-- [x] **Faz 6 — Hediye & Kampanyalar:** arkadaşa kahve/bakiye hediye akışı, kampanya listesi + interaktif "Kahve İçtikçe Kahve Kazan" kampanya sayfası (pankart uyarlaması)
-- [x] **Faz 7 — Profil:** kişisel bilgiler, bildirim tercihleri, kayıtlı kartlar, geçmiş siparişler, favoriler, şubeler (il bazlı liste + şube değiştirme), SSS, KVKK, çıkış
-- [x] **Faz 8 — Cila & API:** boş/hata durumları, uçtan uca sipariş testi düzeltildi, `API_CONTRACT.md` yazıldı (Kerzz köprü endpoint'leri dahil)
+## Uygulanan özellikler
 
-## Sonraki Adımlar (API dönemi)
-- [ ] Backend geliştirme (`API_CONTRACT.md` sözleşmesine göre)
-- [ ] Kerzz POS teknik görüşmesi (`KERZZ_POS_ENTEGRASYON.md` soru listesi)
-- [ ] Gerçek ürün görselleri geldiğinde emoji yer tutucuların değişmesi
-- [ ] Gerçek SMS sağlayıcı + push bildirim (Firebase Messaging)
-- [ ] Ödeme sağlayıcı entegrasyonu (kart saklama / 3D Secure)
-- [ ] KVKK metninin hukuk onayı
+- [x] Telefon/OTP oturumu, erişim tokenı ve dönen refresh tokenları; profil ve tercihler.
+- [x] Menü, kategori, arama, ürün detay, şubeye özel fiyat/müsaitlik ve API'den ürün seçenekleri.
+- [x] Sepet, promosyon, ikram kullanımı, sunucuda fiyat hesabı, sipariş geçmişi ve durum takibi.
+- [x] Belirsiz ağ yanıtlarında korunan işlem anahtarı; tekrarın ikinci sipariş/hediye/yükleme oluşturmaması.
+- [x] Cüzdan hareket defteri, tek kullanımlık QR, atomik iade ve sadakat geri alımı.
+- [x] Paralel QR yenilemelerinin tek geçerli kod bırakması; yenilenen eski kodun iptali.
+- [x] Kahve/bakiye hediyesi, kayıt sırasında güvenli aktarım ve bekleyen hediyeyi yeniden talep etme.
+- [x] Panelden damga hedefi ve ilk yükleme kampanyası yönetimi; panel bakiye düzeltmesinin ilk yükleme hakkını tüketmemesi.
+- [x] Gerçek konum izinli şube mesafesi; konum yokken uydurma mesafe göstermeyen akış.
+- [x] Kampanya hikâyeleri, tarihli görünürlük, yüklenen görseller ve kampanya bağlantıları.
+- [x] Admin sipariş, müşteri, menü, şube, kampanya ve finans modülleri; CSV/XLSX dışa aktarımı.
+- [x] Sipariş + QR cirosunun şube ve tarih kırılımı; Türkiye saat diliminde işletme günü.
+- [x] Teslim saatinin sunucuda hazırlık süresi ve çalışma saatlerine göre denetlenmesi.
+- [x] Hesap kapatma/veri talebi API'leri, yönetici incelemesi ve kullanıcıya özel sayfalı JSON dışa aktarımı.
+- [x] Uygulama içi sipariş, hediye, talep ve kampanya bildirimleri; okundu durumu ve tercih denetimi.
+- [x] Finansal, yetkilendirme ve yarış koşulu regresyon testleri; geliştirme ve yayın ayarlarının ayrılması.
 
-## Klasör Yapısı
+## İş kuralları
 
-```
-lib/
-├── main.dart              # Giriş noktası
-├── app.dart               # MaterialApp + tema + router bağlantısı
-├── core/
-│   ├── theme/             # 🎨 TÜM görsel kimlik burada
-│   │   ├── app_colors.dart      # Renk paleti — rengi buradan değiştir
-│   │   ├── app_typography.dart  # Yazı tipleri — fontu buradan değiştir
-│   │   ├── app_spacing.dart     # Boşluk ve köşe yarıçapları
-│   │   └── app_theme.dart       # Material temasına bağlayan katman
-│   ├── network/           # Dio istemcisi + endpoint sabitleri
-│   └── widgets/           # Ortak widget'lar (buton, kart, rozet...)
-├── features/              # Her özellik kendi klasöründe
-│   ├── auth/  home/  scan_pay/  order/  rewards/
-│   ├── gift/  campaigns/  profile/  branches/
-│   │   └── (her biri) data/ → repository + mock, presentation/ → ekranlar
-└── routing/
-    ├── app_router.dart    # Tüm sayfa yolları
-    └── main_shell.dart    # 5 sekmeli alt menü
-```
+Varsayılan damga hedefi 5'tir. Varsayılan yükleme kampanyası, kullanıcının ilk
+başarılı gerçek yüklemesi en az 1.000 TL ise 5 ikram verir. İlk yükleme eşik
+altındaysa sonraki yükleme ilk-yükleme hakkını geri getirmez. Paneldeki kampanya
+ayarları bu varsayılanları değiştirebilir; manuel bakiye düzeltmesi gerçek
+müşteri yüklemesi sayılmaz.
 
-## Kurallar
-- Renk/font değişikliği **sadece** `core/theme/` içinden yapılır; ekran kodlarına ham renk (`Color(0xFF...)`) yazılmaz.
-- Her feature'ın verisi bir `Repository` interface'inin arkasındadır: `MockXRepository` → ileride `ApiXRepository`.
-- Yeni ekran = önce `routing/app_router.dart`'a yol tanımı, sonra `features/<özellik>/presentation/` altına dosya.
+Şubenin `isOpen` alanı manuel operasyon anahtarıdır. Sipariş kabulü ayrıca
+`Europe/Istanbul` saat diliminde çalışma saatini ve hazırlık süresini denetler.
+Görseldeki teslim saati istemci tarafından gönderilmiş olsa da son karar sunucudadır.
+
+Hesap kapatma **hukuki veri silme işlemi değildir**. Bakiye ve bekleyen işlemler
+sonuçlandıktan sonra girişler, oturumlar ve QR kodları kapatılır; finansal ve denetim
+kayıtları korunur. Saklama/silme politikası onaylı hukuki metne göre ayrıca belirlenmelidir.
+
+## Yayın öncesi dış bilgi veya hizmet bekleyenler
+
+- [ ] Canlı API adresi, yayın altyapısı, Android/iOS imzalama ve mağaza hesapları.
+- [ ] Onaylı KVKK/gizlilik metni ve gerçek bağlantısı; placeholder metin hukuki onay sayılmaz.
+- [ ] Firebase/APNs bilgileri ve cihaz üzerinde uzaktan push teslimatının doğrulanması.
+  Mevcut bildirim merkezi uygulama içindedir; cihaz arka plandayken uzaktan push gönderildiği iddia edilmez.
+- [ ] Gerçek ödeme sağlayıcısı, SMS sağlayıcısı ve Kerzz POS bağlantıları.
+  Bunlar mevcut iyileştirme çalışmasının kapsamı dışındadır; hazır arayüzlerin varlığı canlı entegrasyon anlamına gelmez.
+- [ ] Gerçek cihazlarda iOS/Android yayın adayı kabul testi ve işletme ekibinin menü/fiyat/kampanya içerik onayı.
+
+## Kodun geliştirilmesi
+
+Mevcut feature klasörleri ve repository arayüzleri korunur. Yeni bir iş kuralı
+önce küçük, bağımsız bir politika fonksiyonuna ayrılır; para, sadakat, bildirim
+ve denetim yazımları aynı transaction içinde kalır. API gövdeleri şemayla doğrulanır,
+yetki kontrolü yalnız mobil/panel arayüzüne bırakılmaz.
+
+Testler uygulamanın geliştirme verisine karşı çalıştırılmaz. Backend entegrasyon
+testleri yalnız adı `_test` ile biten ayrı ve doğrulanmış test veritabanını kullanır.
+Güncel çalışma/test komutları için proje kökündeki [README.md](../README.md) izlenir.

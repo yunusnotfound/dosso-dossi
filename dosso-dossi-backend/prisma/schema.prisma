@@ -26,21 +26,27 @@ model AdminUser {
   role         AdminRole @default(VIEWER)
   branchId     String? // yalnız BRANCH_MANAGER için anlamlı
   isActive     Boolean   @default(true)
+  tokenVersion Int       @default(0)
+  mustChangePassword Boolean @default(false)
+  tempPasswordExpiresAt DateTime?
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
 
   branch        Branch?             @relation(fields: [branchId], references: [id])
   refreshTokens AdminRefreshToken[]
   auditLogs     AuditLog[]
+  mutationRequests AdminMutationRequest[]
 }
 
 // RefreshToken deseninin admin kopyası: ham token saklanmaz, rotasyonda
 // eski satır revoke edilir, iptal edilmiş token yeniden kullanılırsa
-// (çalıntı şüphesi) yöneticinin tüm oturumları düşer.
+// (çalıntı şüphesi) yalnız ilgili oturum ailesi iptal edilir.
 model AdminRefreshToken {
   id           String    @id @default(cuid())
   adminId      String
   tokenHash    String    @unique // sha256(opak token)
+  familyId     String    @default(uuid())
+  familyRevokedAt DateTime?
   deviceInfo   String    @default("")
   expiresAt    DateTime
   revokedAt    DateTime?
@@ -51,6 +57,26 @@ model AdminRefreshToken {
   admin AdminUser @relation(fields: [adminId], references: [id])
 
   @@index([adminId])
+  @@index([adminId, familyId])
+}
+
+// A panel operator's retried financial intent commits with its original result.
+model AdminMutationRequest {
+  id String @id @default(cuid())
+  adminId String
+  scope String
+  key String
+  requestHash String
+  response Json?
+  createdAt DateTime @default(now())
+  admin AdminUser @relation(fields: [adminId], references: [id])
+
+  @@unique([adminId, scope, key])
+}
+
+model SyncRevision {
+  key String @id
+  version BigInt @default(0)
 }
 
 // Panelden yapılan HER yazma buraya düşer. Para ve sadakat düzeltmelerinde
@@ -83,6 +109,8 @@ model User {
   email     String   @default("")
   // Panelden dondurulan hesap: giriş yapabilir ama işlem yapamaz.
   isBlocked Boolean  @default(false)
+  tokenVersion Int   @default(0)
+  closedAt DateTime?
   createdAt DateTime @default(now())
 
   wallet            Wallet?
@@ -95,15 +123,20 @@ model User {
   posCharges        PosCharge[]
   paymentIntents    PaymentIntent[]
   refreshTokens     RefreshToken[]
+  financialRequests FinancialRequest[]
+  accountRequests AccountRequest[]
+  notifications UserNotification[]
 }
 
 // Cihaz başına oturum yenileme token'ı. Ham token DB'de tutulmaz (sha256).
 // Rotasyonda eski satır revoke edilir; iptal edilmiş token yeniden
-// kullanılırsa (çalıntı şüphesi) kullanıcının tüm token'ları iptal edilir.
+// kullanılırsa yalnız ilgili oturum ailesi iptal edilir; bağımsız girişler korunur.
 model RefreshToken {
   id           String    @id @default(cuid())
   userId       String
   tokenHash    String    @unique // sha256(opak token)
+  familyId     String    @default(uuid())
+  familyRevokedAt DateTime?
   deviceInfo   String    @default("")
   expiresAt    DateTime
   revokedAt    DateTime?
@@ -114,6 +147,7 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([userId, familyId])
 }
 
 model OtpCode {
@@ -194,12 +228,65 @@ model BranchProduct {
 // ── Cüzdan ──────────────────────────────────────────────────────────
 
 enum WalletTxType {
+  ADJUSTMENT
   TOPUP
   ORDER_PAYMENT
   GIFT_SENT
   GIFT_RECEIVED
   QR_PAYMENT
   REFUND
+}
+
+enum AccountRequestKind {
+  CLOSURE
+  DATA_EXPORT
+}
+
+enum AccountRequestStatus {
+  OPEN
+  IN_REVIEW
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+model AccountRequest {
+  id String @id @default(cuid())
+  userId String
+  kind AccountRequestKind
+  status AccountRequestStatus @default(OPEN)
+  note String @default("")
+  response String @default("")
+  openKey String? @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+enum NotificationKind {
+  ORDER_STATUS
+  GIFT_RECEIVED
+  ACCOUNT_REQUEST
+  CAMPAIGN
+}
+
+model UserNotification {
+  id String @id @default(cuid())
+  userId String
+  kind NotificationKind
+  dedupeKey String
+  title String
+  body String
+  targetPath String @default("")
+  readAt DateTime?
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, createdAt])
 }
 
 model Wallet {
@@ -219,7 +306,7 @@ model WalletTransaction {
   type         WalletTxType
   amount       Decimal      @db.Decimal(10, 2) // işaretli: yükleme +, ödeme -
   balanceAfter Decimal      @db.Decimal(10, 2)
-  orderId      String?      @unique
+  orderId      String?
   giftId       String?
   chargeId     String? // PosCharge referansı (düşüm VE iade aynı charge'ı gösterir)
   note         String       @default("")
@@ -227,6 +314,7 @@ model WalletTransaction {
 
   wallet Wallet @relation(fields: [walletId], references: [id])
 
+  @@unique([orderId, type])
   @@index([walletId, createdAt])
   @@index([chargeId])
 }
@@ -337,6 +425,8 @@ model LoyaltyAccount {
 
 // Sözleşmedeki "history" bu tablodan üretilir
 model LoyaltyEvent {
+  sequence  BigInt           @unique @default(autoincrement())
+  metadata  Json?
   id        String           @id @default(cuid())
   accountId String
   type      LoyaltyEventType
@@ -446,6 +536,24 @@ model Campaign {
   isActive    Boolean @default(true)
 }
 
+// Ana sayfada misafir ve üyeler için ortak kampanya hikâyeleri.
+model CampaignStory {
+  id          String   @id @default(cuid())
+  title       String   @db.VarChar(60)
+  description String   @default("") @db.VarChar(400)
+  imageUrl    String   @default("")
+  action      String   @default("none")
+  actionLabel String   @default("") @db.VarChar(40)
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
 model PromoCode {
   code         String    @id // büyük harf: "DOSSO10"
   discountRate Decimal   @db.Decimal(4, 3) // 0.100
@@ -497,4 +605,20 @@ model QrToken {
   charge PosCharge?
 
   @@index([userId, createdAt])
+}
+
+// Bir kullanıcı niyetini aynı içerikle tekrar denemek tek sonuç üretir.
+model FinancialRequest {
+  id          String   @id @default(cuid())
+  userId      String
+  scope       String
+  key         String
+  requestHash String
+  resourceId  String?
+  response    Json?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, scope, key])
 }

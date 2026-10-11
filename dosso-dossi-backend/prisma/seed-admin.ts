@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import { hashPassword } from '../src/features/admin/admin-auth.service.js';
+import { hashPassword, revokeAllSessions } from '../src/features/admin/admin-auth.service.js';
+import { TEMP_PASSWORD_TTL_MS } from '../src/features/admin/temporary-password.js';
 import { prisma } from '../src/lib/prisma.js';
 
 /// İlk SUPER_ADMIN'i oluşturur. Şifre verilmezse rastgele üretilir ve
@@ -18,16 +19,24 @@ async function main(): Promise<void> {
   const plain = password ?? randomBytes(12).toString('base64url');
   const passwordHash = await hashPassword(plain);
   const normalized = email.trim().toLowerCase();
+  const credential = {
+    passwordHash, mustChangePassword: !password,
+    tempPasswordExpiresAt: password ? null : new Date(Date.now() + TEMP_PASSWORD_TTL_MS),
+  };
 
-  const admin = await prisma.adminUser.upsert({
+  const admin = await prisma.$transaction(async (tx) => {
+    const admin = await tx.adminUser.upsert({
     where: { email: normalized },
-    update: { passwordHash, role: 'SUPER_ADMIN', isActive: true },
+    update: { ...credential, role: 'SUPER_ADMIN', isActive: true },
     create: {
       email: normalized,
       name: name ?? '',
-      passwordHash,
+      ...credential,
       role: 'SUPER_ADMIN',
     },
+    });
+    await revokeAllSessions(tx, admin.id);
+    return admin;
   });
 
   console.log(`SUPER_ADMIN hazır: ${admin.email}`);

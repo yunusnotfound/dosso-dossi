@@ -13,9 +13,11 @@ import '../../../core/widgets/brand_logo.dart';
 import '../../../routing/app_router.dart';
 import '../../order/application/order_providers.dart';
 import '../application/branch_providers.dart';
+import '../application/branch_availability.dart';
 import '../domain/branch.dart';
 import 'branch_directions.dart';
 import 'branch_list_screen.dart';
+import 'branch_location_button.dart';
 
 /// Mağazalar sekmesi: şubeler harita üzerinde logo pinleriyle gösterilir.
 /// Pine dokununca alt kart açılır; sağ üstten liste görünümüne geçilir.
@@ -169,6 +171,7 @@ class _BranchMapScreenState extends ConsumerState<BranchMapScreen> {
                 ],
               ),
             ),
+            const BranchLocationButton(),
             Expanded(
               child: branches.when(
                 skipError: true,
@@ -446,7 +449,7 @@ class _PinTipPainter extends CustomPainter {
 }
 
 /// Pin alt kartı: ad + mesafe, açık/kapalı rozeti, detay ve sipariş butonları.
-class _BranchSheet extends StatelessWidget {
+class _BranchSheet extends ConsumerWidget {
   const _BranchSheet({
     required this.branch,
     required this.onDetail,
@@ -458,7 +461,8 @@ class _BranchSheet extends StatelessWidget {
   final VoidCallback onOrder;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accepting = ref.watch(branchAcceptingOrdersProvider(branch));
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.page),
@@ -480,11 +484,13 @@ class _BranchSheet extends StatelessWidget {
                           style: AppTypography.title.copyWith(fontSize: 19),
                         ),
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        branch.distanceLabel,
-                        style: AppTypography.bodySecondary,
-                      ),
+                      if (branch.distanceMeters != null) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(
+                          branch.distanceLabel,
+                          style: AppTypography.bodySecondary,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -517,7 +523,7 @@ class _BranchSheet extends StatelessWidget {
                     vertical: AppSpacing.xs,
                   ),
                   decoration: BoxDecoration(
-                    color: branch.isOpen
+                    color: accepting
                         ? AppColors.successSoft
                         : AppColors.dangerSoft,
                     borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -528,15 +534,13 @@ class _BranchSheet extends StatelessWidget {
                       Icon(
                         Icons.schedule,
                         size: 15,
-                        color: branch.isOpen
-                            ? AppColors.success
-                            : AppColors.danger,
+                        color: accepting ? AppColors.success : AppColors.danger,
                       ),
                       const SizedBox(width: AppSpacing.xs),
                       Text(
-                        branch.isOpen ? 'Açık' : 'Kapalı',
+                        accepting ? 'Açık' : 'Kapalı',
                         style: AppTypography.badge.copyWith(
-                          color: branch.isOpen
+                          color: accepting
                               ? AppColors.success
                               : AppColors.danger,
                         ),
@@ -571,7 +575,7 @@ class _BranchSheet extends StatelessWidget {
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: FilledButton(
-                    onPressed: onOrder,
+                    onPressed: accepting ? onOrder : null,
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
                       textStyle: AppTypography.body,

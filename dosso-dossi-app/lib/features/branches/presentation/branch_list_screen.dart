@@ -8,6 +8,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../routing/app_router.dart';
 import '../../order/application/order_providers.dart';
 import '../application/branch_providers.dart';
+import '../application/branch_availability.dart';
 import '../domain/branch.dart';
 
 /// Şubelerin il bazlı gruplu listesi (resmi mağaza tablosu düzeninde).
@@ -57,7 +58,10 @@ class BranchListBody extends ConsumerWidget {
                       ),
                     );
                   },
-                  onOrder: () => context.go(Routes.order),
+                  onOrder: () {
+                    ref.read(selectedBranchProvider.notifier).select(branch);
+                    context.go(Routes.order);
+                  },
                 ),
               const SizedBox(height: AppSpacing.lg),
             ],
@@ -68,7 +72,7 @@ class BranchListBody extends ConsumerWidget {
   }
 }
 
-class _BranchCard extends StatelessWidget {
+class _BranchCard extends ConsumerWidget {
   const _BranchCard({
     required this.branch,
     required this.isActive,
@@ -82,7 +86,8 @@ class _BranchCard extends StatelessWidget {
   final VoidCallback onOrder;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accepting = ref.watch(branchAcceptingOrdersProvider(branch));
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -121,6 +126,13 @@ class _BranchCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(branch.address, style: AppTypography.bodySecondary),
+          if (branch.distanceMeters != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Yaklaşık ${branch.distanceLabel}',
+              style: AppTypography.bodySecondary,
+            ),
+          ],
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
@@ -177,12 +189,12 @@ class _BranchCard extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: FilledButton(
-                  onPressed: onOrder,
+                  onPressed: accepting ? onOrder : null,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(44),
                   ),
                   child: Text(
-                    'Sipariş Ver',
+                    accepting ? 'Sipariş Ver' : 'Kapalı',
                     style: AppTypography.body.copyWith(
                       fontSize: 14,
                       color: Colors.white,

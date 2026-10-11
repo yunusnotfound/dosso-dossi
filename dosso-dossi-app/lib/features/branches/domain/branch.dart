@@ -4,7 +4,7 @@ class Branch {
     required this.name,
     required this.address,
     required this.city,
-    required this.distanceMeters,
+    this.distanceMeters,
     required this.isOpen,
     required this.hours,
     this.phone = '',
@@ -20,7 +20,8 @@ class Branch {
   /// Şubeler ekranında il bazlı gruplama için: "İstanbul", "Diyarbakır"
   final String city;
 
-  final int distanceMeters;
+  /// Cihaz konumu alınmadıysa mesafe bilinmez.
+  final int? distanceMeters;
   final bool isOpen;
   final String phone;
 
@@ -30,12 +31,29 @@ class Branch {
   /// Tahmini hazırlık süresi (dk)
   final int prepMinutes;
 
-  /// Konum (API'den gelir; konum servisi bağlanınca gerçek mesafe
-  /// hesabında kullanılacak)
+  /// API tarafından sağlanan şube koordinatları.
   final double lat;
   final double lng;
 
-  String get distanceLabel => distanceMeters >= 1000
-      ? '${(distanceMeters / 1000).toStringAsFixed(1)} km'
-      : '$distanceMeters m';
+  Branch withDistance(int? meters) => Branch(
+    id: id,
+    name: name,
+    address: address,
+    city: city,
+    isOpen: isOpen,
+    hours: hours,
+    phone: phone,
+    prepMinutes: prepMinutes,
+    lat: lat,
+    lng: lng,
+    distanceMeters: meters,
+  );
+
+  String get distanceLabel {
+    final meters = distanceMeters;
+    if (meters == null) return '';
+    return meters >= 1000
+        ? '${(meters / 1000).toStringAsFixed(1)} km'
+        : '$meters m';
+  }
 }

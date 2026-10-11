@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../application/public_config.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 
 /// Referansın krem zeminli, marka bardağıyla tamamlanan giriş bölümü.
-class LoadRewardsHero extends StatelessWidget {
+class LoadRewardsHero extends ConsumerWidget {
   const LoadRewardsHero({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rules = ref.watch(campaignRulesProvider);
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
@@ -85,7 +88,9 @@ class LoadRewardsHero extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'İlk yüklemene özel kahve hediyeleri hesabına gelsin.',
+                    rules.topupFirstOnly
+                        ? 'İlk yüklemene özel kahve hediyeleri hesabına gelsin.'
+                        : 'Yüklemene özel kahve hediyeleri hesabına gelsin.',
                     style: AppTypography.body.copyWith(height: 1.35),
                   ),
                   const SizedBox(height: AppSpacing.sm),

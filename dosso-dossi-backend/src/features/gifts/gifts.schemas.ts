@@ -1,11 +1,14 @@
 import { z } from 'zod';
+import { moneyInput } from '../../lib/money.js';
 
 export const sendGiftSchema = z
   .object({
     recipientPhone: z.string().min(10).max(20),
     type: z.enum(['drink', 'balance']),
     productId: z.string().optional(),
-    amount: z.number().positive().max(100_000).optional(),
+    amount: moneyInput.positive().max(100_000).optional(),
+    idempotencyKey: z.string().uuid().optional(),
+    expectedTotal: moneyInput.nonnegative().optional(),
     note: z.string().trim().max(200).default(''),
   })
   .refine((v) => (v.type === 'drink' ? !!v.productId : v.amount !== undefined), {

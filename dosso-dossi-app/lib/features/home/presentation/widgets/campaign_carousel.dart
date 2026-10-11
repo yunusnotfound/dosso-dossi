@@ -5,18 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/story_theme.dart';
 import '../../../../routing/app_router.dart';
 import '../../../campaigns/application/campaign_providers.dart';
 import '../../../campaigns/domain/campaign.dart';
-import '../../../campaigns/presentation/widgets/coffee_rewards_preview.dart';
+import 'approved_campaign_poster.dart';
 import 'load_rewards_campaign_card.dart';
 
-/// Afiş kartları 4:5 dikey oranda; carousel yüksekliği buna göre seçildi ki
-/// afiş kırpılmadan bütün olarak görünsün.
-const double _carouselHeight = 300;
-const double _afisCardWidth = _carouselHeight * 0.8;
-
-/// "Sana Özel" yatay kampanya kartları.
+/// Görsellerin kendi oranında, yuvarlak köşeli "Sana Özel" afişleri.
 class CampaignCarousel extends ConsumerWidget {
   const CampaignCarousel({super.key});
 
@@ -24,71 +20,95 @@ class CampaignCarousel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final campaigns = ref.watch(campaignsProvider);
 
-    return campaigns.when(
-      skipError: true,
-      skipLoadingOnReload: true,
-      loading: () => const SizedBox(
-        height: _carouselHeight,
-        child: Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, _) => const SizedBox.shrink(),
-      data: (items) => SizedBox(
-        height: _carouselHeight,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: items.length,
-          separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
-          itemBuilder: (context, index) {
-            final campaign = items[index];
-            // Kampanya listesindeki yeni krem tasarımla aynı içerik.
-            if (campaign.id == 'kahve-ictikce') {
-              return const _CoffeeRewardsCard();
-            }
-            // Hediye kutusundan açılan yeni ekranın aynı görsel ve metinleri.
-            if (campaign.id == 'yukle-kazan') {
-              return const LoadRewardsCampaignCard(
-                width: _afisCardWidth,
-                height: _carouselHeight,
-              );
-            }
-            return _CampaignCard(campaign: campaign);
-          },
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = (constraints.maxWidth * 0.36).clamp(0.0, 180.0);
+        final cardHeight = cardWidth / ApprovedCampaignPoster.aspectRatio;
+        return campaigns.when(
+          skipError: true,
+          skipLoadingOnReload: true,
+          loading: () => SizedBox(
+            height: cardHeight,
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, _) => const SizedBox.shrink(),
+          data: (items) => SizedBox(
+            height: cardHeight,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: items.length + 1,
+              separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
+              itemBuilder: (context, index) {
+                if (index == items.length) {
+                  return _ApprovedCampaignCard(
+                    width: cardWidth,
+                    height: cardHeight,
+                    asset: ApprovedCampaignAssets.thermos,
+                    label: 'Termos koleksiyonunu keşfet',
+                    route: Routes.shop,
+                  );
+                }
+                final campaign = items[index];
+                // Onaylanan afiş, kartın tamamını doldurur.
+                if (campaign.id == 'kahve-ictikce') {
+                  return _ApprovedCampaignCard(
+                    width: cardWidth,
+                    height: cardHeight,
+                    asset: ApprovedCampaignAssets.coffee,
+                    label: 'Kahve İçtikçe Kahve Kazan kampanyası',
+                    route: Routes.campaignKahve,
+                  );
+                }
+                // Onaylanan Yükle Kazan afişi, mevcut ayrıntı sayfasını açar.
+                if (campaign.id == 'yukle-kazan') {
+                  return LoadRewardsCampaignCard(
+                    width: cardWidth,
+                    height: cardHeight,
+                  );
+                }
+                return _CampaignCard(campaign: campaign, width: cardWidth);
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
-/// Yeni kahve kampanyası tasarımını kırpmadan küçük karta sığdırır.
-class _CoffeeRewardsCard extends StatelessWidget {
-  const _CoffeeRewardsCard();
+/// Onaylanan afişleri kırpmadan, aynı ölçüde küçük karta sığdırır.
+class _ApprovedCampaignCard extends StatelessWidget {
+  const _ApprovedCampaignCard({
+    required this.width,
+    required this.height,
+    required this.asset,
+    required this.label,
+    required this.route,
+  });
+  final double width;
+  final double height;
+  final String asset;
+  final String label;
+  final String route;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Kahve İçtikçe Kahve Kazan kampanyası',
+      label: label,
       child: Material(
         color: AppColors.campaignBackground,
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(StoryTheme.posterRadius),
+          side: const BorderSide(color: StoryTheme.posterBorder),
+        ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => context.push(Routes.campaignKahve),
+          onTap: () => context.push(route),
           child: SizedBox(
-            width: _afisCardWidth,
-            height: _carouselHeight,
-            child: const ExcludeSemantics(
-              child: FittedBox(
-                fit: BoxFit.contain,
-                child: SizedBox(
-                  width: 360,
-                  child: CoffeeRewardsPreview(
-                    showProgress: true,
-                    compact: true,
-                  ),
-                ),
-              ),
-            ),
+            width: width,
+            height: height,
+            child: ApprovedCampaignPoster(asset: asset),
           ),
         ),
       ),
@@ -97,9 +117,10 @@ class _CoffeeRewardsCard extends StatelessWidget {
 }
 
 class _CampaignCard extends StatelessWidget {
-  const _CampaignCard({required this.campaign});
+  const _CampaignCard({required this.campaign, required this.width});
 
   final Campaign campaign;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
@@ -108,10 +129,11 @@ class _CampaignCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.push(Routes.campaigns),
       child: Container(
-        width: 250,
+        width: width,
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(StoryTheme.posterRadius),
+          border: Border.all(color: StoryTheme.posterBorder),
           gradient: isDark
               ? const LinearGradient(
                   begin: Alignment.topLeft,

@@ -1,0 +1,46 @@
+{
+  "created": "2026-10-02",
+  "method": "Built-in image_gen",
+  "status": "published",
+  "posters": [
+    {
+      "id": "01-serinligin-uc-hali",
+      "refs": [
+        "/Users/berkaydemir/dosso-dossi/dosso-dossi-backend/uploads/products/fragola-limone.webp",
+        "/Users/berkaydemir/dosso-dossi/dosso-dossi-backend/uploads/products/dolce-mocha-freddo.webp",
+        "/Users/berkaydemir/dosso-dossi/dosso-dossi-backend/uploads/products/bianco-mocha-freddo.webp",
+        "/Users/berkaydemir/dosso-dossi/dosso-dossi-app/assets/images/logo.png"
+      ],
+      "prompt": "Use case: ads-marketing / compositing. Create ONE finished portrait 9:16 marketing poster for Dosso Dossi Coffee's in-app story, preferably 1080x1920 or equivalent high resolution. Composite the REAL supplied product images into a sophisticated, restrained commercial still life. Input 1 is Fragola Limone, the pink frozen fruit drink; input 2 is Dolce Mocha Freddo, brown iced coffee; input 3 is Bianco Mocha Freddo, lighter iced coffee; input 4 is the exact brand logo. Preserve the recognizable actual cup shapes, domed lids, orange straws, product colors and printed Dosso Dossi logos. Clean cutout edges naturally, but do not invent other packaging or redraw a generic brand. Use the fourth logo as a small sharp logo above the main headline, retaining its actual lettering and illustration.\n\nVisual direction: premium cream #FBF8F2 and warm beige #EBE1DA background, confident brand-orange #EF6024 typography, deep coffee brown #2E211A supporting type. Soft warm studio daylight, subtle grounded shadows, a few low cream/terracotta sculptural plinths. Three generous cups in an elegant balanced group, staggered height but all fully visible, occupying lower-middle two thirds; pink drink front-left, brown coffee center slightly back, lighter coffee right. A few ice pieces as restrained decoration, no confetti or floating objects. Simple photographic art direction, NOT a UI mockup or phone mockup.\n\nLayout: edge-to-edge poster artwork, no outer border, no rounded frame. Keep the top 12% quiet background for the application's existing overlaid story header. Small supplied logo at approximately 17% height, strong large two-line headline below it; products central lower field. Keep copy readable in a mobile screen and well separated from products. Minimum 7% left/right safe margins. No text in bottom 5%.\n\nExact Turkish text, correct accents and spelling:\nHeadline, two lines:\n\"Serinliğin\"\n\"üç hali.\"\nSupporting line:\n\"Soğuk kahveler ve meyveli seçenekler.\"\nSmall product names below the product group, in a tasteful clean hierarchy, each correctly tied to its cup:\n\"Fragola Limone\"\n\"Dolce Mocha Freddo\"\n\"Bianco Mocha Freddo\"\n\nDo not add any other headline, offer, price, discount, bonus, stock claim or ingredient/health claim. No baked-in CTA button, progress bars, close icon, status bar, app navigation, extra logos or third-party branding. The result must look like a thoughtful professional branded product campaign ready for a portrait story."
+    },
+    {
+      "id": "02-kahve-keyfi-evinde",
+      "refs": [
+        "/Users/berkaydemir/Downloads/kenya.png",
+        "/Users/berkaydemir/Downloads/kolombiya.png",
+        "/Users/berkaydemir/Downloads/nıkaragua.png",
+        "/Users/berkaydemir/dosso-dossi/dosso-dossi-app/assets/images/logo.png"
+      ],
+      "prompt": "Use case: ads-marketing / compositing. Create ONE finished portrait 9:16 product campaign poster for the Dosso Dossi Coffee app story, preferably 1080x1920 or equivalent high resolution. Use the supplied REAL coffee-bag photographs as the actual products, removing the original white canvas and background around the bags, preserving the bag silhouettes, material creases, printed labels, orange label stripes, Dosso Dossi logos and product names faithfully. Input 1: Kenya 250g bag. Input 2: Colombia/Kolombiya 250g bag. Input 3: Nicaragua/Nikaragua 250g bag. Input 4: exact circular brand logo. Do not invent a different packaging design, label or coffee blend. Place the fourth logo small and sharp above the headline.\n\nArt direction: quiet sophisticated coffee boutique, luminous light cream #FBF8F2 blending into warm beige #EBE1DA, bold Dosso orange #EF6024 headline and rich coffee-brown #2E211A body text. A tasteful warm stone display with one low orange/clay plinth, soft daylight and subtle window shadows. Three coffee bags prominently arranged as an elegant product family: Kolombiya slightly forward center, Kenya on the left and Nikaragua on the right, their fronts visible without obscuring logos. Keep their original relative same 250g size believable. A few real coffee beans on the surface and very subtle leaf shadow, restrained decoration, no excessive props. Bags take up generous lower-middle area.\n\nMobile layout: edge-to-edge poster, no framing, no phone/device mockup, no app UI. Reserve the top 12% as calm background for the existing overlaid story header. The small exact brand logo at around 17% height and large left-aligned two-line headline below it. Clear separation of typography and products, 7% side safe margins, nothing important in bottom 5%. Use elegant modern sans-serif type with accurate Turkish characters. This poster must feel coordinated with a Dosso iced-drinks cream/orange campaign but with its own warm coffee ritual composition.\n\nExact Turkish text:\nSmall eyebrow:\n\"ÇEKİRDEK KAHVE SEÇKİSİ\"\nMain headline, two lines:\n\"Kahve keyfi,\"\n\"evinde.\"\nSupporting product line near bottom:\n\"Kenya • Kolombiya • Nikaragua\"\nSmall concluding informational line:\n\"Paket kahvelerimizi online mağazada keşfet.\"\n\nDo not add prices, discounts, delivery promises, fresh-roasting claims, health claims, stars, awards or campaign offers. No baked-in CTA button because the app supplies it. No progress bars, close button, status bar, frame, watermark or foreign-brand text. Preserve the real brand logo and original package lettering as much as possible. Produce an attractive finished sales poster, not a concept sheet."
+    }
+  ],
+  "publishedAt": "2026-10-02T17:32:13.066Z",
+  "publication": [
+    {
+      "id": "cmur8qcbv000jjn26pt20qxmu",
+      "title": "Serinliğin Üç Hali",
+      "action": "siparis",
+      "imageUrl": "/media/stories/7b12e7ba6fc06ae08fb9ef67bcab4a8295394edf9afda57f0cbf8f746f690122.webp",
+      "isActive": true,
+      "file": "01-serinligin-uc-hali.png"
+    },
+    {
+      "id": "cmur8qcg3000ojn26o3pxu8zr",
+      "title": "Kahve Keyfi Evinde",
+      "action": "online-magaza",
+      "imageUrl": "/media/stories/d9c400bfce2ac2ecfca953495ee8f1a9c25e42ddf63a1ecfa197a20930ba0c13.webp",
+      "isActive": true,
+      "file": "02-kahve-keyfi-evinde.png"
+    }
+  ]
+}

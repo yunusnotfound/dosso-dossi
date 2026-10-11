@@ -31,6 +31,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>İstediğinde yakınındaki Dosso Dossi şubelerini ve yaklaşık mesafelerini göstermek için konumun kullanılır.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Geliştirme sırasında aynı ağdaki Dosso Dossi sunucusuna bağlanmak için kullanılır.</string>
 	<key>UIApplicationSceneManifest</key>

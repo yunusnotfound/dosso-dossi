@@ -1,32 +1,13 @@
-import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiError, api } from '../../api/client';
+import { useState } from 'react';
+import { ApiError, api, readApi } from '../../api/client';
+import { fmtNum, fmtTL } from '../../api/format';
+import type { Branch } from '../../api/schemas';
+import { availabilitySchema, branchSchema } from '../../api/schemas';
+import { useAuth } from '../../auth/auth-state';
 import { Checkbox, Drawer, Field, Input } from '../../components/form';
 import { DataTable, PageHeader, type Column } from '../../components/table';
-import { Badge, Button, Card, SectionTitle, fmtNum, fmtTL } from '../../components/ui';
-
-interface Branch {
-  id: string;
-  name: string;
-  address: string;
-  city: string;
-  phone: string;
-  lat: number;
-  lng: number;
-  hours: string;
-  isOpen: boolean;
-  prepMinutes: number;
-  orderCount: number;
-}
-
-interface Availability {
-  productId: string;
-  name: string;
-  categoryName: string;
-  basePrice: number;
-  isAvailable: boolean;
-  priceOverride: number | null;
-}
+import { QueryError, Spinner, EmptyState, Badge, Button, Card, SectionTitle, } from '../../components/ui';
 
 const EMPTY: Branch = {
   id: '',
@@ -43,13 +24,16 @@ const EMPTY: Branch = {
 };
 
 export function BranchesPage() {
+  const { admin } = useAuth();
+  const canManage = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
+  const canOperate = admin?.role !== 'VIEWER';
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Branch | null>(null);
   const [matrixFor, setMatrixFor] = useState<Branch | null>(null);
 
   const list = useQuery({
     queryKey: ['branches'],
-    queryFn: () => api<Branch[]>('/admin/branches'),
+    queryFn: ({ signal }) => readApi(branchSchema.array(), '/admin/branches', { signal }),
   });
   const refresh = () => void qc.invalidateQueries({ queryKey: ['branches'] });
 
@@ -95,6 +79,7 @@ export function BranchesPage() {
             e.stopPropagation();
             toggle.mutate(b);
           }}
+          disabled={!canOperate || toggle.isPending}
           title="Anlık açık/kapalı — kapalı şube sipariş alamaz"
         >
           <Badge tone={b.isOpen ? 'ok' : 'bad'}>{b.isOpen ? 'Açık' : 'Kapalı'}</Badge>
@@ -123,14 +108,15 @@ export function BranchesPage() {
       <PageHeader
         title="Şubeler"
         subtitle="Bilgiler, çalışma durumu ve ürün müsaitliği"
-        actions={<Button onClick={() => setEditing({ ...EMPTY })}>Yeni şube</Button>}
+        actions={canManage ? <Button onClick={() => setEditing({ ...EMPTY })}>Yeni şube</Button> : null}
       />
+      {toggle.error ? <p role="alert" className="text-sm text-bad">{toggle.error.message}</p> : null}
       <DataTable
         columns={columns}
         rows={list.data}
         rowKey={(b) => b.id}
-        onRowClick={setEditing}
-        loading={list.isLoading}
+        onRowClick={canManage ? setEditing : undefined}
+        loading={list.isLoading} error={list.error} onRetry={() => void list.refetch()}
       />
 
       <BranchDrawer
@@ -259,7 +245,7 @@ function BranchDrawer({
           onChange={(v) => set('isOpen', v)}
         />
         {error ? (
-          <p className="rounded-[--radius-chip] bg-bad-soft px-3 py-2 text-sm text-bad">
+          <p className="rounded-chip bg-bad-soft px-3 py-2 text-sm text-bad">
             {error}
           </p>
         ) : null}
@@ -276,11 +262,12 @@ function AvailabilityDrawer({
   onClose: () => void;
 }) {
   const qc = useQueryClient();
+  const { admin } = useAuth();
   const [q, setQ] = useState('');
 
   const list = useQuery({
     queryKey: ['availability', branch?.id],
-    queryFn: () => api<Availability[]>(`/admin/branches/${branch!.id}/availability`),
+    queryFn: ({ signal }) => readApi(availabilitySchema.array(), `/admin/branches/${branch!.id}/availability`, { signal }),
     enabled: !!branch,
   });
 
@@ -288,7 +275,7 @@ function AvailabilityDrawer({
     mutationFn: (p: { productId: string; isAvailable: boolean }) =>
       api(`/admin/branches/${branch!.id}/availability/${p.productId}`, {
         method: 'POST',
-        body: { isAvailable: p.isAvailable, priceOverride: null },
+        body: { isAvailable: p.isAvailable },
       }),
     onSuccess: () =>
       void qc.invalidateQueries({ queryKey: ['availability', branch?.id] }),
@@ -308,6 +295,10 @@ function AvailabilityDrawer({
         <p className="text-sm text-ink-muted">
           Kapatılan ürün bu şubede sipariş edilemez. Kayıt yoksa ürün müsait sayılır.
         </p>
+        {set.error ? <p role="alert" className="text-sm text-bad">{set.error.message}</p> : null}
+        {list.isLoading ? <Spinner /> : null}
+        <QueryError error={list.error} onRetry={() => void list.refetch()} />
+        {!list.isLoading && !list.error && rows.length === 0 ? <EmptyState>Ürün bulunamadı</EmptyState> : null}
         <Input placeholder="Ürün ara" value={q} onChange={(e) => setQ(e.target.value)} />
         <Card className="p-0">
           <ul>
@@ -319,10 +310,12 @@ function AvailabilityDrawer({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-ink">{r.name}</p>
                   <p className="text-xs text-ink-muted">
-                    {r.categoryName} · {fmtTL(r.basePrice)}
+                    {r.categoryName} · {fmtTL(r.priceOverride ?? r.basePrice)}
+                    {r.priceOverride !== null ? ` (şubeye özel; genel ${fmtTL(r.basePrice)})` : ''}
                   </p>
                 </div>
                 <button
+                  disabled={admin?.role === 'VIEWER' || set.isPending}
                   onClick={() =>
                     set.mutate({ productId: r.productId, isAvailable: !r.isAvailable })
                   }

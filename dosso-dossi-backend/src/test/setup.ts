@@ -1,7 +1,12 @@
 import { beforeEach, afterAll } from 'vitest';
 import { prisma } from '../lib/prisma.js';
+import { testDatabaseUrl } from './database.js';
+import { invalidateSettingsCache } from '../features/settings/settings.service.js';
+
+if (process.env.DATABASE_URL !== testDatabaseUrl()) throw new Error('Test DB seçimi uyuşmuyor');
 
 const TABLES = [
+  'FinancialRequest',
   'AuditLog',
   'AdminRefreshToken',
   'AdminUser',
@@ -25,6 +30,7 @@ const TABLES = [
   'Category',
   'Branch',
   'Campaign',
+  'CampaignStory',
   'PromoCode',
   'ProductOption',
   'Setting',
@@ -38,6 +44,7 @@ beforeEach(async () => {
     `TRUNCATE TABLE ${TABLES.map((t) => `"${t}"`).join(', ')} CASCADE`,
   );
   await prisma.$executeRawUnsafe(`ALTER SEQUENCE order_number_seq RESTART WITH 1042`);
+  invalidateSettingsCache();
   await seedFixtures();
 });
 
@@ -94,5 +101,10 @@ async function seedFixtures(): Promise<void> {
       },
     ],
   });
+  await prisma.productOption.createMany({ data: [
+    { group: 'milk', name: 'Yulaf sütü', priceDelta: 60 },
+    { group: 'milk', name: 'Badem sütü', priceDelta: 60 },
+    { group: 'shot', name: 'Çift shot', priceDelta: 40 },
+  ] });
   await prisma.promoCode.create({ data: { code: 'DOSSO10', discountRate: 0.1 } });
 }

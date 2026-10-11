@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../application/public_config.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -9,7 +11,7 @@ import '../../domain/campaign.dart';
 import 'coffee_rewards_preview.dart';
 import 'load_rewards_preview.dart';
 
-class CampaignDiscoveryCard extends StatelessWidget {
+class CampaignDiscoveryCard extends ConsumerWidget {
   const CampaignDiscoveryCard({super.key, required this.campaign});
   final Campaign campaign;
 
@@ -50,7 +52,8 @@ class CampaignDiscoveryCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rules = ref.watch(campaignRulesProvider);
     return Semantics(
       button: true,
       label: '${campaign.title} kampanyasını keşfet',
@@ -91,7 +94,9 @@ class CampaignDiscoveryCard extends StatelessWidget {
                           children: [
                             Text(
                               campaign.id == 'yukle-kazan'
-                                  ? 'İlk yüklemene özel'
+                                  ? (rules.topupFirstOnly
+                                        ? 'İlk yüklemene özel'
+                                        : 'Yüklemene özel')
                                   : campaign.id == 'kahve-ictikce'
                                   ? 'Kahve keyfin hediyeye dönüşsün'
                                   : campaign.title,

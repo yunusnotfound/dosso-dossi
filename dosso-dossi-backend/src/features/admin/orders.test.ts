@@ -198,7 +198,7 @@ describe('admin siparişler', () => {
     expect(after.freeDrinks).toBe(before.freeDrinks + 1);
   });
 
-  it('aynı sipariş iki kez iptal edilemez (çifte iade olmaz)', async () => {
+  it('aynı iptal tekrarında önceki sonucu döner ve ikinci iade yazmaz', async () => {
     const order = await seedOrder();
     const first = await request(app)
       .post(`/admin/orders/${order.id}/cancel`)
@@ -210,7 +210,8 @@ describe('admin siparişler', () => {
       .post(`/admin/orders/${order.id}/cancel`)
       .set('Authorization', `Bearer ${token}`)
       .send({ reason: 'İkinci iptal denemesi' });
-    expect(second.status).toBe(409);
+    expect(second.status).toBe(200);
+    expect(second.body).toEqual(first.body);
 
     expect(await prisma.walletTransaction.count({ where: { type: 'REFUND' } })).toBe(1);
   });

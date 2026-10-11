@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/scrollable_page_scaffold.dart';
+import '../../../core/utils/error_feedback.dart';
 import '../application/notification_prefs.dart';
 
 class NotificationPrefsScreen extends ConsumerWidget {
@@ -12,6 +13,9 @@ class NotificationPrefsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(notificationSaveErrorProvider, (_, error) {
+      if (error != null) showApiError(context, error);
+    });
     final prefs = ref.watch(notificationPrefsProvider);
     final controller = ref.read(notificationPrefsProvider.notifier);
 

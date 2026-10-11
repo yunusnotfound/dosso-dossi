@@ -1,10 +1,11 @@
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { hash as argonHash, verify as argonVerify } from '@node-rs/argon2';
 import type { AdminRole, Prisma } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
 import { logger } from '../../lib/logger.js';
 import { prisma } from '../../lib/prisma.js';
 import { signAdminToken } from '../../middleware/admin-auth.js';
+import { assertTemporaryPasswordActive } from './temporary-password.js';
 
 const REFRESH_TTL_MS = 12 * 60 * 60 * 1000; // 12 saat — panel oturumu kısa
 
@@ -22,6 +23,8 @@ export interface AdminAuthResult {
     name: string;
     role: AdminRole;
     branchId: string | null;
+    mustChangePassword: boolean;
+    tempPasswordExpiresAt: string | null;
   };
 }
 
@@ -49,17 +52,20 @@ export async function login(
   if (!admin || !admin.isActive || !ok) {
     throw AppError.unauthorized('E-posta veya şifre hatalı');
   }
+  assertTemporaryPasswordActive(admin);
 
+  const familyId = randomUUID();
   const refreshToken = await prisma.$transaction(async (tx) => {
-    await tx.adminUser.update({
-      where: { id: admin.id },
+    const accepted = await tx.adminUser.updateMany({
+      where: { id: admin.id, passwordHash: admin.passwordHash, isActive: true, tokenVersion: admin.tokenVersion },
       data: { lastLoginAt: new Date() },
     });
-    return issueRefreshToken(tx, admin.id, deviceInfo);
+    if (!accepted.count) throw AppError.unauthorized('Hesap bilgileri değişti, yeniden giriş yapın');
+    return issueRefreshToken(tx, admin.id, deviceInfo, familyId);
   });
 
   return {
-    token: signAdminToken(admin.id),
+    token: signAdminToken(admin.id, admin.tokenVersion, familyId),
     refreshToken,
     admin: {
       id: admin.id,
@@ -67,6 +73,8 @@ export async function login(
       name: admin.name,
       role: admin.role,
       branchId: admin.branchId,
+      mustChangePassword: admin.mustChangePassword,
+      tempPasswordExpiresAt: admin.tempPasswordExpiresAt?.toISOString() ?? null,
     },
   };
 }
@@ -75,12 +83,14 @@ async function issueRefreshToken(
   tx: Prisma.TransactionClient,
   adminId: string,
   deviceInfo = '',
+  familyId: string = randomUUID(),
 ): Promise<string> {
   const raw = randomBytes(48).toString('base64url');
   await tx.adminRefreshToken.create({
     data: {
       adminId,
       tokenHash: sha(raw),
+      familyId,
       deviceInfo,
       expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
     },
@@ -88,36 +98,34 @@ async function issueRefreshToken(
   return raw;
 }
 
-/// Rotasyon; iptal edilmiş token yeniden kullanılırsa (çalıntı şüphesi)
-/// yöneticinin TÜM oturumları düşer. Müşteri tarafındaki desenin aynısı.
+/// Rotasyon; reuse yalnız etkilenen oturum ailesini kapatır.
 export async function rotate(
   raw: string,
 ): Promise<{ token: string; refreshToken: string }> {
   const existing = await prisma.adminRefreshToken.findUnique({
     where: { tokenHash: sha(raw) },
   });
-  if (!existing) throw AppError.unauthorized();
+  if (!existing || existing.expiresAt <= new Date() || existing.familyRevokedAt) throw AppError.unauthorized();
 
-  if (existing.revokedAt) {
-    logger.warn(
-      `Admin refresh token reuse tespit edildi (admin ${existing.adminId}) — tüm oturumlar iptal ediliyor`,
-    );
-    await prisma.adminRefreshToken.updateMany({
-      where: { adminId: existing.adminId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
-    throw AppError.unauthorized();
-  }
-  if (existing.expiresAt < new Date()) throw AppError.unauthorized();
-
-  // Rolü düşürülen/pasifleştirilen yönetici oturumunu yenileyemesin.
-  const admin = await prisma.adminUser.findUnique({
-    where: { id: existing.adminId },
-  });
-  if (!admin?.isActive) throw AppError.unauthorized('Hesap pasif');
-
-  return prisma.$transaction(async (tx) => {
-    const newRaw = await issueRefreshToken(tx, existing.adminId, existing.deviceInfo);
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "AdminUser" WHERE id = ${existing.adminId} FOR UPDATE`;
+    const current = await tx.adminUser.findUnique({ where: { id: existing.adminId } });
+    if (!current?.isActive) throw AppError.unauthorized();
+    assertTemporaryPasswordActive(current);
+    const token = await tx.adminRefreshToken.findUniqueOrThrow({ where: { id: existing.id } });
+    if (token.expiresAt <= new Date() || token.familyRevokedAt) return null;
+    if (token.revokedAt) {
+      if (existing.revokedAt) {
+        const now = new Date();
+        await tx.adminRefreshToken.updateMany({
+          where: { adminId: existing.adminId, familyId: token.familyId, familyRevokedAt: null },
+          data: { revokedAt: now, familyRevokedAt: now },
+        });
+        logger.warn('Admin refresh token reuse: affected session family revoked');
+      }
+      return null;
+    }
+    const newRaw = await issueRefreshToken(tx, existing.adminId, existing.deviceInfo, token.familyId);
     // Guard'lı revoke: eşzamanlı iki rotasyondan yalnız biri geçer.
     const revoked = await tx.adminRefreshToken.updateMany({
       where: { id: existing.id, revokedAt: null },
@@ -128,14 +136,22 @@ export async function rotate(
       },
     });
     if (revoked.count === 0) throw AppError.unauthorized();
-    return { token: signAdminToken(existing.adminId), refreshToken: newRaw };
+    return { token: signAdminToken(existing.adminId, current.tokenVersion, token.familyId), refreshToken: newRaw };
   });
+  if (!result) throw AppError.unauthorized();
+  return result;
 }
 
 export async function logout(raw: string): Promise<void> {
-  await prisma.adminRefreshToken.updateMany({
-    where: { tokenHash: sha(raw), revokedAt: null },
-    data: { revokedAt: new Date() },
+  const token = await prisma.adminRefreshToken.findUnique({ where: { tokenHash: sha(raw) } });
+  if (!token) return;
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "AdminUser" WHERE id = ${token.adminId} FOR UPDATE`;
+    const now = new Date();
+    await tx.adminRefreshToken.updateMany({
+      where: { adminId: token.adminId, familyId: token.familyId, familyRevokedAt: null },
+      data: { revokedAt: now, familyRevokedAt: now },
+    });
   });
 }
 
@@ -144,9 +160,10 @@ export async function revokeAllSessions(
   tx: Prisma.TransactionClient,
   adminId: string,
 ): Promise<void> {
+  await tx.adminUser.update({ where: { id: adminId }, data: { tokenVersion: { increment: 1 } } });
   await tx.adminRefreshToken.updateMany({
-    where: { adminId, revokedAt: null },
-    data: { revokedAt: new Date() },
+    where: { adminId, familyRevokedAt: null },
+    data: { revokedAt: new Date(), familyRevokedAt: new Date() },
   });
 }
 
@@ -158,14 +175,22 @@ export async function changePassword(
 ): Promise<void> {
   const admin = await prisma.adminUser.findUnique({ where: { id: adminId } });
   if (!admin) throw AppError.notFound();
+  assertTemporaryPasswordActive(admin);
   const ok = await argonVerify(admin.passwordHash, currentPassword).catch(
     () => false,
   );
   if (!ok) throw AppError.unauthorized('Mevcut şifre hatalı');
+  if (currentPassword === newPassword) throw new AppError('VALIDATION_ERROR', 400, 'Yeni şifre mevcut şifreden farklı olmalı');
 
   const passwordHash = await hashPassword(newPassword);
   await prisma.$transaction(async (tx) => {
-    await tx.adminUser.update({ where: { id: adminId }, data: { passwordHash } });
+    const updated = await tx.adminUser.updateMany({
+      where: { id: adminId, passwordHash: admin.passwordHash, tokenVersion: admin.tokenVersion, isActive: true,
+        ...(admin.mustChangePassword ? { tempPasswordExpiresAt: { gt: new Date() } } : {}),
+      },
+      data: { passwordHash, mustChangePassword: false, tempPasswordExpiresAt: null },
+    });
+    if (!updated.count) throw AppError.unauthorized('Oturum veya şifre değişti; yeniden giriş yapın');
     await revokeAllSessions(tx, adminId);
   });
 }

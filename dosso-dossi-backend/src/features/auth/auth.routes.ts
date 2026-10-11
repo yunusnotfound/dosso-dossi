@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { normalizePhone } from '../../lib/phone.js';
 import { makeRateLimiter } from '../../middleware/rate-limit.js';
 import { validate } from '../../middleware/validate.js';
 import { otpSendSchema, otpVerifySchema } from './auth.schemas.js';
@@ -13,7 +14,7 @@ const logoutSchema = z.object({ refreshToken: z.string().optional() });
 const verifyLimiter = makeRateLimiter({
   windowMs: 60_000,
   max: 10,
-  keyFn: (req) => `${req.ip}:${(req.body as { phone?: string })?.phone ?? ''}`,
+  keyFn: (req) => normalizePhone(req.body.phone),
 });
 const refreshLimiter = makeRateLimiter({
   windowMs: 60_000,
@@ -21,9 +22,13 @@ const refreshLimiter = makeRateLimiter({
   keyFn: (req) => req.ip ?? 'anon',
 });
 
+const sendIpLimiter = makeRateLimiter({ windowMs: 10 * 60_000, max: 20, keyFn: (req) => req.ip ?? 'anon' });
+const verifyIpLimiter = makeRateLimiter({ windowMs: 60_000, max: 30, keyFn: (req) => req.ip ?? 'anon' });
+const globalSendLimiter = makeRateLimiter({ windowMs: 60_000, max: 250, keyFn: () => 'all-otp-sends' });
+
 export const authRouter = Router();
 
-authRouter.post('/otp/send', validate(otpSendSchema), async (req, res, next) => {
+authRouter.post('/otp/send', sendIpLimiter, globalSendLimiter, validate(otpSendSchema), async (req, res, next) => {
   try {
     await requestOtp(req.body.phone);
     res.json({ ok: true });
@@ -32,7 +37,7 @@ authRouter.post('/otp/send', validate(otpSendSchema), async (req, res, next) => 
   }
 });
 
-authRouter.post('/otp/verify', verifyLimiter, validate(otpVerifySchema), async (req, res, next) => {
+authRouter.post('/otp/verify', verifyIpLimiter, validate(otpVerifySchema), verifyLimiter, async (req, res, next) => {
   try {
     res.json(await verifyOtp(req.body.phone, req.body.code));
   } catch (err) {

@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { testDatabaseUrl } from './src/test/database.js';
 
 export default defineConfig({
   test: {
@@ -10,7 +11,7 @@ export default defineConfig({
     setupFiles: ['src/test/setup.ts'],
     env: {
       NODE_ENV: 'test',
-      DATABASE_URL: 'postgresql://dosso:dosso@localhost:5433/dosso_dossi_test',
+      DATABASE_URL: testDatabaseUrl(),
       JWT_SECRET: 'test-gizli-anahtar',
       ADMIN_JWT_SECRET: 'test-admin-gizli-anahtar',
       ADMIN_ORIGINS: 'http://localhost:5173,http://localhost:4173',

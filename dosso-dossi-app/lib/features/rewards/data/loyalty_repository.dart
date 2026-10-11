@@ -11,6 +11,10 @@ abstract interface class LoyaltyRepository {
   Future<LoyaltyStatus> getStatus();
 }
 
+abstract interface class PagedLoyaltyRepository {
+  Future<LoyaltyStatus> getHistoryPage({String? cursor});
+}
+
 final loyaltyRepositoryProvider = Provider<LoyaltyRepository>((ref) {
   return AppConfig.useMocks
       ? MockLoyaltyRepository()

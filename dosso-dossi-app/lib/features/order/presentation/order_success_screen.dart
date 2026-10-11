@@ -9,16 +9,56 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/scrollable_column.dart';
 import '../../../routing/app_router.dart';
 import '../application/order_providers.dart';
+import '../domain/order_record.dart';
 
-/// Ödeme sonrası sipariş onay ekranı. Son siparişi gösterir.
+/// Ödeme sonrası onay ekranı, yalnızca bu işlemin siparişini gösterir.
 class OrderSuccessScreen extends ConsumerWidget {
-  const OrderSuccessScreen({super.key});
+  const OrderSuccessScreen({
+    super.key,
+    required this.orderId,
+    this.initialOrder,
+  });
+
+  final String orderId;
+  final OrderRecord? initialOrder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final orders = ref.watch(ordersProvider);
-    final order = orders.isEmpty ? null : orders.first;
+    final receipt = initialOrder?.id == orderId
+        ? AsyncData(initialOrder!)
+        : ref.watch(orderReceiptProvider(orderId));
+    return receipt.when(
+      data: (order) => _receipt(context, order),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, _) => Scaffold(
+        appBar: AppBar(title: const Text('Sipariş bilgisi')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.page),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Sipariş bilgisi alınamadı. Tekrar deneyebilirsin.'),
+                const SizedBox(height: AppSpacing.md),
+                FilledButton(
+                  onPressed: () =>
+                      ref.invalidate(orderReceiptProvider(orderId)),
+                  child: const Text('Tekrar dene'),
+                ),
+                TextButton(
+                  onPressed: () => context.go(Routes.orderHistory),
+                  child: const Text('Siparişlerime git'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
+  Widget _receipt(BuildContext context, OrderRecord order) {
     return Scaffold(
       body: SafeArea(
         child: ScrollableColumn(
@@ -38,7 +78,7 @@ class OrderSuccessScreen extends ConsumerWidget {
               style: AppTypography.displayLarge,
             ),
             const SizedBox(height: AppSpacing.sm),
-            if (order != null) ...[
+            ...[
               Text(
                 'Sipariş No: ${order.id}',
                 textAlign: TextAlign.center,
@@ -69,10 +109,9 @@ class OrderSuccessScreen extends ConsumerWidget {
               ),
             ],
             const Spacer(),
-            if (order != null) ...[
+            ...[
               FilledButton(
-                onPressed: () =>
-                    context.go(Routes.orderTrackingPath(order.id)),
+                onPressed: () => context.go(Routes.orderTrackingPath(order.id)),
                 child: const Text('Siparişimi Takip Et'),
               ),
               const SizedBox(height: AppSpacing.sm),

@@ -72,7 +72,7 @@ class WalletCard extends ConsumerWidget {
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: () => context.go(Routes.scanPay),
+                  onPressed: () => context.go(Routes.scanPayTopUp),
                   style: TextButton.styleFrom(
                     backgroundColor: AppColors.surfaceTint,
                     foregroundColor: AppColors.textPrimary,
@@ -89,6 +89,7 @@ class WalletCard extends ConsumerWidget {
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 IconButton(
+                  tooltip: 'Tara ve Öde',
                   onPressed: () => context.go(Routes.scanPay),
                   // Görselin üzerinde kaybolmasın diye opak bir zemin.
                   style: IconButton.styleFrom(

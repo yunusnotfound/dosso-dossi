@@ -56,7 +56,7 @@ class StampCard extends ConsumerWidget {
   }
 }
 
-/// Konuk kullanıcıya damga kartının yerinde gösterilen giriş çağrısı.
+/// Konuk kullanıcı için damga kartının yerindeki giriş düğmesi.
 class _GuestStampContent extends ConsumerWidget {
   const _GuestStampContent();
 
@@ -65,16 +65,29 @@ class _GuestStampContent extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Damga biriktirmeye başla',
-          style: AppTypography.title.copyWith(color: const Color(0xFF120B06)),
+        // Metinler görünmez ve ekran okuyucuya aktarılmaz; eski yükseklik
+        // ekran genişliği ve yazı boyutuyla birlikte korunur.
+        Visibility(
+          visible: false,
+          maintainSize: true,
+          maintainAnimation: true,
+          maintainState: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Damga biriktirmeye başla',
+                style: AppTypography.title,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Üye ol, her kahvende damga kazan; 5. kahven bizden.',
+                style: AppTypography.body,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          ),
         ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          'Üye ol, her kahvende damga kazan; 5. kahven bizden.',
-          style: AppTypography.body.copyWith(color: const Color(0xFF120B06)),
-        ),
-        const SizedBox(height: AppSpacing.lg),
         Align(
           alignment: Alignment.centerLeft,
           child: FilledButton(

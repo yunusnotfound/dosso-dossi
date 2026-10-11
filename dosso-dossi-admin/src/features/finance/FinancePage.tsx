@@ -1,60 +1,15 @@
-import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiError, api } from '../../api/client';
-import { ReasonDialog, Select, Tabs } from '../../components/form';
-import { DataTable, PageHeader, Pager, type Column } from '../../components/table';
-import { Badge, fmtNum, fmtTL } from '../../components/ui';
+import { useState } from 'react';
+import { ApiError, readApi } from '../../api/client';
+import { addDateRange } from '../../api/filters';
+import { fmtNum, fmtTL } from '../../api/format';
+import type { Charge, LedgerEntry, Payment, ReconRow } from '../../api/schemas';
+import { chargeSchema, chargeVoidResultSchema, ledgerSchema, paymentSchema, reconRowSchema } from '../../api/schemas';
+import { useAuth } from '../../auth/auth-state';
 import { DownloadMenu } from '../../components/DownloadMenu';
-
-interface LedgerEntry {
-  id: string;
-  type: string;
-  amount: number;
-  balanceAfter: number;
-  note: string;
-  customerName: string;
-  customerPhone: string;
-  createdAt: string;
-}
-
-interface Ledger {
-  page: number;
-  pageSize: number;
-  total: number;
-  totalsByType: { type: string; count: number; amount: number }[];
-  entries: LedgerEntry[];
-}
-
-interface Payment {
-  id: string;
-  amount: number;
-  status: string;
-  provider: string;
-  providerRef: string | null;
-  bonusDrinks: number;
-  customerName: string;
-  customerPhone: string;
-  createdAt: string;
-  confirmedAt: string | null;
-}
-
-interface Charge {
-  id: string;
-  amount: number;
-  status: string;
-  saleRef: string | null;
-  customerName: string;
-  customerPhone: string;
-  createdAt: string;
-}
-
-interface ReconRow {
-  date: string;
-  ourCount: number;
-  ourAmount: number;
-  posMatched: number;
-  missingSaleRef: number;
-}
+import { Input, ReasonDialog, Select, Tabs } from '../../components/form';
+import { DataTable, PageHeader, Pager, type Column } from '../../components/table';
+import { Badge, } from '../../components/ui';
 
 const TX_LABEL: Record<string, string> = {
   TOPUP: 'Yükleme',
@@ -63,10 +18,11 @@ const TX_LABEL: Record<string, string> = {
   GIFT_RECEIVED: 'Hediye alımı',
   QR_PAYMENT: 'QR ödemesi',
   REFUND: 'İade',
+  ADJUSTMENT: 'Bakiye düzeltmesi',
 };
 
 const fmtDate = (iso: string) =>
-  new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(
+  new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', dateStyle: 'short', timeStyle: 'short' }).format(
     new Date(iso),
   );
 
@@ -77,24 +33,7 @@ export function FinancePage() {
       <PageHeader
         title="Finans"
         subtitle="Cüzdan defteri, yüklemeler, QR tahsilatları ve mutabakat"
-        actions={
-          <DownloadMenu
-            items={[
-              {
-                label: 'Excel defteri (.xlsx)',
-                hint: 'Özet + işlem tipi başına ayrı sayfa, marka biçimli',
-                path: '/admin/finance/ledger.xlsx',
-                fallbackName: 'dosso-dossi-cuzdan-defteri.xlsx',
-              },
-              {
-                label: 'CSV (.csv)',
-                hint: 'Ham veri — muhasebe yazılımına aktarım için',
-                path: '/admin/finance/ledger.csv',
-                fallbackName: 'dosso-dossi-cuzdan-defteri.csv',
-              },
-            ]}
-          />
-        }
+
       />
       <Tabs
         tabs={[
@@ -115,17 +54,30 @@ export function FinancePage() {
 }
 
 function LedgerTab() {
+  const [search, setSearch] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const validDates = !from || !to || from <= to;
   const [type, setType] = useState('');
   const [page, setPage] = useState(1);
 
   const q = useQuery({
-    queryKey: ['ledger', { type, page }],
-    queryFn: () => {
+    queryKey: ['ledger', { type, page, search, from, to }],
+    enabled: validDates,
+    queryFn: ({ signal }) => {
       const p = new URLSearchParams({ page: String(page), pageSize: '50' });
       if (type) p.set('type', type);
-      return api<Ledger>(`/admin/finance/ledger?${p}`);
+      if (search) p.set('q', search);
+      addDateRange(p, from, to);
+      return readApi(ledgerSchema, `/admin/finance/ledger?${p}`, { signal });
     },
   });
+
+  const exportFilters = new URLSearchParams();
+  if (type) exportFilters.set('type', type);
+  if (search) exportFilters.set('q', search);
+  addDateRange(exportFilters, from, to);
+  const exportQuery = exportFilters.size ? `?${exportFilters}` : '';
 
   const columns: Column<LedgerEntry>[] = [
     { key: 'date', header: 'Tarih', render: (e) => fmtDate(e.createdAt) },
@@ -162,6 +114,10 @@ function LedgerTab() {
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
+        <DownloadMenu disabled={!validDates} items={[
+          { label: 'Excel defteri (.xlsx)', hint: 'Seçili işlem tipindeki hareketler; en fazla 10.000 kayıt', path: `/admin/finance/ledger.xlsx${exportQuery}`, fallbackName: 'dosso-dossi-cuzdan-defteri.xlsx' },
+          { label: 'CSV (.csv)', hint: 'Seçili işlem tipindeki hareketler; en fazla 10.000 kayıt', path: `/admin/finance/ledger.csv${exportQuery}`, fallbackName: 'dosso-dossi-cuzdan-defteri.csv' },
+        ]} />
         <Select
           value={type}
           onChange={(e) => {
@@ -176,6 +132,10 @@ function LedgerTab() {
             </option>
           ))}
         </Select>
+        <Input aria-label="Hareket ara" placeholder="Müşteri, telefon veya açıklama" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+        <Input aria-label="Başlangıç tarihi" type="date" value={from} max={to || undefined} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
+        <Input aria-label="Bitiş tarihi" type="date" value={to} min={from || undefined} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
+        <span className="text-xs text-ink-muted">Tarihler cihazınızın saat dilimindedir.</span>
         <div className="flex flex-wrap gap-2">
           {q.data?.totalsByType.map((t) => (
             <Badge key={t.type}>
@@ -184,16 +144,17 @@ function LedgerTab() {
           ))}
         </div>
       </div>
+      {!validDates ? <p role="alert" className="text-sm text-bad">Bitiş tarihi başlangıçtan önce olamaz.</p> : null}
       <DataTable
         columns={columns}
         rows={q.data?.entries}
         rowKey={(e) => e.id}
-        loading={q.isLoading}
+        loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()}
       />
       <Pager
         page={q.data?.page ?? 1}
         pageSize={q.data?.pageSize ?? 50}
-        total={q.data?.total ?? 0}
+        total={q.data?.total}
         onPage={setPage}
       />
     </>
@@ -203,7 +164,7 @@ function LedgerTab() {
 function PaymentsTab() {
   const q = useQuery({
     queryKey: ['payments'],
-    queryFn: () => api<Payment[]>('/admin/finance/payments'),
+    queryFn: ({ signal }) => readApi(paymentSchema.array(), '/admin/finance/payments', { signal }),
   });
 
   const tone = (s: string) =>
@@ -238,23 +199,25 @@ function PaymentsTab() {
   ];
 
   return (
-    <DataTable columns={columns} rows={q.data} rowKey={(p) => p.id} loading={q.isLoading} />
+    <DataTable columns={columns} rows={q.data} rowKey={(p) => p.id} loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()} />
   );
 }
 
 function ChargesTab() {
+  const { admin } = useAuth();
+  const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
   const [voidId, setVoidId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const q = useQuery({
     queryKey: ['charges'],
-    queryFn: () => api<Charge[]>('/admin/finance/charges'),
+    queryFn: ({ signal }) => readApi(chargeSchema.array(), '/admin/finance/charges', { signal }),
   });
 
   const doVoid = useMutation({
     mutationFn: (reason: string) =>
-      api(`/admin/finance/charges/${voidId}/void`, { method: 'POST', body: { reason } }),
+      readApi(chargeVoidResultSchema, `/admin/finance/charges/${voidId}/void`, { method: 'POST', body: { reason } }),
     onSuccess: () => {
       setVoidId(null);
       setError('');
@@ -293,7 +256,7 @@ function ChargesTab() {
       key: 'actions',
       header: '',
       render: (c) =>
-        c.status === 'APPROVED' ? (
+        canEdit && c.status === 'APPROVED' ? (
           <button
             onClick={() => setVoidId(c.id)}
             className="text-xs font-semibold text-bad hover:underline"
@@ -310,7 +273,7 @@ function ChargesTab() {
         İptal penceresi 15 dakikadır; süresi geçmiş tahsilat sunucu tarafından
         reddedilir.
       </p>
-      <DataTable columns={columns} rows={q.data} rowKey={(c) => c.id} loading={q.isLoading} />
+      <DataTable columns={columns} rows={q.data} rowKey={(c) => c.id} loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()} />
       <ReasonDialog
         open={!!voidId}
         title="Tahsilatı iptal et"
@@ -329,7 +292,7 @@ function ReconTab() {
   const [days, setDays] = useState(7);
   const q = useQuery({
     queryKey: ['recon', days],
-    queryFn: () => api<ReconRow[]>(`/admin/finance/reconciliation?days=${days}`),
+    queryFn: ({ signal }) => readApi(reconRowSchema.array(), `/admin/finance/reconciliation?days=${days}`, { signal }),
   });
 
   const columns: Column<ReconRow>[] = [
@@ -367,7 +330,7 @@ function ReconTab() {
           Eşleşmeyen satırlar, POS tarafında karşılığı bulunamayan QR tahsilatlarıdır.
         </p>
       </div>
-      <DataTable columns={columns} rows={q.data} rowKey={(r) => r.date} loading={q.isLoading} />
+      <DataTable columns={columns} rows={q.data} rowKey={(r) => r.date} loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()} />
     </>
   );
 }

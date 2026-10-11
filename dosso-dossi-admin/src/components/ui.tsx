@@ -11,16 +11,24 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-[--radius-card] bg-surface p-5 ring-1 ring-line ${className}`}
+      className={`admin-card ${className}`}
     >
       {children}
     </div>
   );
 }
 
+export function QueryError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  if (!error) return null;
+  return <Card><div role="alert" className="flex flex-wrap items-center justify-between gap-3">
+    <p className="text-sm text-bad">{error instanceof Error ? error.message : 'Veriler yüklenemedi. Bağlantınızı kontrol edin.'}</p>
+    <Button variant="outline" onClick={onRetry}>Yeniden dene</Button>
+  </div></Card>;
+}
+
 export function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h2 className="mb-3 text-xs font-bold tracking-[0.14em] text-ink-muted uppercase">
+    <h2 className="mb-4 text-sm font-semibold tracking-tight text-ink">
       {children}
     </h2>
   );
@@ -46,7 +54,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex items-center rounded-[--radius-pill] px-2.5 py-1 text-xs font-semibold ${TONE[tone]}`}
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium ${TONE[tone]}`}
     >
       {children}
     </span>
@@ -64,16 +72,18 @@ export function Button({
   children: ReactNode;
   onClick?: () => void;
   type?: 'button' | 'submit';
-  variant?: 'primary' | 'ghost';
+  variant?: 'primary' | 'ghost' | 'outline';
   disabled?: boolean;
   className?: string;
 }) {
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-[--radius-pill] px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50';
+    'inline-flex min-h-10 items-center justify-center gap-2 rounded-chip px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50';
   const styles =
     variant === 'primary'
-      ? 'bg-brand text-white hover:bg-brand-light'
-      : 'bg-transparent text-ink hover:bg-surface-sunken';
+      ? 'border border-transparent bg-brand text-ink hover:bg-brand-light'
+      : variant === 'outline'
+        ? 'border border-line bg-surface text-ink hover:bg-surface-sunken'
+        : 'border border-transparent bg-transparent text-ink hover:bg-surface-sunken';
   return (
     <button
       type={type}
@@ -92,29 +102,34 @@ export function Kpi({
   value,
   hint,
   tone,
+  emphasis = false,
+  icon,
 }: {
   label: string;
   value: string;
   hint?: string;
   tone?: Tone;
+  emphasis?: boolean;
+  icon?: ReactNode;
 }) {
   return (
-    <Card>
+    <div className={`rounded-card border p-5 ${emphasis ? 'border-coffee bg-coffee text-on-dark' : 'border-line bg-surface text-ink'}`}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium text-ink-muted">{label}</p>
+        <p className={`text-sm font-medium ${emphasis ? 'text-on-dark-muted' : 'text-ink-muted'}`}>{label}</p>
+        {icon ? <span className={emphasis ? 'text-brand-light' : 'text-ink-muted'}>{icon}</span> : null}
         {tone ? <Badge tone={tone}>bugün</Badge> : null}
       </div>
-      <p className="tnum mt-2 font-[family-name:--font-display] text-3xl font-extrabold text-ink">
+      <p className="tnum mt-3 font-display text-3xl font-bold tracking-tight">
         {value}
       </p>
-      {hint ? <p className="mt-1 text-xs text-ink-muted">{hint}</p> : null}
-    </Card>
+      {hint ? <p className={`mt-2 text-xs leading-relaxed ${emphasis ? 'text-on-dark-muted' : 'text-ink-muted'}`}>{hint}</p> : null}
+    </div>
   );
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-[--radius-card] border border-dashed border-line p-8 text-center text-sm text-ink-muted">
+    <div className="rounded-card border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-muted">
       {children}
     </div>
   );
@@ -127,19 +142,3 @@ export function Spinner() {
     </div>
   );
 }
-
-/// Para ve tarih biçimleri panelde tek yerden.
-export const fmtTL = (n: number): string =>
-  new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency: 'TRY',
-    maximumFractionDigits: 0,
-  }).format(n);
-
-export const fmtNum = (n: number): string =>
-  new Intl.NumberFormat('tr-TR').format(n);
-
-export const fmtDayShort = (iso: string): string =>
-  new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short' }).format(
-    new Date(`${iso}T00:00:00`),
-  );

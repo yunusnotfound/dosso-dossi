@@ -1,13 +1,13 @@
-import { Router } from 'express';
+import { Router, type Request, type RequestHandler } from 'express';
 import { z } from 'zod';
+import { moneyInput } from '../../lib/money.js';
 import { requireAdmin, scopeBranch } from '../../middleware/admin-auth.js';
 import { validate } from '../../middleware/validate.js';
 import { listOptions } from '../menu/options.service.js';
 import {
-  SETTING_DEFAULTS,
+  settingSchema,
   allSettings,
   setSetting,
-  type SettingKey,
 } from '../settings/settings.service.js';
 import {
   createAdmin,
@@ -63,20 +63,34 @@ export const modulesRouter = Router();
 
 // Yazma yetkisi olan roller — izleyici her yerde salt okuma.
 const WRITE = ['SUPER_ADMIN', 'MANAGER'] as const;
+const GLOBAL_READ = ['SUPER_ADMIN', 'MANAGER', 'VIEWER'] as const;
 const WRITE_WITH_BRANCH = ['SUPER_ADMIN', 'MANAGER', 'BRANCH_MANAGER'] as const;
 
-const str = (v: unknown): string | undefined =>
-  typeof v === 'string' && v.length > 0 ? v : undefined;
-const date = (v: unknown): Date | undefined => {
-  if (typeof v !== 'string' || !v) return undefined;
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? undefined : d;
-};
-const num = (v: unknown, fallback: number): number => Number(v) || fallback;
+const queryText = z.string().max(300).transform((value) => value || undefined).optional();
+const queryDate = z.string().max(64)
+  .transform((value) => value ? new Date(value) : undefined)
+  .refine((value) => value === undefined || !Number.isNaN(value.getTime()), {
+    message: 'Geçerli bir tarih verilmeli',
+  }).optional();
+// Strings only: arrays, scientific notation, decimals and non-finite values
+// must not reach Prisma's skip/take or unbounded reconciliation loops.
+const queryInteger = (fallback: number, maximum: number) => z.string()
+  .regex(/^\d+$/, 'Pozitif bir tam sayı verilmeli')
+  .transform(Number).pipe(z.number().int().min(1).max(maximum))
+  .optional().default(fallback);
+const paginationSchema = (defaultSize = 50, maximumSize = 200) => z.object({
+  page: queryInteger(1, 100_000),
+  pageSize: queryInteger(defaultSize, maximumSize),
+});
+const dateRangeSchema = z.object({ from: queryDate, to: queryDate });
+
+type ModuleRequest<Body = unknown> = Request<Record<string, string>, unknown, Body>;
 
 /// Route gövdelerini tek yerde sarmalar: try/catch tekrarını kaldırır.
-function h<T>(fn: (req: Parameters<Router['get']> extends never ? never : any) => Promise<T>) {
-  return async (req: any, res: any, next: any) => {
+function h<Body = unknown>(
+  fn: (req: ModuleRequest<Body>) => Promise<unknown>,
+): RequestHandler<Record<string, string>, unknown, Body> {
+  return async (req, res, next) => {
     try {
       res.json(await fn(req));
     } catch (err) {
@@ -92,11 +106,12 @@ const categorySchema = z.object({
   name: z.string().trim().min(1).max(80),
   sortOrder: z.number().int().min(0).max(999).default(0),
 });
+const productActiveSchema = z.object({ isActive: z.boolean() });
 const reorderSchema = z.object({ ids: z.array(z.string()).min(1).max(200) });
 const productSchema = z.object({
   id: z.string().trim().min(1).max(80),
   name: z.string().trim().min(1).max(120),
-  price: z.number().min(0).max(100000),
+  price: moneyInput.min(0).max(100000),
   categoryId: z.string().min(1),
   description: z.string().max(500).default(''),
   imageUrl: z.string().max(500).nullable().default(null),
@@ -110,10 +125,11 @@ const productSchema = z.object({
 });
 const bulkPriceSchema = z
   .object({
+    idempotencyKey: z.string().uuid(),
     categoryId: z.string().optional(),
     percent: z.number().min(-90).max(200).optional(),
-    amount: z.number().min(-10000).max(10000).optional(),
-    roundTo: z.number().min(0).max(100).default(0),
+    amount: moneyInput.min(-10000).max(10000).optional(),
+    roundTo: moneyInput.min(0).max(100).default(0),
     reason: z.string().trim().min(5).max(300),
   })
   .refine((v) => v.percent !== undefined || v.amount !== undefined, {
@@ -121,15 +137,21 @@ const bulkPriceSchema = z
   });
 const availabilitySchema = z.object({
   isAvailable: z.boolean(),
-  priceOverride: z.number().min(0).max(100000).nullable().default(null),
+  priceOverride: moneyInput.min(0).max(100000).nullable().optional(),
 });
 const optionSchema = z.object({
   id: z.string().optional(),
   group: z.string().trim().min(1).max(40),
   name: z.string().trim().min(1).max(80),
-  priceDelta: z.number().min(-1000).max(1000),
+  priceDelta: moneyInput.min(-1000).max(1000),
   sortOrder: z.number().int().min(0).max(999).default(0),
   isActive: z.boolean().default(true),
+});
+
+const productQuerySchema = paginationSchema().extend({
+  categoryId: queryText,
+  q: queryText,
+  isActive: z.enum(['true', 'false']).transform((value) => value === 'true').optional(),
 });
 
 modulesRouter.get('/menu/categories', requireAdmin(), h(() => listCategories()));
@@ -137,13 +159,13 @@ modulesRouter.post(
   '/menu/categories',
   requireAdmin(...WRITE),
   validate(categorySchema),
-  h((req) => upsertCategory(req, req.body)),
+  h<z.infer<typeof categorySchema>>((req) => upsertCategory(req, req.body)),
 );
 modulesRouter.post(
   '/menu/categories/reorder',
   requireAdmin(...WRITE),
   validate(reorderSchema),
-  h(async (req) => {
+  h<z.infer<typeof reorderSchema>>(async (req) => {
     await reorderCategories(req, req.body.ids);
     return { ok: true };
   }),
@@ -160,34 +182,25 @@ modulesRouter.delete(
 modulesRouter.get(
   '/menu/products',
   requireAdmin(),
-  h((req) =>
-    listProducts({
-      categoryId: str(req.query.categoryId),
-      q: str(req.query.q),
-      isActive:
-        req.query.isActive === undefined ? undefined : req.query.isActive === 'true',
-      page: num(req.query.page, 1),
-      pageSize: num(req.query.pageSize, 50),
-    }),
-  ),
+  h((req) => listProducts(productQuerySchema.parse(req.query))),
 );
 modulesRouter.post(
   '/menu/products',
   requireAdmin(...WRITE),
   validate(productSchema),
-  h((req) => upsertProduct(req, req.body)),
+  h<z.infer<typeof productSchema>>((req) => upsertProduct(req, req.body)),
 );
 modulesRouter.post(
   '/menu/products/:id/active',
   requireAdmin(...WRITE),
-  validate(z.object({ isActive: z.boolean() })),
-  h((req) => setProductActive(req, String(req.params.id), req.body.isActive)),
+  validate(productActiveSchema),
+  h<z.infer<typeof productActiveSchema>>((req) => setProductActive(req, String(req.params.id), req.body.isActive)),
 );
 modulesRouter.post(
   '/menu/bulk-price',
   requireAdmin(...WRITE),
   validate(bulkPriceSchema),
-  h((req) => bulkPrice(req, req.body)),
+  h<z.infer<typeof bulkPriceSchema>>((req) => bulkPrice(req, req.body)),
 );
 
 modulesRouter.get('/menu/options', requireAdmin(), h(() => listOptions()));
@@ -195,11 +208,12 @@ modulesRouter.post(
   '/menu/options',
   requireAdmin(...WRITE),
   validate(optionSchema),
-  h((req) => saveOption(req, req.body)),
+  h<z.infer<typeof optionSchema>>((req) => saveOption(req, req.body)),
 );
 
 // ── A4 Şubeler ──────────────────────────────────────────────────────
 
+const branchOpenSchema = z.object({ isOpen: z.boolean() });
 const branchSchema = z.object({
   id: z.string().trim().min(1).max(60),
   name: z.string().trim().min(1).max(120),
@@ -230,13 +244,13 @@ modulesRouter.post(
   '/branches',
   requireAdmin(...WRITE),
   validate(branchSchema),
-  h((req) => upsertBranch(req, req.body)),
+  h<z.infer<typeof branchSchema>>((req) => upsertBranch(req, req.body)),
 );
 modulesRouter.post(
   '/branches/:id/open',
   requireAdmin(...WRITE_WITH_BRANCH),
-  validate(z.object({ isOpen: z.boolean() })),
-  h((req) => {
+  validate(branchOpenSchema),
+  h<z.infer<typeof branchOpenSchema>>((req) => {
     scopeBranch(req.admin, String(req.params.id));
     return setOpen(req, String(req.params.id), req.body.isOpen);
   }),
@@ -253,7 +267,7 @@ modulesRouter.post(
   '/branches/:id/availability/:productId',
   requireAdmin(...WRITE_WITH_BRANCH),
   validate(availabilitySchema),
-  h((req) => {
+  h<z.infer<typeof availabilitySchema>>((req) => {
     scopeBranch(req.admin, String(req.params.id));
     return setAvailability(
       req,
@@ -279,19 +293,14 @@ const promoSchema = z.object({
   code: z.string().trim().min(2).max(40),
   discountRate: z.number().gt(0).lt(1),
   isActive: z.boolean().default(true),
-  expiresAt: z.string().nullable().default(null),
+  expiresAt: z.iso.datetime({ offset: true }).nullable().optional(),
 });
-const settingSchema = z.object({
-  key: z.enum(Object.keys(SETTING_DEFAULTS) as [SettingKey, ...SettingKey[]]),
-  value: z.union([z.number(), z.boolean(), z.string()]),
-});
-
 modulesRouter.get('/campaigns', requireAdmin(), h(() => listCampaigns()));
 modulesRouter.post(
   '/campaigns',
   requireAdmin(...WRITE),
   validate(campaignSchema),
-  h((req) => upsertCampaign(req, req.body)),
+  h<z.infer<typeof campaignSchema>>((req) => upsertCampaign(req, req.body)),
 );
 modulesRouter.delete(
   '/campaigns/:id',
@@ -307,7 +316,7 @@ modulesRouter.post(
   '/promos',
   requireAdmin(...WRITE),
   validate(promoSchema),
-  h((req) => upsertPromo(req, req.body)),
+  h<z.infer<typeof promoSchema>>((req) => upsertPromo(req, req.body)),
 );
 modulesRouter.delete(
   '/promos/:code',
@@ -324,7 +333,7 @@ modulesRouter.post(
   // Sadakat/para kuralı: yalnız süper yönetici
   requireAdmin('SUPER_ADMIN'),
   validate(settingSchema),
-  h(async (req) => {
+  h<z.infer<typeof settingSchema>>(async (req) => {
     await setSetting(req, req.body.key, req.body.value);
     return allSettings();
   }),
@@ -333,43 +342,43 @@ modulesRouter.post(
 // ── A6 Müşteriler ───────────────────────────────────────────────────
 
 const reasonSchema = z.object({ reason: z.string().trim().min(5).max(300) });
+const blockSchema = reasonSchema.extend({ isBlocked: z.boolean() });
 const balanceSchema = reasonSchema.extend({
-  amount: z.number().refine((v) => v !== 0, 'Tutar sıfır olamaz'),
+  idempotencyKey: z.string().uuid(),
+  amount: moneyInput.refine((v) => v !== 0, 'Tutar sıfır olamaz'),
 });
 const loyaltySchema = reasonSchema.extend({
   stamps: z.number().int().min(0).max(100).optional(),
   freeDrinks: z.number().int().min(0).max(100).optional(),
 });
 
+const customerQuerySchema = paginationSchema(25, 100).extend({
+  q: queryText,
+  sort: z.enum(['ltv', 'recent']).default('recent'),
+});
+
 modulesRouter.get(
   '/customers',
-  requireAdmin(),
-  h((req) =>
-    listCustomers({
-      q: str(req.query.q),
-      page: num(req.query.page, 1),
-      pageSize: num(req.query.pageSize, 25),
-      sort: req.query.sort === 'ltv' ? 'ltv' : 'recent',
-    }),
-  ),
+  requireAdmin(...GLOBAL_READ),
+  h((req) => listCustomers(customerQuerySchema.parse(req.query))),
 );
-modulesRouter.get('/customers/gifts/pending', requireAdmin(), h(() => pendingGifts()));
+modulesRouter.get('/customers/gifts/pending', requireAdmin(...GLOBAL_READ), h(() => pendingGifts()));
 modulesRouter.get(
   '/customers/:id',
-  requireAdmin(),
+  requireAdmin(...GLOBAL_READ),
   h((req) => customerDetail(String(req.params.id))),
 );
 modulesRouter.post(
   '/customers/:id/balance',
   requireAdmin(...WRITE),
   validate(balanceSchema),
-  h((req) => adjustBalance(req, String(req.params.id), req.body.amount, req.body.reason)),
+  h<z.infer<typeof balanceSchema>>((req) => adjustBalance(req, String(req.params.id), req.body.amount, req.body.reason, req.body.idempotencyKey)),
 );
 modulesRouter.post(
   '/customers/:id/loyalty',
   requireAdmin(...WRITE),
   validate(loyaltySchema),
-  h((req) =>
+  h<z.infer<typeof loyaltySchema>>((req) =>
     adjustLoyalty(
       req,
       String(req.params.id),
@@ -382,13 +391,13 @@ modulesRouter.post(
   '/customers/:id/revoke-sessions',
   requireAdmin(...WRITE),
   validate(reasonSchema),
-  h((req) => revokeSessions(req, String(req.params.id), req.body.reason)),
+  h<z.infer<typeof reasonSchema>>((req) => revokeSessions(req, String(req.params.id), req.body.reason)),
 );
 modulesRouter.post(
   '/customers/:id/block',
   requireAdmin(...WRITE),
-  validate(reasonSchema.extend({ isBlocked: z.boolean() })),
-  h((req) =>
+  validate(blockSchema),
+  h<z.infer<typeof blockSchema>>((req) =>
     setBlocked(req, String(req.params.id), req.body.isBlocked, req.body.reason),
   ),
 );
@@ -397,37 +406,31 @@ modulesRouter.post(
 
 const TX_TYPES = [
   'TOPUP',
+  'ADJUSTMENT',
   'ORDER_PAYMENT',
   'GIFT_SENT',
   'GIFT_RECEIVED',
   'QR_PAYMENT',
   'REFUND',
 ] as const;
-const txType = (v: unknown) =>
-  typeof v === 'string' && (TX_TYPES as readonly string[]).includes(v)
-    ? (v as (typeof TX_TYPES)[number])
-    : undefined;
+const ledgerQuerySchema = dateRangeSchema.extend({
+  q: queryText,
+  type: z.enum(TX_TYPES).optional(),
+});
+const pagedLedgerQuerySchema = ledgerQuerySchema.extend(paginationSchema().shape);
+const paymentsQuerySchema = dateRangeSchema.extend({
+  status: z.enum(['PENDING', 'SUCCEEDED', 'FAILED', 'EXPIRED']).optional(),
+});
+const reconciliationQuerySchema = z.object({ days: queryInteger(7, 366) });
 
 modulesRouter.get(
   '/finance/ledger',
-  requireAdmin(),
-  h((req) =>
-    ledger({
-      type: txType(req.query.type),
-      from: date(req.query.from),
-      to: date(req.query.to),
-      page: num(req.query.page, 1),
-      pageSize: num(req.query.pageSize, 50),
-    }),
-  ),
+  requireAdmin(...GLOBAL_READ),
+  h((req) => ledger(pagedLedgerQuerySchema.parse(req.query))),
 );
-modulesRouter.get('/finance/ledger.csv', requireAdmin(), async (req, res, next) => {
+modulesRouter.get('/finance/ledger.csv', requireAdmin(...GLOBAL_READ), async (req, res, next) => {
   try {
-    const csv = await ledgerCsv({
-      type: txType(req.query.type),
-      from: date(req.query.from),
-      to: date(req.query.to),
-    });
+    const csv = await ledgerCsv(ledgerQuerySchema.parse(req.query));
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(
       'Content-Disposition',
@@ -441,13 +444,9 @@ modulesRouter.get('/finance/ledger.csv', requireAdmin(), async (req, res, next) 
 });
 
 /// Markalı Excel defteri: Özet + Tüm hareketler + işlem tipi başına sayfa.
-modulesRouter.get('/finance/ledger.xlsx', requireAdmin(), async (req, res, next) => {
+modulesRouter.get('/finance/ledger.xlsx', requireAdmin(...GLOBAL_READ), async (req, res, next) => {
   try {
-    const buffer = await ledgerWorkbook({
-      type: txType(req.query.type),
-      from: date(req.query.from),
-      to: date(req.query.to),
-    });
+    const buffer = await ledgerWorkbook(ledgerQuerySchema.parse(req.query));
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -464,53 +463,45 @@ modulesRouter.get('/finance/ledger.xlsx', requireAdmin(), async (req, res, next)
 });
 modulesRouter.get(
   '/finance/payments',
-  requireAdmin(),
-  h((req) =>
-    payments({
-      status: str(req.query.status) as never,
-      from: date(req.query.from),
-      to: date(req.query.to),
-    }),
-  ),
+  requireAdmin(...GLOBAL_READ),
+  h((req) => payments(paymentsQuerySchema.parse(req.query))),
 );
 modulesRouter.get(
   '/finance/charges',
-  requireAdmin(),
-  h((req) => charges({ from: date(req.query.from), to: date(req.query.to) })),
+  requireAdmin(...GLOBAL_READ),
+  h((req) => charges(dateRangeSchema.parse(req.query))),
 );
 modulesRouter.post(
   '/finance/charges/:id/void',
   requireAdmin(...WRITE),
   validate(reasonSchema),
-  h((req) => voidChargeFromPanel(req, String(req.params.id), req.body.reason)),
+  h<z.infer<typeof reasonSchema>>((req) => voidChargeFromPanel(req, String(req.params.id), req.body.reason)),
 );
 modulesRouter.get(
   '/finance/reconciliation',
-  requireAdmin(),
-  h((req) => reconciliation(num(req.query.days, 7))),
+  requireAdmin(...GLOBAL_READ),
+  h((req) => reconciliation(reconciliationQuerySchema.parse(req.query).days)),
 );
 
 // ── A8 POS izleme ───────────────────────────────────────────────────
 
+const eventQuerySchema = paginationSchema().extend({
+  source: queryText,
+  eventType: queryText,
+  status: z.enum(['RECEIVED', 'PROCESSED', 'FAILED']).optional(),
+});
+
 modulesRouter.get(
   '/pos/events',
-  requireAdmin(),
-  h((req) =>
-    listEvents({
-      source: str(req.query.source),
-      eventType: str(req.query.eventType),
-      status: str(req.query.status) as never,
-      page: num(req.query.page, 1),
-      pageSize: num(req.query.pageSize, 50),
-    }),
-  ),
+  requireAdmin(...GLOBAL_READ),
+  h((req) => listEvents(eventQuerySchema.parse(req.query))),
 );
-modulesRouter.get('/pos/health', requireAdmin(), h(() => health()));
+modulesRouter.get('/pos/health', requireAdmin(...GLOBAL_READ), h(() => health()));
 modulesRouter.post(
   '/pos/events/:id/requeue',
   requireAdmin(...WRITE),
   validate(reasonSchema),
-  h((req) => requeue(req, String(req.params.id), req.body.reason)),
+  h<z.infer<typeof reasonSchema>>((req) => requeue(req, String(req.params.id), req.body.reason)),
 );
 
 // ── A9 Yönetim ──────────────────────────────────────────────────────
@@ -533,13 +524,13 @@ modulesRouter.post(
   '/admins',
   requireAdmin('SUPER_ADMIN'),
   validate(adminCreateSchema),
-  h((req) => createAdmin(req, req.body)),
+  h<z.infer<typeof adminCreateSchema>>((req) => createAdmin(req, req.body)),
 );
 modulesRouter.patch(
   '/admins/:id',
   requireAdmin('SUPER_ADMIN'),
   validate(adminUpdateSchema),
-  h((req) => updateAdmin(req, String(req.params.id), req.body)),
+  h<z.infer<typeof adminUpdateSchema>>((req) => updateAdmin(req, String(req.params.id), req.body)),
 );
 modulesRouter.post(
   '/admins/:id/reset-password',
@@ -547,17 +538,15 @@ modulesRouter.post(
   h((req) => resetPassword(req, String(req.params.id))),
 );
 
+const auditQuerySchema = paginationSchema().extend({
+  adminId: queryText,
+  entity: queryText,
+  entityId: queryText,
+  action: queryText,
+});
+
 modulesRouter.get(
   '/audit',
   requireAdmin('SUPER_ADMIN', 'MANAGER'),
-  h((req) =>
-    listAudit({
-      adminId: str(req.query.adminId),
-      entity: str(req.query.entity),
-      entityId: str(req.query.entityId),
-      action: str(req.query.action),
-      page: num(req.query.page, 1),
-      pageSize: num(req.query.pageSize, 50),
-    }),
-  ),
+  h((req) => listAudit(auditQuerySchema.parse(req.query))),
 );

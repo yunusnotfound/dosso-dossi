@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../domain/menu.dart';
+import '../application/order_providers.dart';
 import 'api_menu_repository.dart';
 import 'mock_menu_repository.dart';
 
@@ -15,5 +16,8 @@ abstract interface class MenuRepository {
 final menuRepositoryProvider = Provider<MenuRepository>((ref) {
   return AppConfig.useMocks
       ? MockMenuRepository()
-      : ApiMenuRepository(ref.watch(apiClientProvider));
+      : ApiMenuRepository(
+          ref.watch(apiClientProvider),
+          branchId: ref.watch(activeBranchProvider).value?.id,
+        );
 });

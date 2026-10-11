@@ -1,43 +1,16 @@
-import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiError, api } from '../../api/client';
+import { useState } from 'react';
+import { ApiError, api, readApi } from '../../api/client';
+import { fmtNum } from '../../api/format';
+import type { PosEvent } from '../../api/schemas';
+import { eventListSchema, healthSchema } from '../../api/schemas';
+import { useAuth } from '../../auth/auth-state';
 import { ReasonDialog, Select, Tabs } from '../../components/form';
 import { DataTable, PageHeader, Pager, type Column } from '../../components/table';
-import { Badge, Button, Card, EmptyState, SectionTitle, fmtNum } from '../../components/ui';
-
-interface PosEvent {
-  id: string;
-  source: string;
-  eventType: string;
-  externalId: string;
-  status: 'RECEIVED' | 'PROCESSED' | 'FAILED';
-  error: string | null;
-  payload: unknown;
-  response: unknown;
-  createdAt: string;
-  processedAt: string | null;
-}
-
-interface EventList {
-  page: number;
-  pageSize: number;
-  total: number;
-  events: PosEvent[];
-}
-
-interface Health {
-  sources: { source: string; lastSeenAt: string | null; total: number; failed: number }[];
-  outbox: {
-    id: string;
-    number: number;
-    branchName: string;
-    createdAt: string;
-    waitingMinutes: number;
-  }[];
-}
+import { Badge, Button, Card, EmptyState, QueryError, Spinner, SectionTitle, } from '../../components/ui';
 
 const fmtDate = (iso: string) =>
-  new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(
+  new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', dateStyle: 'short', timeStyle: 'short' }).format(
     new Date(iso),
   );
 
@@ -60,10 +33,12 @@ export function PosPage() {
 }
 
 function HealthTab() {
+  const { admin } = useAuth();
+  const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ['pos-health'],
-    queryFn: () => api<Health>('/admin/pos/health'),
+    queryFn: ({ signal }) => readApi(healthSchema, '/admin/pos/health', { signal }),
     refetchInterval: 30_000,
   });
 
@@ -76,6 +51,8 @@ function HealthTab() {
     },
   });
 
+  if (q.isLoading) return <Spinner />;
+  if (q.error) return <QueryError error={q.error} onRetry={() => void q.refetch()} />;
   return (
     <div className="flex flex-col gap-6">
       <section>
@@ -106,6 +83,7 @@ function HealthTab() {
 
       <section>
         <SectionTitle>İletilemeyen siparişler (outbox)</SectionTitle>
+        {retry.error ? <p role="alert" className="mb-3 text-sm text-bad">{retry.error.message}</p> : null}
         {q.data?.outbox.length === 0 ? (
           <EmptyState>Bekleyen sipariş yok — tüm siparişler POS'a iletildi.</EmptyState>
         ) : (
@@ -129,7 +107,7 @@ function HealthTab() {
                     <Button
                       variant="ghost"
                       onClick={() => retry.mutate(o.id)}
-                      disabled={retry.isPending}
+                      disabled={!canEdit || retry.isPending}
                     >
                       Yeniden ilet
                     </Button>
@@ -145,6 +123,8 @@ function HealthTab() {
 }
 
 function EventsTab() {
+  const { admin } = useAuth();
+  const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
   const [status, setStatus] = useState('');
   const [source, setSource] = useState('');
@@ -155,11 +135,11 @@ function EventsTab() {
 
   const q = useQuery({
     queryKey: ['pos-events', { status, source, page }],
-    queryFn: () => {
+    queryFn: ({ signal }) => {
       const p = new URLSearchParams({ page: String(page), pageSize: '50' });
       if (status) p.set('status', status);
       if (source) p.set('source', source);
-      return api<EventList>(`/admin/pos/events?${p}`);
+      return readApi(eventListSchema, `/admin/pos/events?${p}`, { signal });
     },
   });
 
@@ -197,7 +177,7 @@ function EventsTab() {
       key: 'actions',
       header: '',
       render: (e) =>
-        e.status === 'FAILED' ? (
+        canEdit && e.status === 'FAILED' ? (
           <button
             onClick={(ev) => {
               ev.stopPropagation();
@@ -233,12 +213,12 @@ function EventsTab() {
         rows={q.data?.events}
         rowKey={(e) => e.id}
         onRowClick={setDetail}
-        loading={q.isLoading}
+        loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()}
       />
       <Pager
         page={q.data?.page ?? 1}
         pageSize={q.data?.pageSize ?? 50}
-        total={q.data?.total ?? 0}
+        total={q.data?.total}
         onPage={setPage}
       />
 
@@ -254,11 +234,11 @@ function EventsTab() {
             </button>
           </div>
           {detail.error ? (
-            <p className="mb-3 rounded-[--radius-chip] bg-bad-soft px-3 py-2 text-sm text-bad">
+            <p className="mb-3 rounded-chip bg-bad-soft px-3 py-2 text-sm text-bad">
               {detail.error}
             </p>
           ) : null}
-          <pre className="overflow-x-auto rounded-[--radius-chip] bg-surface-sunken p-3 text-xs">
+          <pre className="overflow-x-auto rounded-chip bg-surface-sunken p-3 text-xs">
             {JSON.stringify({ payload: detail.payload, response: detail.response }, null, 2)}
           </pre>
         </Card>

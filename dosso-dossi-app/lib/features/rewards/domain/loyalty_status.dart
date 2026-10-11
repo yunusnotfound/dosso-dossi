@@ -3,10 +3,14 @@ import '../../../core/constants/app_config.dart';
 /// İkram geçmişi satırı.
 class RewardEntry {
   const RewardEntry({
+    this.id,
     required this.title,
     required this.date,
     required this.used,
   });
+
+  final String? id;
+  String get identity => id ?? '${date.toIso8601String()}|$title|$used';
 
   final String title;
   final DateTime date;
@@ -22,6 +26,7 @@ class LoyaltyStatus {
     this.target = AppConfig.stampsPerReward,
     this.freeDrinks = 0,
     this.history = const [],
+    this.nextCursor,
   });
 
   /// Mevcut turdaki damga sayısı (0..target-1; dolunca ikrama dönüşür)
@@ -35,6 +40,7 @@ class LoyaltyStatus {
 
   /// Kazanılan/kullanılan ikramların geçmişi (yeniden eskiye)
   final List<RewardEntry> history;
+  final String? nextCursor;
 
   int get remaining => target - stamps;
 
@@ -42,11 +48,13 @@ class LoyaltyStatus {
     int? stamps,
     int? freeDrinks,
     List<RewardEntry>? history,
-  }) =>
-      LoyaltyStatus(
-        stamps: stamps ?? this.stamps,
-        target: target,
-        freeDrinks: freeDrinks ?? this.freeDrinks,
-        history: history ?? this.history,
-      );
+    String? nextCursor,
+    bool clearNextCursor = false,
+  }) => LoyaltyStatus(
+    stamps: stamps ?? this.stamps,
+    target: target,
+    freeDrinks: freeDrinks ?? this.freeDrinks,
+    history: history ?? this.history,
+    nextCursor: clearNextCursor ? null : nextCursor ?? this.nextCursor,
+  );
 }

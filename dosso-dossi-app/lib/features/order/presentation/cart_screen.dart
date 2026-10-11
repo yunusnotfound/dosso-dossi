@@ -1,27 +1,34 @@
 import 'package:flutter/material.dart';
+import '../../branches/application/branch_availability.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../auth/presentation/guest_gate.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/network/api_exception.dart';
+import '../application/menu_providers.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/error_feedback.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/product_image.dart';
 import '../../../routing/app_router.dart';
+import '../../branches/domain/branch.dart';
 import '../../rewards/application/loyalty_providers.dart';
 import '../../wallet/application/wallet_providers.dart';
 import '../application/cart_controller.dart';
 import '../application/order_providers.dart';
 import '../domain/cart.dart';
-import '../domain/product_options.dart';
+import '../domain/pickup_slots.dart';
 import 'order_screen.dart' show showBranchPicker;
 import 'widgets/option_selector.dart';
 
 /// Sepet: şube + teslim saati + ürünler + kampanya kodu + ödeme.
 class CartScreen extends ConsumerStatefulWidget {
-  const CartScreen({super.key});
+  const CartScreen({super.key, this.now});
+
+  /// Optional shop wall clock for deterministic UI tests.
+  final DateTime Function()? now;
 
   @override
   ConsumerState<CartScreen> createState() => _CartScreenState();
@@ -30,39 +37,69 @@ class CartScreen extends ConsumerStatefulWidget {
 class _CartScreenState extends ConsumerState<CartScreen> {
   int _slotIndex = 0;
   bool _paying = false;
+  Branch? _slotBranch;
+  List<PickupSlot>? _pickupSlots;
 
-  List<String> _slots(int prepMinutes) {
-    final now = DateTime.now();
-    final earliest = now.add(Duration(minutes: prepMinutes));
-    String fmt(DateTime t) =>
-        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
-    final next = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      earliest.hour,
-      (earliest.minute ~/ 15) * 15,
-    ).add(const Duration(minutes: 15));
-    return [
-      'En kısa (~$prepMinutes dk)',
-      fmt(next),
-      fmt(next.add(const Duration(minutes: 15))),
-    ];
+  DateTime _now() => widget.now?.call() ?? turkeyWallTime(DateTime.now());
+
+  List<PickupSlot> _slots(Branch branch) {
+    if (_slotBranch?.id == branch.id &&
+        _slotBranch?.hours == branch.hours &&
+        _slotBranch?.prepMinutes == branch.prepMinutes &&
+        _slotBranch?.isOpen == branch.isOpen &&
+        _pickupSlots?.isNotEmpty == true) {
+      return _pickupSlots!;
+    }
+    _slotBranch = branch;
+    _slotIndex = 0;
+    return _pickupSlots = availablePickupSlots(branch, _now());
   }
 
   Future<void> _pay() async {
     // Konuk ödeme yapamaz: giriş istemi açılır.
     if (blockedForGuest(context, ref, action: 'Sipariş vermek')) return;
     final branch = ref.read(activeBranchProvider).value;
-    if (branch == null) return;
-    final pickupLabel = _slots(branch.prepMinutes)[_slotIndex];
-    final displayedTotal = ref.read(cartProvider).total;
-
+    final pending = ref.read(cartProvider).unconfirmedCheckout;
+    if (pending == null && (branch == null || !branch.isOpen)) {
+      showApiError(
+        context,
+        const ApiException(
+          code: 'BRANCH_UNAVAILABLE',
+          message: 'Sipariş için açık bir şube seç.',
+        ),
+      );
+      return;
+    }
+    String? pickupLabel;
+    if (pending == null) {
+      final slots = _slots(branch!);
+      if (slots.isEmpty ||
+          !pickupSlotAvailable(branch, slots[_slotIndex], _now())) {
+        setState(() {
+          _pickupSlots = null;
+          _slots(branch);
+        });
+        showApiError(
+          context,
+          const ApiException(
+            code: 'PICKUP_SLOT_EXPIRED',
+            message:
+                'Seçtiğin teslim saati geçti. Güncel saatlerden tekrar seç.',
+          ),
+        );
+        return;
+      }
+      pickupLabel = slots[_slotIndex].label;
+    }
     setState(() => _paying = true);
     try {
-      final record = await ref
-          .read(cartProvider.notifier)
-          .checkout(branch: branch, pickupLabel: pickupLabel);
+      final controller = ref.read(cartProvider.notifier);
+      final record = pending != null
+          ? await controller.retryCheckout()
+          : await controller.checkout(
+              branch: branch!,
+              pickupLabel: pickupLabel!,
+            );
       if (!mounted) return;
       if (record == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -75,17 +112,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         );
         return;
       }
-      // Sunucu tutarı yeniden hesaplar; ekrandakinden saparsa kullanıcıyı bilgilendir
-      if ((record.total - displayedTotal).abs() > 0.01) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Güncel tutar: ${formatTl(record.total)} olarak alındı',
-            ),
-          ),
-        );
-      }
-      context.go(Routes.orderSuccess);
+      context.go(Routes.orderSuccessPath(record.id), extra: record);
     } catch (e) {
       if (mounted) showApiError(context, e);
     } finally {
@@ -95,13 +122,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(branchClockProvider);
     final cart = ref.watch(cartProvider);
     final branch = ref.watch(activeBranchProvider);
     final wallet = ref.watch(walletProvider);
+    final menu = ref.watch(menuProductsProvider);
+    final options = ref.watch(menuOptionsProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text('Sepet (${cart.count})')),
-      body: cart.items.isEmpty
+      body: cart.items.isEmpty && cart.unconfirmedCheckout == null
           ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -124,6 +154,32 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     child: ListView(
                       padding: const EdgeInsets.all(AppSpacing.page),
                       children: [
+                        if (cart.unconfirmedCheckout case final pending?)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.md,
+                            ),
+                            child: Text(
+                              'Önceki siparişinin yanıtı alınamadı. '
+                              '${pending.branchName} · ${pending.pickupLabel} · '
+                              '${formatTl(pending.total)}. '
+                              'Yeni bir sipariş vermeden önce aşağıdaki düğmeyle '
+                              'bu siparişin sonucunu kontrol et.',
+                              style: AppTypography.bodySecondary,
+                            ),
+                          ),
+                        if (menu.hasError || options.hasError) ...[
+                          const Text(
+                            'Güncel fiyatlar yüklenemedi. Ödemeden önce tekrar dene.',
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              ref.invalidate(menuProductsProvider);
+                              ref.invalidate(menuOptionsProvider);
+                            },
+                            child: const Text('Fiyatları yenile'),
+                          ),
+                        ],
                         if (cart.catalogNotice != null)
                           Padding(
                             padding: const EdgeInsets.only(
@@ -138,11 +194,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           skipError: true,
                           skipLoadingOnReload: true,
                           loading: () => const SizedBox.shrink(),
-                          error: (e, _) => const SizedBox.shrink(),
+                          error: (e, _) => Text(
+                            'Şube yüklenemedi veya sipariş alınabilen şube yok.',
+                            style: AppTypography.bodySecondary,
+                          ),
                           data: (b) => _BranchCard(
                             name: b.name,
                             address: b.address,
-                            slots: _slots(b.prepMinutes),
+                            slots: _slots(b).map((slot) => slot.label).toList(),
                             selectedSlot: _slotIndex,
                             onSlotChanged: (i) =>
                                 setState(() => _slotIndex = i),
@@ -216,7 +275,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         const SizedBox(height: AppSpacing.lg),
                         wallet.when(
                           loading: () => const SizedBox.shrink(),
-                          error: (e, _) => const SizedBox.shrink(),
+                          error: (e, _) => Text(
+                            'Şube yüklenemedi veya sipariş alınabilen şube yok.',
+                            style: AppTypography.bodySecondary,
+                          ),
                           data: (w) => Container(
                             padding: const EdgeInsets.all(AppSpacing.lg),
                             decoration: BoxDecoration(
@@ -246,7 +308,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Dosso Kart',
+                                        'Dosso Dossi Kart',
                                         style: AppTypography.body,
                                       ),
                                       Text(
@@ -282,7 +344,21 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       AppSpacing.md,
                     ),
                     child: FilledButton(
-                      onPressed: _paying ? null : _pay,
+                      onPressed:
+                          _paying ||
+                              (cart.unconfirmedCheckout == null &&
+                                  (!branch.hasValue ||
+                                      availablePickupSlots(
+                                        branch.value!,
+                                        _now(),
+                                      ).isEmpty ||
+                                      _slots(branch.value!).isEmpty ||
+                                      menu.isLoading ||
+                                      menu.hasError ||
+                                      options.isLoading ||
+                                      options.hasError))
+                          ? null
+                          : _pay,
                       child: _paying
                           ? const SizedBox(
                               width: 24,
@@ -295,7 +371,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           : FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                'Dosso Dossi Kart ile Öde · ${formatTl(cart.total)}',
+                                cart.unconfirmedCheckout != null
+                                    ? 'Sipariş sonucunu kontrol et'
+                                    : 'Dosso Dossi Kart ile Öde · ${formatTl(cart.total)}',
                                 maxLines: 1,
                               ),
                             ),
@@ -308,8 +386,20 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   void _editItem(int index, CartItem item) {
-    var milk = item.milk;
-    var shot = item.shot;
+    final options = ref.read(menuOptionsProvider).value;
+    if (options == null) {
+      showApiError(
+        context,
+        const ApiException(
+          code: 'OPTIONS_UNAVAILABLE',
+          message: 'Seçenekler yüklenemedi. Tekrar dene.',
+        ),
+      );
+      ref.invalidate(menuOptionsProvider);
+      return;
+    }
+    var milk = options.resolveMilk(item.milk);
+    var shot = options.resolveShot(item.shot);
 
     showModalBottomSheet<void>(
       context: context,
@@ -335,14 +425,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 OptionSelector(
                   label: 'Süt',
-                  options: ProductOptions.milks,
+                  options: options.milks,
                   selected: milk,
                   onChanged: (o) => setSheetState(() => milk = o),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 OptionSelector(
                   label: 'Shot',
-                  options: ProductOptions.shots,
+                  options: options.shots,
                   selected: shot,
                   onChanged: (o) => setSheetState(() => shot = o),
                 ),
@@ -451,6 +541,11 @@ class _BranchCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
+          if (slots.isEmpty)
+            Text(
+              'Bu şubede şu an uygun teslim saati yok.',
+              style: AppTypography.bodySecondary,
+            ),
           Wrap(
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,

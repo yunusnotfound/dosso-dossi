@@ -3,7 +3,22 @@ import 'package:dio/dio.dart';
 /// Backend'in sözleşme hata biçimi: { "error": { "code", "message" } }
 /// DioException'ı yakalayıp kullanıcıya gösterilebilir hale getirir.
 class ApiException implements Exception {
-  const ApiException({required this.code, required this.message});
+  const ApiException({
+    required this.code,
+    required this.message,
+    this.details,
+    this.statusCode,
+  });
+
+  final Map<String, dynamic>? details;
+  final int? statusCode;
+
+  /// A timeout or server error does not prove a mutation was rejected.
+  bool get isDefinitiveRejection =>
+      statusCode != null &&
+      statusCode! >= 400 &&
+      statusCode! < 500 &&
+      !{401, 408, 429}.contains(statusCode);
 
   /// docs/API_CONTRACT.md'deki hata kodu: INSUFFICIENT_BALANCE, INVALID_OTP...
   final String code;
@@ -19,12 +34,18 @@ class ApiException implements Exception {
       final error = data['error'];
       if (error is Map<String, dynamic>) {
         return ApiException(
+          statusCode: e.response?.statusCode,
           code: (error['code'] as String?) ?? 'INTERNAL',
-          message: (error['message'] as String?) ?? 'Beklenmeyen bir hata oluştu',
+          details: error['details'] is Map
+              ? Map<String, dynamic>.from(error['details'] as Map)
+              : null,
+          message:
+              (error['message'] as String?) ?? 'Beklenmeyen bir hata oluştu',
         );
       }
     }
-    return const ApiException(
+    return ApiException(
+      statusCode: e.response?.statusCode,
       code: networkCode,
       message: 'Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.',
     );

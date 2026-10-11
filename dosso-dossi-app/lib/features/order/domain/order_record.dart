@@ -27,16 +27,25 @@ class OrderRecord {
   /// received | preparing | ready | completed | cancelled
   final String status;
 
-  bool get isActive => status == 'received' || status == 'preparing';
+  bool get isActive => {'received', 'preparing', 'ready'}.contains(status);
+
+  String get statusLabel => switch (status) {
+    'received' => 'Alındı',
+    'preparing' => 'Hazırlanıyor',
+    'ready' => 'Hazır',
+    'completed' => 'Tamamlandı',
+    'cancelled' => 'İptal edildi',
+    _ => 'Durum güncelleniyor',
+  };
 
   OrderRecord copyWith({String? status}) => OrderRecord(
-        id: id,
-        createdAt: createdAt,
-        branchName: branchName,
-        pickupLabel: pickupLabel,
-        itemsLabel: itemsLabel,
-        total: total,
-        stampsEarned: stampsEarned,
-        status: status ?? this.status,
-      );
+    id: id,
+    createdAt: createdAt,
+    branchName: branchName,
+    pickupLabel: pickupLabel,
+    itemsLabel: itemsLabel,
+    total: total,
+    stampsEarned: stampsEarned,
+    status: status ?? this.status,
+  );
 }

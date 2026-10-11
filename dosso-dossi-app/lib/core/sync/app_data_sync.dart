@@ -7,6 +7,8 @@ import '../../features/auth/application/auth_controller.dart';
 import '../../features/auth/application/guest_mode.dart';
 import '../../features/branches/application/branch_providers.dart';
 import '../../features/campaigns/application/campaign_providers.dart';
+import '../../features/campaigns/application/campaign_story_providers.dart';
+import '../../features/campaigns/application/public_config.dart';
 import '../../features/order/application/cart_controller.dart';
 import '../../features/order/application/menu_providers.dart';
 import '../../features/order/application/order_providers.dart';
@@ -16,17 +18,24 @@ import '../constants/app_config.dart';
 import '../network/api_client.dart';
 import '../network/api_endpoints.dart';
 import 'revision_sync.dart';
+import '../diagnostics/app_telemetry.dart';
 
 /// Mounted once above every route, including product detail and the cart.
 /// Background apps and mock previews do not poll the server.
 final appDataSyncProvider = Provider.autoDispose<void>((ref) {
   if (AppConfig.useMocks) return;
+  // Private revision values are scoped to the current account. Even identical
+  // counters in two accounts must start a fresh, forced synchronization.
+  ref.watch(authControllerProvider.select((value) => value.value?.phone));
+  ref.watch(guestModeProvider);
   final dio = ref.watch(apiClientProvider);
+  final telemetry = ref.read(telemetryProvider);
   bool signedIn() =>
       !ref.read(guestModeProvider) &&
       ref.read(authControllerProvider).value != null;
 
   final sync = RevisionSync(
+    onError: (error) => telemetry.report(TelemetryOperation.contentSync, error),
     fetchRevisions: () async {
       final response = await dio.get<Map<String, dynamic>>(
         ApiEndpoints.syncRevisions,
@@ -37,9 +46,12 @@ final appDataSyncProvider = Provider.autoDispose<void>((ref) {
       'menu': () async {
         ref.invalidate(menuCategoriesProvider);
         ref.invalidate(menuProductsProvider);
+        ref.invalidate(giftMenuProductsProvider);
+        ref.invalidate(menuOptionsProvider);
         await Future.wait([
           ref.read(menuCategoriesProvider.future),
           ref.read(menuProductsProvider.future),
+          ref.read(menuOptionsProvider.future),
         ]);
       },
       'branches': () async {
@@ -48,7 +60,13 @@ final appDataSyncProvider = Provider.autoDispose<void>((ref) {
       },
       'campaigns': () async {
         ref.invalidate(campaignsProvider);
-        await ref.read(campaignsProvider.future);
+        ref.invalidate(campaignStoriesProvider);
+        ref.invalidate(publicConfigProvider);
+        await Future.wait([
+          ref.read(campaignsProvider.future),
+          ref.read(campaignStoriesProvider.future),
+          ref.read(publicConfigProvider.future),
+        ]);
         if (ref.mounted && signedIn()) {
           await ref.read(cartProvider.notifier).refreshPromo();
         }

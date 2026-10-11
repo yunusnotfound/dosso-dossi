@@ -1,18 +1,17 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../auth/presentation/guest_gate.dart';
-import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/brand_logo.dart';
+import '../../../core/widgets/product_image.dart';
 import '../../favorites/application/favorites_controller.dart';
 import '../application/cart_controller.dart';
 import '../application/menu_providers.dart';
@@ -122,6 +121,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       : product.price;
 
   void _addToCart(Product product) {
+    if (product.hasOptions && !ref.read(menuOptionsProvider).hasValue) return;
     // Konuk sipariş veremez: giriş istemi açılır.
     if (blockedForGuest(context, ref, action: 'Sipariş vermek')) return;
     ref
@@ -137,6 +137,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   @override
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(menuProductsProvider);
+    final options = ref.watch(menuOptionsProvider).value;
+    if (options != null) {
+      _milk = options.resolveMilk(_milk);
+      _shot = options.resolveShot(_shot);
+    }
 
     return productsAsync.when(
       skipError: true,
@@ -203,6 +208,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                           return CircleAvatar(
                             backgroundColor: Colors.white,
                             child: IconButton(
+                              tooltip: isFavorite
+                                  ? 'Favorilerden çıkar'
+                                  : 'Favorilere ekle',
                               onPressed: () => ref
                                   .read(favoritesProvider.notifier)
                                   .toggle(product.id),
@@ -475,57 +483,21 @@ class _ProductArt extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (product.images.isNotEmpty) {
-      final src = product.images.first;
-      // Emoji yer tutucu, fotoğraflı ürünlerle aynı irilikte dursun ki
-      // gerçek fotoğraf gelince görsel ağırlık değişmesin.
-      final emoji = Center(
-        child: Text(
-          product.emoji,
-          style: TextStyle(fontSize: math.min(320, height * 0.7)),
-        ),
-      );
-      if (src.startsWith('/') || src.startsWith('http')) {
-        // Karusel aynı anda 5 örnek kurar; decode yüksekliği sınırlanmazsa
-        // 5 tam çözünürlük görsel belleği ve kaydırmayı yorar.
-        final dpr = MediaQuery.devicePixelRatioOf(context);
-        return SizedBox(
-          height: height,
-          child: _withShadow(
-            CachedNetworkImage(
-              imageUrl: ApiEndpoints.mediaUrl(src),
-              fit: BoxFit.contain,
-              height: height,
-              memCacheHeight: (height * dpr).round().clamp(1, 1000),
-              fadeInDuration: const Duration(milliseconds: 150),
-              placeholder: (_, _) => emoji,
-              errorWidget: (_, _, _) => emoji,
-            ),
-          ),
-        );
-      }
-      return SizedBox(
-        height: height,
-        child: _withShadow(
-          Image.asset(src, fit: BoxFit.contain, height: height),
-        ),
-      );
-    }
-    return SizedBox(
-      height: height,
-      child: Center(
-        child: Text(
-          product.emoji,
-          style: TextStyle(fontSize: math.min(320, height * 0.7)),
-        ),
+  Widget build(BuildContext context) => SizedBox(
+    height: height,
+    child: _withShadow(
+      ProductImage(
+        product: product,
+        background: Colors.transparent,
+        emojiSize: math.min(320, height * 0.7),
+        memCacheWidth: 1000,
       ),
-    );
-  }
+    ),
+  );
 }
 
 /// Alt panel içeriği: fiyat + rozetler, isim, açıklama, seçenekler, CTA.
-class _SheetContent extends StatelessWidget {
+class _SheetContent extends ConsumerWidget {
   const _SheetContent({
     super.key,
     required this.product,
@@ -550,7 +522,9 @@ class _SheetContent extends StatelessWidget {
   final bool added;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final optionsState = ref.watch(menuOptionsProvider);
+    final options = optionsState.value;
     return Padding(
       // Üst boşluk: panele taşan ürün görselinin altında kalsın diye
       // fiyat/ad satırı aşağıdan başlar.
@@ -561,80 +535,86 @@ class _SheetContent extends StatelessWidget {
         AppSpacing.xl,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              // Yüksek fiyatlar rozetleri taşırmasın: gerekirse küçülür.
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    formatTl(price),
-                    maxLines: 1,
-                    style: AppTypography.numberLarge.copyWith(fontSize: 30),
-                  ),
-                ),
-              ),
-              const Spacer(),
-              if (product.sizeMl > 0) ...[
-                _InfoChip(text: '${product.sizeMl} ml'),
-                const SizedBox(width: AppSpacing.sm),
-              ],
-              if (product.stampMultiplier > 0)
-                _InfoChip(
-                  text: product.stampMultiplier > 1
-                      ? '+${product.stampMultiplier} damga'
-                      : '+1 damga',
-                  gold: true,
-                ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            product.name,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.headline,
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            product.description,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.bodySecondary,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          if (product.hasOptions)
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                Row(
                   children: [
-                    OptionSelector(
-                      label: 'Süt',
-                      options: ProductOptions.milks,
-                      selected: milk,
-                      onChanged: onMilk,
+                    // Yüksek fiyatlar rozetleri taşırmasın: gerekirse küçülür.
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          formatTl(price),
+                          maxLines: 1,
+                          style: AppTypography.numberLarge.copyWith(
+                            fontSize: 30,
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                    OptionSelector(
-                      label: 'Shot',
-                      options: ProductOptions.shots,
-                      selected: shot,
-                      onChanged: onShot,
-                    ),
+                    const Spacer(),
+                    if (product.sizeMl > 0) ...[
+                      _InfoChip(text: '${product.sizeMl} ml'),
+                      const SizedBox(width: AppSpacing.sm),
+                    ],
+                    if (product.stampMultiplier > 0)
+                      _InfoChip(
+                        text: product.stampMultiplier > 1
+                            ? '+${product.stampMultiplier} damga'
+                            : '+1 damga',
+                        gold: true,
+                      ),
                   ],
                 ),
-              ),
-            )
-          else
-            const Spacer(),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  product.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.headline,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  product.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.bodySecondary,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                if (product.hasOptions) ...[
+                  if (optionsState.isLoading) const LinearProgressIndicator(),
+                  if (optionsState.hasError)
+                    TextButton(
+                      onPressed: () => ref.invalidate(menuOptionsProvider),
+                      child: const Text('Seçenekler yüklenemedi. Tekrar dene'),
+                    ),
+                  OptionSelector(
+                    label: 'Süt',
+                    options: options?.milks ?? [ProductOptions.defaultMilk],
+                    selected: milk,
+                    onChanged: onMilk,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  OptionSelector(
+                    label: 'Shot',
+                    options: options?.shots ?? [ProductOptions.defaultShot],
+                    selected: shot,
+                    onChanged: onShot,
+                  ),
+                ],
+              ],
+            ),
+          ),
           const SizedBox(height: AppSpacing.md),
           // Bildirim (SnackBar) yok: geri bildirim butonun kendisinde.
           FilledButton(
-            onPressed: onAdd,
+            onPressed: product.hasOptions && !optionsState.hasValue
+                ? null
+                : onAdd,
             style: FilledButton.styleFrom(
               backgroundColor: added ? AppColors.success : AppColors.coffeeDark,
             ),

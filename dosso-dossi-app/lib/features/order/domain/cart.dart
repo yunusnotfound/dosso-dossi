@@ -1,6 +1,19 @@
 import 'menu.dart';
 import 'product_options.dart';
 
+/// The first submitted order must be resolved before another one is submitted.
+class UnconfirmedCheckout {
+  const UnconfirmedCheckout({
+    required this.branchName,
+    required this.pickupLabel,
+    required this.total,
+  });
+
+  final String branchName;
+  final String pickupLabel;
+  final double total;
+}
+
 /// Sepetteki tek satır: ürün + seçilen özelleştirmeler.
 class CartItem {
   const CartItem({
@@ -8,12 +21,17 @@ class CartItem {
     required this.milk,
     required this.shot,
     this.quantity = 1,
+    this.localId,
   });
 
   final Product product;
   final ProductOption milk;
   final ProductOption shot;
   final int quantity;
+
+  /// Distinguishes newly added rows from rows in an unconfirmed checkout.
+  /// It is local to this cart and is never included in the API request.
+  final String? localId;
 
   double get unitPrice => product.hasOptions
       ? product.price + milk.priceDelta + shot.priceDelta
@@ -39,11 +57,13 @@ class CartItem {
     ProductOption? milk,
     ProductOption? shot,
     int? quantity,
+    String? localId,
   }) => CartItem(
     product: product ?? this.product,
     milk: milk ?? this.milk,
     shot: shot ?? this.shot,
     quantity: quantity ?? this.quantity,
+    localId: localId ?? this.localId,
   );
 }
 
@@ -55,6 +75,8 @@ class CartState {
     this.discountRate = 0,
     this.useFreeDrink = false,
     this.catalogNotice,
+    this.quotedTotal,
+    this.unconfirmedCheckout,
   });
 
   final List<CartItem> items;
@@ -69,9 +91,14 @@ class CartState {
   /// Explains live price changes or unavailable items removed from this cart.
   final String? catalogNotice;
 
+  /// Authoritative changed total, shown for a fresh explicit confirmation.
+  /// Any cart/catalog edit drops the quote through copyWith.
+  final double? quotedTotal;
+  final UnconfirmedCheckout? unconfirmedCheckout;
+
   int get count => items.fold(0, (sum, item) => sum + item.quantity);
   double get subtotal => items.fold(0, (sum, item) => sum + item.total);
-  double get discount => subtotal * discountRate;
+  double get discount => (subtotal * discountRate * 100).round() / 100;
 
   /// İkrama uygun (damga kazandıran = içecek) en yüksek birim fiyatlı ürün.
   CartItem? get freeDrinkItem {
@@ -88,6 +115,7 @@ class CartState {
       useFreeDrink ? (freeDrinkItem?.unitPrice ?? 0) : 0;
 
   double get total {
+    if (quotedTotal != null) return quotedTotal!;
     final t = subtotal - discount - freeDrinkDiscount;
     return t < 0 ? 0 : t;
   }
@@ -103,12 +131,19 @@ class CartState {
     double? discountRate,
     bool? useFreeDrink,
     String? catalogNotice,
+    double? quotedTotal,
     bool clearPromo = false,
+    UnconfirmedCheckout? unconfirmedCheckout,
+    bool clearUnconfirmedCheckout = false,
   }) => CartState(
     items: items ?? this.items,
     promoCode: clearPromo ? null : (promoCode ?? this.promoCode),
     discountRate: clearPromo ? 0 : (discountRate ?? this.discountRate),
     useFreeDrink: useFreeDrink ?? this.useFreeDrink,
     catalogNotice: catalogNotice ?? this.catalogNotice,
+    quotedTotal: quotedTotal,
+    unconfirmedCheckout: clearUnconfirmedCheckout
+        ? null
+        : (unconfirmedCheckout ?? this.unconfirmedCheckout),
   );
 }

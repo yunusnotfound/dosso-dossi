@@ -10,27 +10,73 @@ import '../../../routing/app_router.dart';
 import '../application/order_tracking_provider.dart';
 
 /// Canlı sipariş takibi: Alındı → Hazırlanıyor → Hazır.
-class OrderTrackingScreen extends ConsumerWidget {
+class OrderTrackingScreen extends ConsumerStatefulWidget {
   const OrderTrackingScreen({super.key, required this.orderId});
 
   final String orderId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tracking = ref.watch(orderTrackingProvider(orderId));
+  ConsumerState<OrderTrackingScreen> createState() =>
+      _OrderTrackingScreenState();
+}
+
+class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  void _retry() => ref.invalidate(orderTrackingProvider(widget.orderId));
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed ||
+        !mounted ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+    final status = ref
+        .read(orderTrackingProvider(widget.orderId))
+        .value
+        ?.status;
+    if (status != 'completed' && status != 'cancelled') _retry();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tracking = ref.watch(orderTrackingProvider(widget.orderId));
 
     return Scaffold(
-      appBar: AppBar(title: Text('Sipariş $orderId')),
+      appBar: AppBar(title: Text('Sipariş ${widget.orderId}')),
       body: SafeArea(
         child: tracking.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.page),
-              child: Text(
-                'Sipariş bilgisi alınamadı. Bağlantını kontrol et.',
-                textAlign: TextAlign.center,
-                style: AppTypography.bodySecondary,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Sipariş bilgisi alınamadı. Bağlantını kontrol et.',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.bodySecondary,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  FilledButton.icon(
+                    onPressed: _retry,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Tekrar dene'),
+                  ),
+                ],
               ),
             ),
           ),
@@ -102,7 +148,11 @@ class OrderTrackingScreen extends ConsumerWidget {
           child: Text(label, style: AppTypography.bodySecondary),
         ),
         Expanded(
-          child: Text(value, textAlign: TextAlign.right, style: AppTypography.body),
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: AppTypography.body,
+          ),
         ),
       ],
     );
@@ -121,10 +171,10 @@ class _StatusSteps extends StatelessWidget {
   ];
 
   int get _activeIndex => switch (status) {
-        'preparing' => 1,
-        'ready' || 'completed' => 2,
-        _ => 0,
-      };
+    'preparing' => 1,
+    'ready' || 'completed' => 2,
+    _ => 0,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -145,8 +195,9 @@ class _StatusSteps extends StatelessWidget {
                   child: Container(
                     width: 2,
                     height: 24,
-                    color:
-                        i <= _activeIndex ? AppColors.primary : AppColors.divider,
+                    color: i <= _activeIndex
+                        ? AppColors.primary
+                        : AppColors.divider,
                   ),
                 ),
               ),
@@ -157,19 +208,23 @@ class _StatusSteps extends StatelessWidget {
                   state: i < _activeIndex
                       ? _StepState.done
                       : i == _activeIndex
-                          ? _StepState.active
-                          : _StepState.pending,
+                      ? _StepState.active
+                      : _StepState.pending,
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Text(
-                    _steps[i].$2,
+                    status == 'completed' && i == 2
+                        ? 'Teslim edildi'
+                        : _steps[i].$2,
                     style: i <= _activeIndex
                         ? AppTypography.body
                         : AppTypography.bodySecondary,
                   ),
                 ),
-                if (i == _activeIndex && status != 'ready' && status != 'completed')
+                if (i == _activeIndex &&
+                    status != 'ready' &&
+                    status != 'completed')
                   const SizedBox(
                     width: 16,
                     height: 16,

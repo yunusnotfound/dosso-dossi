@@ -14,7 +14,7 @@ import '../../order/application/menu_providers.dart';
 import '../../order/domain/menu.dart';
 import '../../order/presentation/widgets/add_to_cart_button.dart';
 
-/// Online Mağaza sekmesi: termos, mug ve çekirdek kahveler. Menüden ayrı
+/// Online Mağaza sekmesi: termoslar ve çekirdek kahveler. Menüden ayrı
 /// vitrin; ürün detayı, favoriler ve sepet sipariş akışıyla ortaktır.
 class ShopScreen extends ConsumerStatefulWidget {
   const ShopScreen({super.key});
@@ -24,8 +24,8 @@ class ShopScreen extends ConsumerStatefulWidget {
 }
 
 class _ShopScreenState extends ConsumerState<ShopScreen> {
-  /// Başlığın iki yanına ayrılan alan: 2 ikon (40) + aralık (4).
-  static const _headerIconsWidth = 84.0;
+  /// Favoriler ve sepet için iki 48 px dokunma alanı ve 4 px aralık.
+  static const _headerIconsWidth = 100.0;
 
   String _query = '';
   String _categoryId = 'merch';
@@ -46,6 +46,15 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
     });
   }
 
+  void _showThermos() {
+    _searchController.text = 'Termos';
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _categoryId = 'merch';
+      _query = 'Termos';
+    });
+  }
+
   List<Product> _filter(List<Product> products) {
     final query = _query.trim().toLowerCase();
     return products.where((p) {
@@ -60,18 +69,22 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
     final products = ref.watch(menuProductsProvider);
     final categories = ref.watch(menuCategoriesProvider);
     final cartCount = ref.watch(cartProvider.select((c) => c.count));
+    // Büyük erişilebilirlik metninde ürünleri okunur genişlikte tut.
+    final largeText = MediaQuery.textScalerOf(context).scale(16) >= 24;
 
     return Scaffold(
       body: SafeArea(
         // Üst güvenli alan kapalı: içerik ekranın tepesine kadar uzanır.
         top: false,
         bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: ListView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.paddingOf(context).bottom,
+          ),
           children: [
-            // Başlık: ortada sayfa adı, sağda favoriler + sepet.
-            // İki yanda eşit genişlik ayrılır ki başlık gerçekten ortalansın
-            // ve sepet rozeti kırpılmadan sığsın.
+            // Başlık biraz sola kayar; favorilerle arasında 12 px boşluk kalır.
+            // İkonların dokunma alanı ve sepet rozeti için ayrılan alan korunur.
             Padding(
               padding: EdgeInsets.fromLTRB(
                 AppSpacing.page,
@@ -81,7 +94,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
               ),
               child: Row(
                 children: [
-                  const SizedBox(width: _headerIconsWidth),
+                  const SizedBox(width: _headerIconsWidth - AppSpacing.md),
                   Expanded(
                     // Dar ekranlarda (iPhone SE) başlık kırpılmak yerine
                     // sığacak kadar küçülür; geniş ekranlarda tam boyutta.
@@ -95,6 +108,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: AppSpacing.md),
                   SizedBox(
                     width: _headerIconsWidth,
                     child: Row(
@@ -146,14 +160,21 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                   horizontal: AppSpacing.page,
                 ),
                 children: [
-                  _CoffeeBanner(
+                  _CollectionBanner(
+                    assetPath: 'assets/images/shop_thermos_collection.webp',
+                    label:
+                        'Rengini seç. Keyfini taşı. 500 ml, çift cidarlı çelik. Termosları keşfet.',
+                    onTap: _showThermos,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  _CollectionBanner(
                     assetPath: 'assets/images/shop_coffee_origins.png',
                     label:
                         'Dünyadan seç, evinde demle. Kolombiya, Kenya ve Nikaragua. Kahveleri keşfet.',
                     onTap: () => _selectCategory('cekirdek'),
                   ),
                   const SizedBox(width: AppSpacing.md),
-                  _CoffeeBanner(
+                  _CollectionBanner(
                     assetPath: 'assets/images/shop_coffee_ritual.png',
                     label:
                         'Kahve keyfi, senin usulün. Türk Kahvesi ve Mehmedi Meşari. Ürünleri incele.',
@@ -173,10 +194,12 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.page,
                 ),
-                child: Row(
+                child: Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
                   children: [
                     // Sekme sırası shopCategoryIds sırasını izler (önce
-                    // Termos & Mug), menüdeki kategori sırasını değil.
+                    // Termoslar), menüdeki kategori sırasını değil.
                     for (final id in shopCategoryIds)
                       for (final category in list)
                         if (category.id == id)
@@ -198,47 +221,46 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
             // Kaydırılan tek alan: ürün ızgarası.
-            Expanded(
-              child: products.when(
-                skipError: true,
-                skipLoadingOnReload: true,
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(
-                  child: Text(
-                    'Mağaza yüklenemedi',
-                    style: AppTypography.bodySecondary,
-                  ),
+            products.when(
+              skipError: true,
+              skipLoadingOnReload: true,
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(
+                child: Text(
+                  'Mağaza yüklenemedi',
+                  style: AppTypography.bodySecondary,
                 ),
-                data: (list) {
-                  final filtered = _filter(list);
-                  if (filtered.isEmpty) {
-                    return Center(
-                      child: Text(
-                        'Sonuç bulunamadı',
-                        style: AppTypography.bodySecondary,
-                      ),
-                    );
-                  }
-                  return GridView.builder(
-                    padding: EdgeInsets.fromLTRB(
-                      AppSpacing.page,
-                      0,
-                      AppSpacing.page,
-                      AppSpacing.xxxl + MediaQuery.paddingOf(context).bottom,
-                    ),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: AppSpacing.md,
-                          crossAxisSpacing: AppSpacing.md,
-                          childAspectRatio: 0.58,
-                        ),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) =>
-                        _ShopProductCard(product: filtered[index]),
-                  );
-                },
               ),
+              data: (list) {
+                final filtered = _filter(list);
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'Sonuç bulunamadı',
+                      style: AppTypography.bodySecondary,
+                    ),
+                  );
+                }
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.page,
+                    0,
+                    AppSpacing.page,
+                    AppSpacing.xxxl + MediaQuery.paddingOf(context).bottom,
+                  ),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: largeText ? 1 : 2,
+                    mainAxisSpacing: AppSpacing.md,
+                    crossAxisSpacing: AppSpacing.md,
+                    childAspectRatio: largeText ? 0.72 : 0.58,
+                  ),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) =>
+                      _ShopProductCard(product: filtered[index]),
+                );
+              },
             ),
           ],
         ),
@@ -250,32 +272,23 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
 /// Başlıktaki yuvarlak zeminli ikon butonu.
 class _HeaderIcon extends StatelessWidget {
   const _HeaderIcon({required this.icon, required this.onTap});
-
   final IconData icon;
   final VoidCallback onTap;
-
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        alignment: Alignment.center,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.surface,
-        ),
-        child: Icon(icon, size: 21, color: AppColors.textPrimary),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => IconButton.filledTonal(
+    onPressed: onTap,
+    tooltip: icon == Icons.favorite_border ? 'Favorilerim' : 'Sepetim',
+    style: IconButton.styleFrom(
+      backgroundColor: AppColors.surface,
+      minimumSize: const Size(48, 48),
+    ),
+    icon: Icon(icon, size: 21, color: AppColors.textPrimary),
+  );
 }
 
-/// Onaylanan 2:1 afiş; tamamına dokunarak kahve koleksiyonu açılır.
-class _CoffeeBanner extends StatelessWidget {
-  const _CoffeeBanner({
+/// Onaylanan 2:1 afiş; tamamına dokunarak ilgili koleksiyon açılır.
+class _CollectionBanner extends StatelessWidget {
+  const _CollectionBanner({
     required this.assetPath,
     required this.label,
     required this.onTap,
@@ -385,26 +398,23 @@ class _ShopProductCard extends ConsumerWidget {
                   Positioned(
                     top: AppSpacing.xs,
                     right: AppSpacing.xs,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => ref
+                    child: IconButton.filledTonal(
+                      onPressed: () => ref
                           .read(favoritesProvider.notifier)
                           .toggle(product.id),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.surface,
-                        ),
-                        child: Icon(
-                          isFavorite ? Icons.favorite : Icons.favorite_border,
-                          size: 18,
-                          color: isFavorite
-                              ? AppColors.danger
-                              : AppColors.textSecondary,
-                        ),
+                      tooltip: isFavorite
+                          ? '${product.name}, favorilerden çıkar'
+                          : '${product.name}, favorilere ekle',
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.surface,
+                        minimumSize: const Size(48, 48),
+                      ),
+                      icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        size: 18,
+                        color: isFavorite
+                            ? AppColors.danger
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ),
