@@ -25,7 +25,7 @@ Bu kayıt, derin inceleme sonrası onaylanan uygulama paketini anlatır. Önceki
 - Hesap kapatma bakiye, aktif sipariş, bekleyen yükleme ve gelen/giden bekleyen hediye varsa durur. Kapanınca refresh token ve QR iptal olur; sonraki giriş, hediye alımı ve panel bakiye/sadakat düzeltmesi engellenir.
 - Bu işlem fiziksel/hukuki veri silme değildir. Finans ve audit kayıtları korunur. Kullanıcı kapatmadan önce kendi verilerini sayfalı görüntüleyip kopyalayabilir; şifre/token/diğer hesapların ham verisi dışa aktarılmaz.
 - Bildirim kutusu sipariş, hediye, hesap talebi ve aktif kampanyaları saklar. Tercih, sahiplik, okundu ve tek teslim kontrolleri vardır. İşlem bildirimleri ilgili DB transaction ile birlikte yazılır. Mobil kutu görünür ve uygulama ön plandayken yenilenir; dış link yerine yalnız izinli uygulama yollarına gider.
-- GitHub Actions üç bağımsız kalite işi içerir. Backend testi geliştirme veritabanından ayrı `_test` DB kullanır; admin tarayıcı regresyonları API çağrılarını taklit eder.
+- Yerel kalite doğrulamaları backend, admin ve Flutter için ayrı çalıştırıldı. Backend testi geliştirme veritabanından ayrı `_test` DB kullanır; admin tarayıcı regresyonları API çağrılarını taklit eder. Ek testler ve GitHub Actions iş akışı kullanıcı tercihiyle bu branch'e dahil edilmedi; yerelde korundu.
 
 ## Veri geçişi
 
@@ -39,7 +39,7 @@ Bu kayıt, derin inceleme sonrası onaylanan uygulama paketini anlatır. Önceki
 - Simülatörde yeniden başlatılan uygulamada profil, hesap talepleri ve kişisel veri ekranları gerçek local API ile açıldı. Görsel kontrol için kapatma talebi veya ödeme gönderilmedi.
 - Backend ve admin üretim bağımlılıklarının `npm audit --omit=dev` taramasında bildirilen açık sayısı **0**. Bu bir bağımsız penetrasyon testi sonucu değildir.
 - Son kontrolde local backend `/health` ve admin ana sayfası HTTP 200 döndürdü. Geçici test DB kaldırıldı; uygulamanın local DB'si çalışmaya devam ediyor.
-- CI dosyası hazırdır; GitHub üzerinde ilk çalışması henüz yapılmamıştır. Bu makinede Android SDK bulunmadığı için Android cihaz/build doğrulaması yapılmadı.
+- CI dosyası yalnız yerelde tutulur; GitHub üzerinde etkin değildir. Bu makinede Android SDK bulunmadığı için Android cihaz/build doğrulaması yapılmadı.
 
 ## Hazır olmayan dış ayarlar
 

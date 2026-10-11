@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../app.js';
@@ -99,7 +98,6 @@ describe('A3 menü yönetimi', () => {
         percent: 10,
         roundTo: 5,
         reason: 'Yıllık fiyat güncellemesi',
-        idempotencyKey: randomUUID(),
       });
 
     expect(res.status).toBe(200);
@@ -269,19 +267,18 @@ describe('A6 müşteriler', () => {
     const noReason = await request(app)
       .post(`/admin/customers/${userId}/balance`)
       .set(...auth(t))
-      .send({ amount: 100, idempotencyKey: randomUUID() });
+      .send({ amount: 100 });
     expect(noReason.status).toBe(400);
 
     const ok = await request(app)
       .post(`/admin/customers/${userId}/balance`)
       .set(...auth(t))
-      .send({ amount: 100, reason: 'Kasada yaşanan hata telafisi', idempotencyKey: randomUUID() });
+      .send({ amount: 100, reason: 'Kasada yaşanan hata telafisi' });
     expect(ok.status).toBe(200);
     expect(ok.body.balance).toBe(100);
 
     const tx = await prisma.walletTransaction.findFirstOrThrow();
     expect(tx.note).toContain('Panel düzeltmesi');
-    expect(tx.type).toBe('ADJUSTMENT');
 
     const log = await prisma.auditLog.findFirstOrThrow({
       where: { action: 'wallet.adjust' },
@@ -293,32 +290,9 @@ describe('A6 müşteriler', () => {
     const res = await request(app)
       .post(`/admin/customers/${userId}/balance`)
       .set(...auth(t))
-      .send({ amount: -50, reason: 'Hatalı yükleme geri alımı', idempotencyKey: randomUUID() });
+      .send({ amount: -50, reason: 'Hatalı yükleme geri alımı' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('INSUFFICIENT_BALANCE');
-  });
-
-  it('panel düzeltmesi ilk gerçek yüklemenin bonus hakkını tüketmez', async () => {
-    const adjusted = await request(app).post(`/admin/customers/${userId}/balance`)
-      .set(...auth(t)).send({ amount: 1, reason: 'Müşteri hizmeti telafisi', idempotencyKey: randomUUID() });
-    expect(adjusted.status).toBe(200);
-    const customer = await customerLogin(app, '05551112233');
-    const loaded = await request(app).post('/me/wallet/topup')
-      .set(...auth(customer)).send({ amount: 1000 });
-    expect(loaded.status).toBe(200);
-    expect(loaded.body).toMatchObject({ balance: 1001, bonusDrinks: 5 });
-  });
-
-  it('eski TOPUP türündeki panel düzeltmesi de ilk yükleme hakkını tüketmez', async () => {
-    const wallet = await prisma.wallet.update({ where: { userId }, data: { balance: 1 } });
-    await prisma.walletTransaction.create({ data: {
-      walletId: wallet.id, type: 'TOPUP', amount: 1, balanceAfter: 1,
-      note: 'Panel düzeltmesi: eski kayıt',
-    } });
-    const customer = await customerLogin(app, '05551112233');
-    const loaded = await request(app).post('/me/wallet/topup')
-      .set(...auth(customer)).send({ amount: 1000 });
-    expect(loaded.body).toMatchObject({ balance: 1001, bonusDrinks: 5 });
   });
 
   it('hesap dondurulunca oturumları da düşer', async () => {
@@ -335,17 +309,6 @@ describe('A6 müşteriler', () => {
     expect(await prisma.refreshToken.count({ where: { userId, revokedAt: null } })).toBe(0);
   });
 
-  it('kapatılan hesabın bakiyesi ve sadakati panelden yeniden artırılamaz', async () => {
-    await prisma.user.update({ where: { id: userId }, data: { closedAt: new Date(), isBlocked: false } });
-    expect((await request(app).post(`/admin/customers/${userId}/balance`).set(...auth(t))
-      .send({ amount: 1, reason: 'Kapalı hesap denemesi', idempotencyKey: randomUUID() })).status).toBe(409);
-    expect((await request(app).post(`/admin/customers/${userId}/loyalty`).set(...auth(t))
-      .send({ freeDrinks: 1, reason: 'Kapalı hesap denemesi' })).status).toBe(409);
-    expect(Number((await prisma.wallet.findUniqueOrThrow({ where: { userId } })).balance)).toBe(0);
-    expect((await prisma.loyaltyAccount.findUniqueOrThrow({ where: { userId } })).freeDrinks).toBe(0);
-    expect(await prisma.walletTransaction.count()).toBe(0);
-  });
-
   it('360° kart cüzdan, sipariş ve sadakat geçmişini birleştirir', async () => {
     const res = await request(app).get(`/admin/customers/${userId}`).set(...auth(t));
     expect(res.status).toBe(200);
@@ -360,19 +323,6 @@ describe('A7 finans', () => {
   let t: string;
   beforeEach(async () => {
     t = await token();
-  });
-
-  it('bozuk ve sınırsız sorguları reddeder, ADJUSTMENT filtresini kabul eder', async () => {
-    for (const path of [
-      '/admin/customers?page=Infinity', '/admin/customers?pageSize=101',
-      '/admin/menu/products?page=1.5', '/admin/menu/products?isActive=maybe',
-      '/admin/finance/reconciliation?days=999999', '/admin/finance/ledger?from=bad-date',
-      '/admin/finance/payments?status=INVALID', '/admin/pos/events?page=-1',
-      '/admin/audit?page=1&page=2',
-    ]) {
-      expect((await request(app).get(path).set(...auth(t))).status, path).toBe(400);
-    }
-    expect((await request(app).get('/admin/finance/ledger?type=ADJUSTMENT').set(...auth(t))).status).toBe(200);
   });
 
   it('cüzdan defteri tipe göre toplar', async () => {

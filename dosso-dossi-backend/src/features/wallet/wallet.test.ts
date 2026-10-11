@@ -7,26 +7,6 @@ import { login } from '../../test/helpers.js';
 const app = createApp();
 
 describe('wallet', () => {
-  it('paralel QR yenilemelerinden yalnız son kod geçerli kalır', async () => {
-    const token = await login(app, '05551112233');
-    const responses = await Promise.all(Array.from({ length: 6 }, () =>
-      request(app).post('/me/wallet/qr-token').set('Authorization', `Bearer ${token}`)));
-    expect(responses.every((res) => res.status === 200)).toBe(true);
-    const rows = await prisma.qrToken.findMany();
-    expect(rows).toHaveLength(6);
-    expect(rows.filter((row) => !row.consumedAt && row.expiresAt > new Date())).toHaveLength(1);
-  });
-
-  it('yenileme, süresi az önce dolan eski QR kodunu da iptal eder', async () => {
-    const token = await login(app, '05551112233');
-    const user = await prisma.user.findFirstOrThrow();
-    const previous = await prisma.qrToken.create({ data: {
-      userId: user.id, code: 'DDPAY-recently-expired', expiresAt: new Date(Date.now() - 1000),
-    } });
-    expect((await request(app).post('/me/wallet/qr-token').set('Authorization', `Bearer ${token}`)).status).toBe(200);
-    expect((await prisma.qrToken.findUniqueOrThrow({ where: { id: previous.id } })).consumedAt).not.toBeNull();
-  });
-
   it('yükleme bakiyeyi artırır ve ledger kaydı oluşturur', async () => {
     const token = await login(app, '05551112233');
     const res = await request(app)

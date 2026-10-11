@@ -95,7 +95,7 @@ flutter build ios --dart-define-from-file=dart_defines.json
 
 ## Kalite kontrolleri
 
-`.github/workflows/quality.yml` her push ve PR için backend işlem testlerini ayrı PostgreSQL veritabanında, admin tip/lint/kontrat/tarayıcı testlerini ve Flutter analiz/testlerini çalıştırır. Yerelde aynı komutlar:
+Temel kalite kontrolleri aşağıdaki komutlarla çalıştırılır. Son incelemede hazırlanan ek testler ve CI iş akışı yerelde korunur; bu branch'e dahil edilmemiştir.
 
 ```bash
 # dosso-dossi-backend (önceden oluşturulmuş, yalnız teste ayrılan *_test DB)
@@ -105,11 +105,9 @@ TEST_DATABASE_URL=postgresql://dosso:dosso@localhost:5433/dosso_dossi_test npm t
 # dosso-dossi-admin
 npm run typecheck
 npm run lint -- --deny-warnings
-npm run test:contracts
 npm run build
 npm run test:regression
 npm run test:stories
-npm run test:audit-fixes
 
 # dosso-dossi-app
 flutter analyze

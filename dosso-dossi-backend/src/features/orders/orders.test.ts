@@ -27,17 +27,6 @@ function orderBody(overrides: Record<string, unknown> = {}) {
 }
 
 describe('orders', () => {
-  it('geçersiz teslim saatinde bakiye ve sipariş defterine dokunmaz', async () => {
-    const token = await loginAndTopUp(500);
-    const res = await request(app).post('/orders').set('Authorization', `Bearer ${token}`)
-      .send(orderBody({ pickupSlot: '25:99' }));
-    expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe('VALIDATION_ERROR');
-    expect(await prisma.order.count()).toBe(0);
-    expect(Number((await prisma.wallet.findFirstOrThrow()).balance)).toBe(500);
-    expect(await prisma.walletTransaction.count({ where: { type: 'ORDER_PAYMENT' } })).toBe(0);
-  });
-
   it('fiyatı sunucu hesaplar: opsiyon farkları + promo indirimi', async () => {
     const token = await loginAndTopUp(500);
     const res = await request(app)

@@ -5,7 +5,6 @@ import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { mkdir } from 'node:fs/promises';
 
 const cwd = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const port = 5296;
@@ -30,13 +29,11 @@ function gate(name) {
   gates.set(name, { promise, release });
 }
 const profiles = {
-  a: { id: 'a', email: 'a@example.invalid', name: 'Audit A', role: 'SUPER_ADMIN', branchId: null, mustChangePassword: false, tempPasswordExpiresAt: null },
-  b: { id: 'b', email: 'b@example.invalid', name: 'Audit B', role: 'MANAGER', branchId: null, mustChangePassword: false, tempPasswordExpiresAt: null },
-  branch: { id: 'branch', email: 'branch@example.invalid', name: 'Audit Branch', role: 'BRANCH_MANAGER', branchId: 'b1', mustChangePassword: false, tempPasswordExpiresAt: null },
-  viewer: { id: 'viewer', email: 'viewer@example.invalid', name: 'Audit Viewer', role: 'VIEWER', branchId: null, mustChangePassword: false, tempPasswordExpiresAt: null },
+  a: { id: 'a', email: 'a@example.invalid', name: 'Audit A', role: 'SUPER_ADMIN', branchId: null },
+  b: { id: 'b', email: 'b@example.invalid', name: 'Audit B', role: 'MANAGER', branchId: null },
+  branch: { id: 'branch', email: 'branch@example.invalid', name: 'Audit Branch', role: 'BRANCH_MANAGER', branchId: 'b1' },
+  viewer: { id: 'viewer', email: 'viewer@example.invalid', name: 'Audit Viewer', role: 'VIEWER', branchId: null },
 };
-let malformedRefresh = false;
-const accountRequest = { id: 'request-1', kind: 'CLOSURE', status: 'OPEN', note: 'Hesabımı kapatmak istiyorum.', response: '', createdAt: '2026-10-07T12:00:00Z', updatedAt: '2026-10-07T12:00:00Z', user: { id: 'user-request', name: 'Hesap Talebi Müşterisi', phone: '5550000000', email: '' }, balance: 20 };
 const settings = { 'loyalty.stampTarget': 5, 'loyalty.topUpBonusThreshold': 1000, 'loyalty.topUpBonusDrinks': 5, 'loyalty.topUpBonusFirstOnly': true };
 const branch = { id: 'b1', name: 'Audit Şube', address: 'Test adres', city: 'İstanbul', phone: '', lat: 41, lng: 29, hours: '09:00–20:00', isOpen: true, prepMinutes: 7, orderCount: 1 };
 const availability = { productId: 'latte', name: 'Audit Latte', categoryName: 'Kahve', basePrice: 190, isAvailable: true, priceOverride: 210.50 };
@@ -56,7 +53,7 @@ try {
     if (server.exitCode !== null) throw new Error(serverLog);
     return fetch(base).then((r) => r.ok).catch(() => false);
   }, 'Isolated Vite server did not start');
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || (process.env.CI ? undefined : 'chrome'), headless: true });
+  browser = await chromium.launch({ channel: 'chrome', headless: true });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1100 }, acceptDownloads: true });
   await context.route(`${apiBase}/**`, async (route) => {
     const req = route.request();
@@ -79,17 +76,10 @@ try {
     if (path === '/admin/auth/logout') return json({ ok: true });
     if (path === '/admin/auth/password') return json({ ok: true });
     if (path === '/admin/auth/refresh') {
-      if (malformedRefresh) return json({ token: 'invalid-incomplete-response' });
       waits.set('refresh', true);
       if (gates.has('refresh')) await gates.get('refresh').promise;
       const name = body.refreshToken.split('-')[0];
       return json({ token: `${name}-rotated`, refreshToken: `${name}-refresh-rotated` });
-    }
-    if (path === '/admin/audit-test/bad-payload') return json({ page: 1, orders: {} });
-    if (path === '/admin/account-requests') return json({ page: 1, pageSize: 30, total: accountRequest.status === url.searchParams.get('status') ? 1 : 0, entries: accountRequest.status === url.searchParams.get('status') ? [accountRequest] : [] });
-    if (path === '/admin/account-requests/request-1' && method === 'PATCH') {
-      if (body.status === 'COMPLETED' && accountRequest.balance !== 0) return json({ error: { code: 'ACCOUNT_HAS_BALANCE', message: 'Hesap bakiyesi sıfırlanmadan kapatılamaz.' } }, 409);
-      Object.assign(accountRequest, body); return json(accountRequest);
     }
     if (path === '/admin/audit-test/deferred') {
       waits.set('deferred', true);
@@ -98,7 +88,7 @@ try {
     }
     if (path === '/admin/audit-test/invalid') return json({ error: { code: 'UNAUTHORIZED', message: 'Revoked fixture' } }, 401);
     if (path === '/admin/audit-test/refresh') return token.endsWith('rotated') ? json({ ok: true }) : json({ error: { code: 'UNAUTHORIZED', message: 'Expired fixture' } }, 401);
-    if (path === '/admin/dashboard') return json({ summary: { orderRevenue: 425.50, qrRevenue: 0, totalRevenue: 425.50, orderCount: 1, topUpTotal: 1000, newUsers: 1, stampsEarned: 2, freeDrinksGranted: 5, pendingGifts: 0 }, timeseries: [{ date: '2026-10-05', revenue: 850, orders: 2 }, { date: '2026-10-06', revenue: 0, orders: 0 }, { date: '2026-10-07', revenue: 425.50, orders: 1 }], branches: [{ branchId: branch.id, name: branch.name, isOpen: true, revenue: 425.50, orders: 1 }], hourly: Array.from({ length: 24 }, (_, hour) => ({ hour, orders: hour === 13 ? 1 : 0 })), alerts: { unforwardedOrders: 0, failedPosEvents: 0, closedBranches: [], pendingPayments: 0 } });
+    if (path === '/admin/dashboard') return json({ summary: { orderRevenue: 425.50, qrRevenue: 0, totalRevenue: 425.50, orderCount: 1, topUpTotal: 1000, newUsers: 1, stampsEarned: 2, freeDrinksGranted: 5, pendingGifts: 0 }, timeseries: [], branches: [], hourly: [], alerts: { unforwardedOrders: 0, failedPosEvents: 0, closedBranches: [], pendingPayments: 0 } });
     if (path === '/admin/customers') return json({ page: 1, pageSize: 25, total: 1, customers: [customer(account)] });
     if (path.startsWith('/admin/customers/customer-')) return json({ ...customer(account), activeSessions: 1, loyalty: { stamps: 2, target: 5, freeDrinks: 1 }, transactions: [], orders: [], loyaltyEvents: [], giftsSent: [], giftsReceived: [], qrCharges: [] });
     if (path === '/admin/settings') {
@@ -130,11 +120,6 @@ try {
   const page = await context.newPage();
   page.setDefaultTimeout(10_000);
   page.on('pageerror', (e) => errors.push(String(e)));
-  async function snapshot(name) {
-    if (!process.env.ADMIN_SCREENSHOT_DIR) return;
-    await mkdir(process.env.ADMIN_SCREENSHOT_DIR, { recursive: true });
-    await page.screenshot({ path: resolve(process.env.ADMIN_SCREENSHOT_DIR, `${name}.png`), fullPage: true });
-  }
   async function login(name) {
     await page.getByRole('textbox', { name: 'E-posta' }).fill(`${name}@example.invalid`);
     await page.getByLabel('Şifre', { exact: true }).fill('fictional-password');
@@ -146,22 +131,7 @@ try {
     await page.getByRole('heading', { name, exact: true }).waitFor();
   }
   await page.goto(base);
-  await snapshot('login');
   await login('a');
-  await page.getByRole('heading', { name: 'Günün özeti.', exact: true }).waitFor();
-  await page.getByRole('group', { name: 'Son 30 günün günlük ciro grafiği' }).waitFor();
-  await snapshot('dashboard-desktop');
-  await page.setViewportSize({ width: 390, height: 844 });
-  assert.equal(await page.getByRole('navigation', { name: 'Ana menü' }).isVisible(), false);
-  await waitUntil(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile page overflows horizontally');
-  await snapshot('dashboard-mobile');
-  await page.getByRole('button', { name: 'Menüyü aç', exact: true }).click();
-  await page.getByRole('link', { name: 'Siparişler', exact: true }).click();
-  await page.getByRole('heading', { name: 'Siparişler', exact: true }).waitFor();
-  assert.equal(await page.getByRole('button', { name: 'Menüyü aç', exact: true }).getAttribute('aria-expanded'), 'false');
-  await waitUntil(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile page overflows horizontally');
-  await page.setViewportSize({ width: 1440, height: 1100 });
-  checked('Mobile navigation opens, follows a route and closes without horizontal overflow');
   await visit('Müşteriler');
   await page.getByText('ACCOUNT_A_CUSTOMER', { exact: true }).waitFor();
   await page.getByText('ACCOUNT_A_CUSTOMER', { exact: true }).click();
@@ -212,7 +182,6 @@ try {
 
   await visit('Siparişler');
   await page.getByText('DD-1000', { exact: true }).waitFor();
-  await snapshot('orders-desktop');
   await page.getByRole('button', { name: 'Sonraki ›', exact: true }).click();
   await page.getByText('DD-999', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Tüm siparişler', exact: true }).click();
@@ -259,10 +228,7 @@ try {
   checked('Availability toggle preserves and displays the branch-specific price');
 
   await visit('Menü');
-  await page.getByText('Audit Latte', { exact: true }).waitFor();
-  await snapshot('products-desktop');
   await page.getByText('Audit Latte', { exact: true }).click();
-  await snapshot('product-editor');
   await page.getByLabel('Detay görseli URL').fill('https://images.invalid/detail-new.png');
   await page.getByRole('checkbox', { name: 'Liste ve detayda aynı görseli kullan', exact: true }).check();
   await page.getByRole('button', { name: 'Kaydet', exact: true }).click();
@@ -299,16 +265,11 @@ try {
   checked('Password change ends the local session and explains the required new login');
 
   await login('branch');
-  await page.getByRole('heading', { name: 'Günün özeti.', exact: true }).waitFor();
-  assert.equal(await page.getByText('Bakiye yükleme', { exact: true }).count(), 0);
-  assert.equal(await page.getByText('Onay bekleyen ödeme', { exact: true }).count(), 0);
-  assert.equal(await page.getByText('Başarısız POS olayı', { exact: true }).count(), 0);
   assert.equal(await page.getByRole('link', { name: /Finans$/ }).count(), 0);
   assert.equal(await page.getByRole('link', { name: /Müşteriler$/ }).count(), 0);
   assert.equal(await page.getByRole('link', { name: /POS İzleme$/ }).count(), 0);
-  assert.equal(await page.getByRole('link', { name: /Hesap Talepleri$/ }).count(), 0);
   await page.goto(`${base}/finans`);
-  await page.getByRole('heading', { name: 'Günün özeti.', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Panel', exact: true }).waitFor();
   checked('Branch manager cannot enter global CRM/finance/POS routes');
 
   const revoked = await page.evaluate(() => import('/src/api/client.ts').then(({ api }) => api('/admin/audit-test/invalid')).then(() => 'incorrect-success', (e) => e.code));
@@ -326,46 +287,6 @@ try {
   assert.equal(await page.getByRole('spinbutton', { name: 'Yükleme ikramı (adet)' }).isDisabled(), true);
   checked('Viewer can inspect catalog and rules without enabled write controls');
 
-
-  await visit('Hesap Talepleri');
-  await page.getByText('Hesap Talebi Müşterisi', { exact: true }).click();
-  assert.equal(await page.getByRole('button', { name: 'Hesabı kapat ve tamamla', exact: true }).count(), 0);
-  await page.keyboard.press('Escape');
-  checked('Viewer can read account requests without processing them');
-
-  const badResponse = await page.evaluate(async () => {
-    const [{ readApi }, { orderListSchema }] = await Promise.all([import('/src/api/client.ts'), import('/src/api/schemas.ts')]);
-    return readApi(orderListSchema, '/admin/audit-test/bad-payload').then(() => 'incorrect-success', (e) => e.code);
-  });
-  assert.equal(badResponse, 'INVALID_RESPONSE');
-  malformedRefresh = true;
-  const originalAccess = await page.evaluate(() => localStorage.getItem('dd_admin_access'));
-  const badRefresh = await page.evaluate(() => import('/src/api/client.ts').then(({ api }) => api('/admin/audit-test/refresh')).then(() => 'incorrect-success', (e) => e.code));
-  assert.equal(badRefresh, 'INVALID_RESPONSE');
-  assert.equal(await page.evaluate(() => localStorage.getItem('dd_admin_access')), originalAccess);
-  malformedRefresh = false;
-  checked('Malformed payloads are rejected and an incomplete refresh cannot replace stored credentials');
-
-  await page.getByRole('button', { name: 'Çıkış yap', exact: true }).click();
-  await login('b');
-  await visit('Hesap Talepleri');
-  await page.getByText('Hesap Talebi Müşterisi', { exact: true }).click();
-  const beforeRequests = mutations.filter((r) => r.path === '/admin/account-requests/request-1').length;
-  await page.getByRole('button', { name: 'Hesabı kapat ve tamamla', exact: true }).click();
-  assert.equal(mutations.filter((r) => r.path === '/admin/account-requests/request-1').length, beforeRequests);
-  await page.getByLabel('Gerekçe').fill('Kapatma öncesi hesap kontrolleri yapıldı.');
-  await page.getByRole('button', { name: 'Yanıtı kaydet ve uygula', exact: true }).click();
-  await page.getByText('Hesap bakiyesi sıfırlanmadan kapatılamaz.', { exact: true }).waitFor();
-  assert.equal(accountRequest.status, 'OPEN');
-  await page.getByRole('button', { name: 'Vazgeç', exact: true }).click();
-  await page.getByRole('button', { name: 'İncelemeye al', exact: true }).click();
-  await page.getByLabel('Gerekçe').fill('Bakiye iadesi için müşteriyle görüşülüyor.');
-  await page.getByRole('button', { name: 'Yanıtı kaydet ve uygula', exact: true }).click();
-  await waitUntil(() => accountRequest.status === 'IN_REVIEW', 'Request update did not arrive');
-  await page.getByRole('combobox', { name: 'Talep durumu' }).selectOption('IN_REVIEW');
-  await page.getByText('Hesap Talebi Müşterisi', { exact: true }).waitFor();
-  assert.equal(accountRequest.response, 'Bakiye iadesi için müşteriyle görüşülüyor.');
-  checked('Account completion requires confirmation, preserves server rejections and saves a reviewed response');
 
   assert.deepEqual(errors, []);
   console.log(`\n${checks.length} isolated regressions passed. API calls: ${requests.length}; all mocked.`);

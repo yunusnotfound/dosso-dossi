@@ -121,7 +121,7 @@ describe('admin auth', () => {
     expect(rotated.status).toBe(200);
     expect(rotated.body.refreshToken).not.toBe(oldRefresh);
 
-    // Yeniden kullanım (çalıntı şüphesi) → aynı oturum zinciri düşer
+    // Yeniden kullanım (çalıntı şüphesi) → tüm oturumlar düşer
     const reuse = await request(app)
       .post('/admin/auth/refresh')
       .send({ refreshToken: oldRefresh });

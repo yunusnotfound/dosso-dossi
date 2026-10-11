@@ -32,7 +32,7 @@ async function waitUntil(fn, message) {
 }
 try {
   await waitUntil(async () => { if (server.exitCode !== null) throw new Error(log); return fetch(base).then((res) => res.ok).catch(() => false); }, 'Isolated Vite server did not start');
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || (process.env.CI ? undefined : 'chrome'), headless: true });
+  browser = await chromium.launch({ channel: 'chrome', headless: true });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1100 }, timezoneId: 'Europe/Istanbul' });
   await context.addInitScript(() => {
     localStorage.setItem('dd_admin_access', 'SUPER_ADMIN-access');
@@ -50,7 +50,7 @@ try {
     const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Content-Type': 'application/json' };
     const json = (value, status = 200) => route.fulfill({ status, headers, body: JSON.stringify(value) });
     if (method === 'OPTIONS') return route.fulfill({ status: 204, headers });
-    if (pathname === '/admin/auth/me') return json({ id: token.split('-')[0], email: 'fixture@example.invalid', name: 'Hikâye Yönetimi', role: token.split('-')[0], branchId: null, mustChangePassword: false, tempPasswordExpiresAt: null });
+    if (pathname === '/admin/auth/me') return json({ id: token.split('-')[0], email: 'fixture@example.invalid', name: 'Hikâye Yönetimi', role: token.split('-')[0], branchId: null });
     if (pathname === '/admin/auth/refresh') { refreshCount++; return json({ token: 'SUPER_ADMIN-rotated', refreshToken: 'SUPER_ADMIN-refresh-rotated' }); }
     if (pathname === '/admin/campaigns') return json([]);
     if (pathname.startsWith('/media/')) return route.fulfill({ status: 200, headers: { ...headers, 'Content-Type': 'image/png' }, body: fixturePng });
@@ -155,7 +155,7 @@ try {
   uploadArrived = false;
   uploadGate = {};
   uploadGate.promise = new Promise((resolveGate) => { uploadGate.release = resolveGate; });
-  await page.evaluate(() => { window.oldStoryUpload = Promise.all([import('/src/api/client.ts'), import('/src/api/schemas.ts')]).then(([{ upload }, { storyImageSchema }]) => upload(storyImageSchema, '/admin/campaign-stories/image', new Blob(['fixture'], { type: 'image/png' }))).then(() => 'incorrect-success', (error) => error.code); });
+  await page.evaluate(() => { window.oldStoryUpload = import('/src/api/client.ts').then(({ upload }) => upload('/admin/campaign-stories/image', new Blob(['fixture'], { type: 'image/png' }))).then(() => 'incorrect-success', (error) => error.code); });
   await waitUntil(() => uploadArrived, 'Session-bound upload not started');
   await page.evaluate(() => import('/src/api/client.ts').then(({ tokens }) => tokens.replace('MANAGER-access', 'MANAGER-refresh')));
   uploadGate.release(); uploadGate = undefined;

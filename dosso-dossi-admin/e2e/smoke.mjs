@@ -98,7 +98,7 @@ try {
   // Giriş
   await page.getByLabel('Şifre').fill(PASSWORD);
   await page.getByRole('button', { name: /giriş yap/i }).click();
-  await page.getByRole('heading', { name: 'Günün özeti.' }).waitFor({ timeout: 15_000 });
+  await page.getByRole('heading', { name: 'Panel' }).waitFor({ timeout: 15_000 });
   await page.waitForLoadState('networkidle');
   check('giriş başarılı, panel açıldı', true);
 

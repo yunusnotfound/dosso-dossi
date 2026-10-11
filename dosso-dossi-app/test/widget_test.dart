@@ -7,34 +7,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dosso_dossi/app.dart';
 import 'package:dosso_dossi/core/storage/local_storage.dart';
-import 'package:dosso_dossi/features/branches/application/branch_providers.dart';
-import 'package:dosso_dossi/features/branches/domain/branch.dart';
 
-Future<ProviderScope> _buildApp(
-  Map<String, Object> prefsValues, {
-  bool alwaysOpenCheckout = false,
-}) async {
+Future<ProviderScope> _buildApp(Map<String, Object> prefsValues) async {
   SharedPreferences.setMockInitialValues(prefsValues);
   final prefs = await SharedPreferences.getInstance();
   return ProviderScope(
-    overrides: [
-      sharedPreferencesProvider.overrideWithValue(prefs),
-      // This order smoke test verifies payment/rewards, not business hours.
-      // Production opening-hour behavior has dedicated pickup-slot tests.
-      if (alwaysOpenCheckout)
-        branchesProvider.overrideWith(
-          (ref) async => const [
-            Branch(
-              id: 'checkout-test',
-              name: 'Test Şubesi',
-              address: 'Test',
-              city: 'İstanbul',
-              isOpen: true,
-              hours: '24 saat açık',
-            ),
-          ],
-        ),
-    ],
+    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
     child: const DossoDossiApp(),
   );
 }
@@ -50,9 +28,8 @@ void main() {
     expect(find.text('Üye olmadan devam et'), findsOneWidget);
   });
 
-  testWidgets('Üye olmadan devam edilince konuk olarak gezilir', (
-    tester,
-  ) async {
+  testWidgets('Üye olmadan devam edilince konuk olarak gezilir',
+      (tester) async {
     await tester.pumpWidget(await _buildApp({}));
     await tester.pumpAndSettle();
 
@@ -62,12 +39,8 @@ void main() {
     // Açıklamalar görünmez; eski boşluk ve giriş düğmesi korunur.
     expect(find.text('Ana Sayfa'), findsWidgets);
     expect(find.text('Damga biriktirmeye başla').hitTestable(), findsNothing);
-    expect(
-      find
-          .text('Üye ol, her kahvende damga kazan; 5. kahven bizden.')
-          .hitTestable(),
-      findsNothing,
-    );
+    expect(find.text('Üye ol, her kahvende damga kazan; 5. kahven bizden.').hitTestable(),
+        findsNothing);
     expect(find.text('Giriş yap / Üye ol'), findsOneWidget);
 
     // Hesaba bağlı sekme kilitli.
@@ -77,15 +50,13 @@ void main() {
   });
 
   testWidgets('Oturum varsa ana sayfa ve alt menü gösterilir', (tester) async {
-    await tester.pumpWidget(
-      await _buildApp({
-        'auth_user': jsonEncode({
-          'phone': '5551112233',
-          'name': 'Elif Kaya',
-          'email': 'elif@example.com',
-        }),
+    await tester.pumpWidget(await _buildApp({
+      'auth_user': jsonEncode({
+        'phone': '5551112233',
+        'name': 'Elif Kaya',
+        'email': 'elif@example.com',
       }),
-    );
+    }));
     await tester.pumpAndSettle();
 
     expect(find.text('Ana Sayfa'), findsWidgets);
@@ -123,11 +94,9 @@ void main() {
     };
     addTearDown(() => FlutterError.onError = originalOnError);
 
-    await tester.pumpWidget(
-      await _buildApp({
-        'auth_user': jsonEncode({'phone': '5551112233', 'name': 'Elif Kaya'}),
-      }, alwaysOpenCheckout: true),
-    );
+    await tester.pumpWidget(await _buildApp({
+      'auth_user': jsonEncode({'phone': '5551112233', 'name': 'Elif Kaya'}),
+    }));
     await tester.pumpAndSettle();
 
     // Sipariş sekmesine geç, ürünü aç
@@ -169,11 +138,9 @@ void main() {
   });
 
   testWidgets('İsmi eksik kullanıcı isim ekranına yönlenir', (tester) async {
-    await tester.pumpWidget(
-      await _buildApp({
-        'auth_user': jsonEncode({'phone': '5551112233', 'name': ''}),
-      }),
-    );
+    await tester.pumpWidget(await _buildApp({
+      'auth_user': jsonEncode({'phone': '5551112233', 'name': ''}),
+    }));
     await tester.pumpAndSettle();
 
     expect(find.text('Sana nasıl hitap edelim?'), findsOneWidget);
