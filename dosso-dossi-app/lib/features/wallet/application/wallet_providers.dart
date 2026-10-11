@@ -19,6 +19,7 @@ class WalletController extends AsyncNotifier<Wallet> {
 
   void clearForSession() {
     _dataVersion++;
+    state = const AsyncData(Wallet(balance: 0, cardLast4: ''));
     state = const AsyncLoading();
   }
 

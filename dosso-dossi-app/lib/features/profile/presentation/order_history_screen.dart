@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/scrollable_page_scaffold.dart';
+import '../../../core/widgets/history_load_more.dart';
 import '../../../routing/app_router.dart';
 import '../../order/application/order_providers.dart';
 
@@ -124,6 +125,13 @@ class OrderHistoryScreen extends ConsumerWidget {
                   );
                 },
               ),
+        SliverToBoxAdapter(
+          child: HistoryLoadMore(
+            pagination: ref.watch(ordersPaginationProvider),
+            enabled: !load.isLoading,
+            onLoad: () => ref.read(ordersProvider.notifier).loadMore(),
+          ),
+        ),
       ],
     );
   }

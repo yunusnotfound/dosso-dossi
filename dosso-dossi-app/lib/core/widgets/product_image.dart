@@ -69,6 +69,7 @@ class ProductImage extends StatelessWidget {
               )
             : Image.asset(
                 src,
+                cacheWidth: memCacheWidth,
                 fit: BoxFit.contain,
                 errorBuilder: (_, _, _) => source(index + 1),
               ),

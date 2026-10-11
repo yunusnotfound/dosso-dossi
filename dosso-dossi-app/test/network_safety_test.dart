@@ -156,6 +156,7 @@ void main() {
       final tokens = MemoryTokens();
       var refreshCalls = 0;
       final pending = Completer<ResponseBody>();
+      final refreshStarted = Completer<void>();
       final dio = offlineDio(
         (o) => jsonResponse(
           o.headers['Authorization'] == 'Bearer old' ? 401 : 200,
@@ -163,6 +164,7 @@ void main() {
       );
       final refresh = offlineDio((_) {
         refreshCalls++;
+        if (!refreshStarted.isCompleted) refreshStarted.complete();
         return pending.future;
       });
       dio.interceptors.add(
@@ -175,7 +177,7 @@ void main() {
         ),
       );
       final futures = List.generate(8, (_) => dio.get<dynamic>('/me/wallet'));
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await refreshStarted.future.timeout(const Duration(seconds: 5));
       expect(refreshCalls, 1);
       pending.complete(
         jsonResponse(200, {'token': 'new', 'refreshToken': 'new-refresh'}),

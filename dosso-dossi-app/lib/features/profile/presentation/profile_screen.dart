@@ -118,8 +118,18 @@ class ProfileScreen extends ConsumerWidget {
               ),
               _RowData(
                 icon: Icons.notifications_outlined,
+                title: 'Bildirimler',
+                onTap: () => context.push(Routes.notifications),
+              ),
+              _RowData(
+                icon: Icons.tune,
                 title: 'Bildirim Tercihleri',
                 onTap: () => context.push(Routes.notificationPrefs),
+              ),
+              _RowData(
+                icon: Icons.manage_accounts_outlined,
+                title: 'Hesap ve Veri Talepleri',
+                onTap: () => context.push(Routes.accountRequests),
               ),
             ],
           ),
@@ -136,7 +146,7 @@ class ProfileScreen extends ConsumerWidget {
               _RowData(
                 icon: Icons.credit_card,
                 title: 'Kayıtlı Kartlar',
-                trailing: wallet == null ? null : 'Visa •${wallet.cardLast4}',
+                trailing: 'Kart yok',
                 onTap: () => context.push(Routes.savedCards),
               ),
             ],

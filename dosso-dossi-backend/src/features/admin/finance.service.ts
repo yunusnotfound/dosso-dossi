@@ -5,6 +5,7 @@ import { toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
 import { voidCharge } from '../pos/pos.service.js';
 import { audit } from './audit.js';
+import { addBusinessDays, businessDayKey, startOfBusinessDay } from '../../lib/business-time.js';
 
 function dayRange(from?: Date, to?: Date): Prisma.DateTimeFilter | undefined {
   if (!from && !to) return undefined;
@@ -161,9 +162,7 @@ export interface ReconciliationRow {
 /// tarafında `saleRef` karşılığı var. saleRef boş olanlar eşleşmemiş sayılır
 /// ve panelde kırmızı gösterilir (KERZZ_POS_ENTEGRASYON.md'deki açık madde).
 export async function reconciliation(days = 7): Promise<ReconciliationRow[]> {
-  const since = new Date();
-  since.setHours(0, 0, 0, 0);
-  since.setDate(since.getDate() - (days - 1));
+  const since = addBusinessDays(startOfBusinessDay(), -(days - 1));
 
   const rows = await prisma.posCharge.findMany({
     where: { createdAt: { gte: since }, status: 'APPROVED' },
@@ -172,9 +171,7 @@ export async function reconciliation(days = 7): Promise<ReconciliationRow[]> {
 
   const buckets = new Map<string, ReconciliationRow>();
   for (let i = 0; i < days; i++) {
-    const d = new Date(since);
-    d.setDate(d.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
+    const key = businessDayKey(addBusinessDays(since, i));
     buckets.set(key, {
       date: key,
       ourCount: 0,
@@ -184,7 +181,7 @@ export async function reconciliation(days = 7): Promise<ReconciliationRow[]> {
     });
   }
   for (const r of rows) {
-    const key = r.createdAt.toISOString().slice(0, 10);
+    const key = businessDayKey(r.createdAt);
     const b = buckets.get(key);
     if (!b) continue;
     b.ourCount += 1;

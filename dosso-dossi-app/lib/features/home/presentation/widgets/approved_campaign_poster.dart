@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 abstract final class ApprovedCampaignAssets {
   static const coffee = 'assets/images/campaign_bes_damga_approved.webp';
   static const topup = 'assets/images/campaign_yukle_kazan_approved.webp';
+  static const thermos = 'assets/images/campaign_termos_approved.webp';
 }
 
 /// The card uses the artwork's own proportions so the poster fills it completely.

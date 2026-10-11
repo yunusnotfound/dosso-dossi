@@ -15,7 +15,12 @@ class BrandLogo extends StatelessWidget {
         height: size,
         color: Colors.white,
         padding: EdgeInsets.all(size * 0.04),
-        child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
+        child: Image.asset(
+          'assets/images/logo.png',
+          fit: BoxFit.contain,
+          cacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).ceil(),
+          excludeFromSemantics: true,
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kReleaseMode;
 
 /// Uygulama geneli iş kuralları. Değişince tüm ekranlar otomatik uyum sağlar.
 /// Kaynak: CEO'nun onayladığı sadakat kampanyaları (Temmuz 2026).
@@ -20,6 +21,38 @@ abstract final class AppConfig {
     'API_BASE_URL',
     defaultValue: 'http://localhost:3000',
   );
+
+  /// Yayın paketi, geliştirme sunucusuna veya mock verilere bağlanamaz.
+  static void validateReleaseConfiguration({
+    bool release = kReleaseMode,
+    String baseUrl = apiBaseUrl,
+    bool? mocks,
+  }) {
+    if (!release) return;
+    final uri = Uri.tryParse(baseUrl);
+    final host = uri?.host.toLowerCase() ?? '';
+    final localHost =
+        host == 'localhost' ||
+        host.endsWith('.localhost') ||
+        host.endsWith('.local') ||
+        host.startsWith('127.') ||
+        host == '0.0.0.0' ||
+        host == '10.0.2.2' ||
+        host == '::1' ||
+        host == '[::1]';
+    if ((mocks ?? useMocks) ||
+        uri == null ||
+        uri.scheme != 'https' ||
+        host.isEmpty ||
+        localHost ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasQuery ||
+        uri.hasFragment) {
+      throw StateError(
+        'Yayın için HTTPS API_BASE_URL ve USE_MOCKS=false gereklidir.',
+      );
+    }
+  }
 
   /// Mapbox erişim anahtarı. GitHub gizli anahtar taraması repo'da tutulmasına
   /// izin vermediği için derlemede dışarıdan verilir:

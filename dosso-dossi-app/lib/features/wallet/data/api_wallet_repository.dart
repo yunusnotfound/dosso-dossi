@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/financial_receipt.dart';
+import '../../../core/diagnostics/app_telemetry.dart';
 import '../domain/wallet.dart';
 import 'wallet_repository.dart';
 
@@ -24,19 +26,24 @@ class ApiWalletRepository implements WalletRepository {
 
   @override
   Future<TopUpResult> topUp(double amount) {
-    return apiCall(() async {
-      final res = await _dio.post<Map<String, dynamic>>(
-        ApiEndpoints.walletTopUp,
-        data: {'amount': amount},
-      );
-      final data = res.data!;
-      return TopUpResult(
+    return postFinancialReceipt(
+      dio: _dio,
+      path: ApiEndpoints.walletTopUp,
+      data: {'amount': amount},
+      operation: TelemetryOperation.walletReceipt,
+      unconfirmed: const ApiException(
+        code: 'TOPUP_RESPONSE_UNCONFIRMED',
+        message:
+            'Yükleme sonucu doğrulanamadı. Aynı yüklemenin sonucunu tekrar kontrol et.',
+      ),
+      decode: (data) => TopUpResult(
         balance: (data['balance'] as num).toDouble(),
         bonusDrinks: (data['bonusDrinks'] as num).toInt(),
         status: data['status'] as String? ?? 'succeeded',
         paymentId: data['paymentId'] as String?,
-      );
-    });
+      ),
+      isPending: (result) => result.isPending,
+    );
   }
 
   @override

@@ -142,13 +142,10 @@ export async function confirmTopUpTx(
       return { balance: toMoney(wallet.balance), bonusDrinks: intent.bonusDrinks };
     }
 
-    // Kampanya yalnızca ilk yüklemeye özel: bu cüzdanda daha önce yükleme
-    // kaydı varsa tutar ne olursa olsun ikram verilmez.
-    const walletBefore = await tx.wallet.findUniqueOrThrow({
-      where: { userId: intent.userId },
-    });
-    const previousTopUps = await tx.walletTransaction.count({
-      where: { walletId: walletBefore.id, type: 'TOPUP' },
+    // Yalnız gerçek, başarılı yüklemeler kampanya hakkını tüketir.
+    // Eski panel düzeltmeleri TOPUP diye kaydedilmiş olsa da hak kaybettirmez.
+    const previousTopUps = await tx.paymentIntent.count({
+      where: { userId: intent.userId, status: 'SUCCEEDED', id: { not: intent.id } },
     });
     const firstOnly = await getSetting<boolean>('loyalty.topUpBonusFirstOnly', tx);
     const threshold = await getSetting<number>('loyalty.topUpBonusThreshold', tx);

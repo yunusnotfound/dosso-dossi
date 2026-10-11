@@ -7,6 +7,14 @@ import { login } from '../../test/helpers.js';
 const app = createApp();
 
 describe('auth', () => {
+  it('aynı yeni telefonun paralel doğrulamaları tek hesap oluşturur', async () => {
+    const tokens = await Promise.all(Array.from({ length: 4 }, () => login(app, '05554443322')));
+    expect(tokens.every(Boolean)).toBe(true);
+    expect(await prisma.user.count({ where: { phone: '5554443322' } })).toBe(1);
+    expect(await prisma.wallet.count()).toBe(1);
+    expect(await prisma.loyaltyAccount.count()).toBe(1);
+  });
+
   it('OTP gönderir ve kod kaydı oluşturur', async () => {
     const res = await request(app)
       .post('/auth/otp/send')

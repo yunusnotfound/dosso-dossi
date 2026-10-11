@@ -1,6 +1,9 @@
-import type { OrderStatus, Prisma } from '@prisma/client';
+import type { OrderStatus, Prisma, PrismaClient } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
+import { lockUsers } from '../../lib/financial-locks.js';
 import { logger } from '../../lib/logger.js';
+import { cancelOrderInTransaction } from './cancel-order.service.js';
+import { notifyOrderStatus } from '../notifications/notifications.service.js';
 
 /// Bir duruma hangi önceki durumlardan geçilebilir.
 const VALID_PREDECESSORS: Record<OrderStatus, OrderStatus[]> = {
@@ -20,7 +23,7 @@ const ORDER_OF = ['RECEIVED', 'PREPARING', 'READY', 'COMPLETED'] as const;
 /// tx: runPosEvent transaction'ı YA DA doğrudan prisma istemcisi
 /// (PrismaClient yapısal olarak TransactionClient'a atanabilir).
 export async function advanceOrderStatus(
-  tx: Prisma.TransactionClient,
+  tx: Prisma.TransactionClient | PrismaClient,
   orderNumber: number,
   newStatus: OrderStatus,
   opts: {
@@ -31,10 +34,21 @@ export async function advanceOrderStatus(
     strict?: boolean;
   } = {},
 ): Promise<{ ok: true; status: string; skipped?: string }> {
-  const order = await tx.order.findUnique({ where: { number: orderNumber } });
-  if (!order) throw AppError.notFound(`Sipariş bulunamadı: DD-${orderNumber}`);
+  // The simulator may pass the full client; cancellation must never run as
+  // separate autocommit statements, and all transitions share the account lock.
+  if ('$transaction' in tx) {
+    return tx.$transaction((inner) => advanceOrderStatus(inner, orderNumber, newStatus, opts));
+  }
+  const initial = await tx.order.findUnique({ where: { number: orderNumber } });
+  if (!initial) throw AppError.notFound(`Sipariş bulunamadı: DD-${orderNumber}`);
+  await lockUsers(tx, [initial.userId]);
+  const order = await tx.order.findUniqueOrThrow({ where: { number: orderNumber } });
 
   if (order.status === newStatus) {
+    if (newStatus === 'CANCELLED') {
+      // Validate the refund ledger on replay as the admin cancellation does.
+      await cancelOrderInTransaction(tx, orderNumber);
+    }
     return { ok: true, status: newStatus.toLowerCase(), skipped: 'no_change' };
   }
 
@@ -62,6 +76,12 @@ export async function advanceOrderStatus(
     };
   }
 
+  if (newStatus === 'CANCELLED') {
+    await cancelOrderInTransaction(tx, orderNumber, { allowedStatuses: VALID_PREDECESSORS.CANCELLED });
+    logger.info(`Sipariş DD-${orderNumber} iptal edildi; bakiye ve sadakat geri alındı`);
+    return { ok: true, status: 'cancelled' };
+  }
+
   const updated = await tx.order.updateMany({
     where: { number: orderNumber, status: { in: VALID_PREDECESSORS[newStatus] } },
     data: { status: newStatus },
@@ -72,6 +92,7 @@ export async function advanceOrderStatus(
     return { ok: true, status: newStatus.toLowerCase(), skipped: 'race' };
   }
   logger.info(`Sipariş DD-${orderNumber} durumu: ${order.status} → ${newStatus}`);
+  await notifyOrderStatus(tx, order, newStatus);
   return { ok: true, status: newStatus.toLowerCase() };
 }
 

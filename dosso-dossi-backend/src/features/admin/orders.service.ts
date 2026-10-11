@@ -1,11 +1,10 @@
 import type { OrderStatus, Prisma } from '@prisma/client';
 import type { Request } from 'express';
 import { AppError } from '../../lib/errors.js';
-import { dec, toMoney } from '../../lib/money.js';
+import { toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
-import { lockUsers } from '../../lib/financial-locks.js';
 import { assertExportSize, csvCell, MAX_EXPORT_ROWS } from '../../lib/csv.js';
-import { journalMetadata, loyaltyState, reverseOrderLoyalty } from '../loyalty/loyalty-journal.js';
+import { cancelOrderInTransaction, type CancelResult } from '../orders/cancel-order.service.js';
 import { advanceOrderStatus } from '../orders/order-status.service.js';
 import { audit } from './audit.js';
 
@@ -174,15 +173,9 @@ export async function setStatus(
   });
 }
 
-export interface CancelResult {
-  refunded: number;
-  stampsReverted: number;
-  freeDrinkRestored: boolean;
-  rewardsRevoked: number;
-}
+export type { CancelResult } from '../orders/cancel-order.service.js';
 
-/// İptal + iade + sadakat geri alımı — hepsi TEK transaction.
-/// `reason` zorunlu: para hareketi izsiz olamaz.
+/// İptal + iade + sadakat geri alımı ve panel denetim kaydı tek transaction.
 export async function cancelOrder(
   req: Request,
   number: number,
@@ -190,105 +183,14 @@ export async function cancelOrder(
   branchScope?: string,
 ): Promise<CancelResult> {
   return prisma.$transaction(async (tx) => {
-    const initial = await tx.order.findUnique({ where: { number } });
-    if (!initial) throw AppError.notFound(`Sipariş bulunamadı: DD-${number}`);
-    await lockUsers(tx, [initial.userId]);
-    const order = await tx.order.findUniqueOrThrow({ where: { number } });
-    if (branchScope && order.branchId !== branchScope) {
-      throw AppError.forbidden('Bu şubenin siparişi değil');
-    }
-    if (order.status === 'CANCELLED') {
-      const refund = await tx.walletTransaction.findUnique({
-        where: { orderId_type: { orderId: order.id, type: 'REFUND' } },
+    const cancellation = await cancelOrderInTransaction(tx, number, { branchScope });
+    if (cancellation.changed) {
+      await audit(tx, req, {
+        action: 'order.cancel', entity: 'Order', entityId: cancellation.order.id,
+        before: cancellation.before, after: cancellation.after, reason,
       });
-      if (!refund) throw AppError.invalidStatusTransition('İptalin iade kaydı bulunamadı; işlem incelenmeli');
-      return {
-        refunded: toMoney(refund.amount),
-        stampsReverted: order.stampsEarned,
-        freeDrinkRestored: order.usedFreeDrink,
-        rewardsRevoked: await tx.loyaltyEvent.count({ where: { orderId: order.id, type: 'REWARD_EARNED' } }),
-      };
     }
-    if (order.status === 'COMPLETED') {
-      throw AppError.invalidStatusTransition(
-        'Teslim edilmiş sipariş iptal edilemez',
-      );
-    }
-
-    // ── Durum ──
-    const claimed = await tx.order.updateMany({
-      where: { id: order.id, status: { in: ['RECEIVED', 'PREPARING', 'READY'] } },
-      data: { status: 'CANCELLED' },
-    });
-    if (claimed.count !== 1) throw AppError.invalidStatusTransition('Sipariş durumu değişti; yenileyin');
-
-    // ── Para iadesi (defterli, bakiye asla doğrudan set edilmez) ──
-    const wallet = await tx.wallet.update({
-      where: { userId: order.userId },
-      data: { balance: { increment: order.total } },
-    });
-    await tx.walletTransaction.create({
-      data: {
-        walletId: wallet.id,
-        type: 'REFUND',
-        amount: order.total,
-        balanceAfter: wallet.balance,
-        orderId: order.id,
-        note: `İptal iadesi — DD-${number}`,
-      },
-    });
-
-    // ── Sadakat geri alımı ──
-    // Structured history preserves later gifts/adjustments and target changes.
-    // Legacy or unknown history is explicitly marked, never silently guessed into journal events.
-    const loyalty = await tx.loyaltyAccount.findUniqueOrThrow({
-      where: { userId: order.userId },
-    });
-    const rewardsFromOrder = await tx.loyaltyEvent.count({
-      where: { orderId: order.id, type: 'REWARD_EARNED' },
-    });
-
-    const reversal = await reverseOrderLoyalty(tx, loyalty, order);
-
-    await tx.loyaltyAccount.update({
-      where: { userId: order.userId },
-      data: reversal.state,
-    });
-    await tx.loyaltyEvent.create({
-      data: {
-        accountId: loyalty.id,
-        type: 'ADJUSTMENT',
-        title: `DD-${number} iptal edildi — sadakat geri alındı`,
-        orderId: order.id,
-        metadata: reversal.mode === 'journal'
-          ? journalMetadata({ kind: 'cancel', before: loyaltyState(loyalty), after: reversal.state, orderId: order.id })
-          : journalMetadata({ kind: 'checkpoint', before: loyaltyState(loyalty), after: reversal.state, reason: reversal.mode }),
-      },
-    });
-
-    await audit(tx, req, {
-      action: 'order.cancel',
-      entity: 'Order',
-      entityId: order.id,
-      before: {
-        status: order.status,
-        stamps: loyalty.stamps,
-        freeDrinks: loyalty.freeDrinks,
-      },
-      after: {
-        status: 'CANCELLED', ...reversal.state,
-        loyaltyReversalMode: reversal.mode,
-        loyaltyReviewRequired: reversal.mode !== 'journal',
-      },
-      reason,
-    });
-
-    return {
-      refunded: toMoney(order.total),
-      stampsReverted: order.stampsEarned,
-      freeDrinkRestored: order.usedFreeDrink,
-      rewardsRevoked: rewardsFromOrder,
-    };
+    return cancellation.result;
   });
 }
 

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/error_feedback.dart';
 import '../../../core/widgets/scrollable_page_scaffold.dart';
 import '../../auth/application/auth_controller.dart';
 
@@ -17,6 +18,7 @@ class PersonalInfoScreen extends ConsumerStatefulWidget {
 }
 
 class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
+  final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
   bool _saving = false;
@@ -37,6 +39,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
   }
 
   Future<void> _save() async {
+    if (_saving || !_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
       await ref
@@ -53,6 +56,8 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         ),
       );
       context.pop();
+    } catch (error) {
+      if (mounted) showApiError(context, error);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -67,50 +72,79 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       slivers: [
         SliverFillRemaining(
           hasScrollBody: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('AD SOYAD', style: AppTypography.sectionLabel),
-              const SizedBox(height: AppSpacing.sm),
-              TextField(
-                controller: _nameController,
-                textCapitalization: TextCapitalization.words,
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              Text('E-POSTA', style: AppTypography.sectionLabel),
-              const SizedBox(height: AppSpacing.sm),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(hintText: 'ornek@eposta.com'),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              Text('TELEFON', style: AppTypography.sectionLabel),
-              const SizedBox(height: AppSpacing.sm),
-              TextField(
-                enabled: false,
-                decoration: InputDecoration(
-                  hintText: '+90 ${user?.phone ?? ''}',
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('AD SOYAD', style: AppTypography.sectionLabel),
+                const SizedBox(height: AppSpacing.sm),
+                TextFormField(
+                  controller: _nameController,
+                  enabled: !_saving,
+                  textCapitalization: TextCapitalization.words,
+                  onChanged: (_) => setState(() {}),
+                  validator: (value) {
+                    final name = value?.trim() ?? '';
+                    if (name.length < 2) {
+                      return 'Ad soyad en az 2 karakter olmalı';
+                    }
+                    if (name.length > 100) {
+                      return 'Ad soyad en fazla 100 karakter olabilir';
+                    }
+                    return null;
+                  },
                 ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Telefon numarası değişikliği için müşteri hizmetleriyle iletişime geç.',
-                style: AppTypography.bodySecondary.copyWith(fontSize: 12),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              const Spacer(),
-              FilledButton(
-                onPressed: _nameController.text.trim().length >= 2 && !_saving
-                    ? _save
-                    : null,
-                child: const Text('Kaydet'),
-              ),
-              SizedBox(
-                height: MediaQuery.paddingOf(context).bottom + AppSpacing.page,
-              ),
-            ],
+                const SizedBox(height: AppSpacing.xl),
+                Text('E-POSTA', style: AppTypography.sectionLabel),
+                const SizedBox(height: AppSpacing.sm),
+                TextFormField(
+                  controller: _emailController,
+                  enabled: !_saving,
+                  keyboardType: TextInputType.emailAddress,
+                  autocorrect: false,
+                  decoration: const InputDecoration(
+                    hintText: 'ornek@eposta.com',
+                  ),
+                  validator: (value) {
+                    final email = value?.trim() ?? '';
+                    if (email.isNotEmpty &&
+                        !RegExp(
+                          r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+                        ).hasMatch(email)) {
+                      return 'Geçerli bir e-posta adresi gir';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Text('TELEFON', style: AppTypography.sectionLabel),
+                const SizedBox(height: AppSpacing.sm),
+                TextField(
+                  enabled: false,
+                  decoration: InputDecoration(
+                    hintText: '+90 ${user?.phone ?? ''}',
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Telefon numarası değişikliği için müşteri hizmetleriyle iletişime geç.',
+                  style: AppTypography.bodySecondary.copyWith(fontSize: 12),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                const Spacer(),
+                FilledButton(
+                  onPressed: _nameController.text.trim().length >= 2 && !_saving
+                      ? _save
+                      : null,
+                  child: Text(_saving ? 'Kaydediliyor…' : 'Kaydet'),
+                ),
+                SizedBox(
+                  height:
+                      MediaQuery.paddingOf(context).bottom + AppSpacing.page,
+                ),
+              ],
+            ),
           ),
         ),
       ],

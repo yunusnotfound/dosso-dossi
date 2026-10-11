@@ -7,9 +7,9 @@ mock veriye dönmek için `--dart-define=USE_MOCKS=true` verilir (testler
 kendiliğinden mock modunda çalışır).
 
 - **Base URL:** `--dart-define=API_BASE_URL` (varsayılan `http://localhost:3000`)
-- **Kimlik doğrulama:** `Authorization: Bearer <token>` (OTP doğrulamasında alınır, JWT 30 gün)
+- **Kimlik doğrulama:** `Authorization: Bearer <token>` (OTP doğrulamasında alınır, JWT varsayılan 15 dakika)
 - **Para birimi:** tüm tutarlar kuruş hassasiyetli ondalık TL (`425.50`)
-- **Tarihler:** ISO 8601 UTC
+- **Tarihler:** Anlık zamanlar ISO 8601 UTC; işletme günü/saat kırılımları `Europe/Istanbul`
 - **Geliştirme OTP'si:** kod sunucu konsoluna yazılır; `OTP_DEV_MODE=true` iken `111111` her zaman geçer
 
 ## Panel değişikliklerinin uygulamaya yansıması
@@ -20,8 +20,16 @@ alanlarında opak sürüm değerleri döndürür (`Cache-Control: no-store`).
 Yalnız tamamlanmış, audit kaydı bulunan panel işlemleri sürümü değiştirir;
 müşteri bilgileri veya audit içerikleri paylaşılmaz.
 
-Gerçek API modunda uygulama ön plandayken üç saniyede bir bu küçük yanıtı
-kontrol eder ve yalnız değişen alanın mevcut API verilerini yeniler. Arka
+Sürümler değişiklikle aynı transaction içinde `SyncRevision` tablosunda
+artırılır; sorgu audit geçmişini taramaz. Müşteri Bearer token'ı gönderilirse
+cüzdan/sadakat/sipariş sürümleri yalnız o müşterinin değişikliklerini kapsar.
+Misafir isteklerinde yalnız ortak içerik sürümleri değişir; hatalı token
+sessizce misafire dönüştürülmez, 401 döner.
+
+Gerçek API modunda uygulama ön plandayken 15 saniyeden başlayan ve değişiklik
+olmadığında 60 saniyeye çıkan aralıklarla bu küçük yanıtı kontrol eder ve
+yalnız değişen alanın mevcut API verilerini yeniler. Hata halinde bekleme
+en çok 5 dakikaya kadar artar. Arka
 planda kontrol durur; açılışta ve ön plana dönüşte tüm alanlar yenilenir.
 Hatalı yenilemeler tekrar denenir, mevcut menü görünümü korunur. Ürün
 değişiklikleri grid, açık detay ve sepete yansır; satıştan kaldırılan ürünler
@@ -39,8 +47,8 @@ hale getirmez. Audit dışından doğrudan SQL/seed ile yapılan değişiklikler
 |---|---|---|
 | POST | `/auth/otp/send` | `{ "phone": "5551112233" }` → SMS kodu gönderir (10 dk'da en çok 3) |
 | POST | `/auth/otp/verify` | `{ "phone", "code" }` → `{ "token", "refreshToken", "user": { "phone", "name", "email" } }` |
-| POST | `/auth/refresh` | `{ "refreshToken" }` → yeni `{ "token", "refreshToken" }` (rotasyon; iptal edilmiş token yeniden kullanılırsa tüm oturumlar iptal edilir) |
-| POST | `/auth/logout` | `{ "refreshToken"? }` → refresh token iptali (her zaman 200) |
+| POST | `/auth/refresh` | `{ "refreshToken" }` → yeni `{ "token", "refreshToken" }` (rotasyon; geçerli sürede eski token yeniden kullanılırsa yalnız ilgili oturum ailesi iptal edilir) |
+| POST | `/auth/logout` | `{ "refreshToken"? }` → ilgili oturum ailesinin access/refresh iptali (her zaman 200) |
 | PATCH | `/me` | `{ "name"?, "email"? }` → güncel kullanıcı |
 
 Access token (JWT) ~15 dk geçerlidir; uygulama 401 aldığında refresh ile
@@ -52,11 +60,11 @@ sessizce yeniler ve isteği tekrarlar.
 
 | Metot | Endpoint | Açıklama |
 |---|---|---|
-| GET | `/me/loyalty` | `{ "stamps": 3, "target": 5, "freeDrinks": 1, "history": [{ "title", "date", "used" }] }` |
+| GET | `/me/loyalty?limit=20&cursor=...` | `{ "stamps": 3, "target": 5, "freeDrinks": 1, "history": [{ "id", "title", "date", "used" }], "nextCursor": string\|null }` |
 
 Kurallar **sunucuda** uygulanır (kaynak: CEO kampanyaları):
 - Her kahve satışı damga ekler; `target` (5) dolunca damgalar sıfırlanıp `freeDrinks` +1.
-- Tek seferde 1.000 ₺+ yükleme → `freeDrinks` +5 (aşağıda `topup`).
+- Varsayılan kampanyada ilk başarılı gerçek yükleme 1.000 ₺+ ise `freeDrinks` +5 (aşağıda `topup`); eşik, adet ve ilk-yükleme koşulu panel ayarıdır.
 - İkram kullanımı sipariş isteğinde `useFreeDrink` ile gelir.
 
 ## 3. Cüzdan — `features/wallet/data/wallet_repository.dart`
@@ -77,19 +85,24 @@ sağlayıcı anında onaylar; iyzico'da `status: "pending"` + `redirectUrl`
 | Metot | Endpoint | Açıklama |
 |---|---|---|
 | GET | `/menu/categories` | `[{ "id", "name" }]` |
-| GET | `/menu/products` | `[{ "id", "name", "price", "categoryId", "description", "imageUrl", "sizeMl", "stampMultiplier", "isNew", "isFeatured", "hasOptions" }]` |
+| GET | `/menu/products?branchId=...` | `[{ "id", "name", "price", "categoryId", "description", "imageUrl", "gridImageUrl", "sizeMl", "stampMultiplier", "isNew", "isFeatured", "hasOptions" }]` |
+| GET | `/menu/options` | Aktif süt/shot seçenekleri: `[{ "id", "group", "name", "priceDelta", "sortOrder", "isActive" }]` |
 
-`imageUrl`: marka ekibinden görseller gelince doldurulacak; uygulama şu an
-emoji yer tutucu gösteriyor. Boy/süt/shot fiyat farkları şimdilik uygulamada
-(`product_options.dart`); istenirse `/menu/options` endpoint'ine taşınabilir.
+`imageUrl` ürün detayını, `gridImageUrl` kare menü vitrinini besler.
+Süt/shot seçenekleri ve fiyat farkları `/menu/options` üzerinden gelir; sunucu
+sipariş sırasında aktif seçenekleri ve güncel fiyatlarını yeniden doğrular.
 
 ## 5. Şubeler — `features/branches/data/branch_repository.dart`
 
 | Metot | Endpoint | Açıklama |
 |---|---|---|
-| GET | `/branches` | `[{ "id", "name", "address", "city", "phone", "lat", "lng", "hours", "isOpen", "prepMinutes" }]` |
+| GET | `/branches` | `[{ "id", "name", "address", "city", "phone", "lat", "lng", "hours", "isOpen", "isAcceptingOrders", "prepMinutes" }]` |
 
-Uygulama `lat/lng` ile gerçek mesafe hesaplayacak (şu an temsili).
+Uygulama, konum izni ve cihaz konumu varsa `lat/lng` ile gerçek mesafe hesaplar;
+konum yokken temsili mesafe üretmez. `isOpen` manuel operasyon bayrağıdır;
+`isAcceptingOrders` İstanbul saati, geceye taşan çalışma saatleri ve hazırlık
+süresi dahil sunucunun anlık sipariş kabul durumudur. Mobil görünüm aynı
+kuralla dakika değişimlerinde güncellenir; checkout tekrar sunucuda doğrulanır.
 
 ## 6. Kampanyalar — `features/campaigns/data/campaign_repository.dart`
 
@@ -103,7 +116,7 @@ Uygulama `lat/lng` ile gerçek mesafe hesaplayacak (şu an temsili).
 | Metot | Endpoint | Açıklama |
 |---|---|---|
 | POST | `/orders` | Aşağıdaki gövde → `{ "id": "DD-1042", "status": "received", "total", "stampsEarned" }` |
-| GET | `/orders` | Geçmiş siparişler (yeniden eskiye) |
+| GET | `/orders?paginated=true&limit=20&cursor=...` | Geçmiş siparişler: `{ "items": [...], "nextCursor": string\|null }` |
 | GET | `/orders/:id` | Canlı takip: `status` = `received` → `preparing` → `ready` → `completed` (veya `cancelled`). Uygulama ~10 sn'de bir yoklar |
 
 ```json
@@ -127,7 +140,15 @@ Sunucu: bakiye düşer, damga/ikram işler, siparişi şubenin Kerzz POS'una ile
 | Metot | Endpoint | Açıklama |
 |---|---|---|
 | POST | `/gifts` | `{ "recipientPhone", "type": "drink"\|"balance", "productId"?, "amount"?, "note" }` → alıcının telefonuna bağlı uygulama hesabına hediye |
-| GET | `/gifts` | Gönderilen hediyeler |
+| GET | `/gifts?paginated=true&limit=20&cursor=...` | Gönderilen hediyeler: `{ "items": [...], "nextCursor": string\|null }` |
+
+Geçmiş sayfaları `(createdAt, id)` azalan sırasıyla kararlı cursor kullanır.
+İlk istekte `cursor` gönderilmez; sonraki isteğe dönen `nextCursor` aynen
+aktarılır; `null` listenin sonudur. `limit` 1–100 arasıdır. Her sayfada
+hesap sahipliği yeniden uygulanır. Yeni kayıtlar, sonraki eski sayfayı
+kaydırmaz. Geriye uyumluluk için `/orders` ve `/gifts` parametresiz istekleri
+son 50 kaydı eski dizi biçiminde döndürür; mobil uygulama sayfalı sözleşmeyi
+kullanır. `/me/loyalty` limit verilmezse ilk 50 geçmiş kaydını döndürür.
 
 Hediyeler yalnızca uygulamada, alıcı telefon numarası doğrulanarak giriş yapılan hesap üzerinden kullanılır. Kayıtlı alıcının kahve hediyesi ikram hakkına, bakiye hediyesi cüzdanına eklenir; henüz hesabı olmayan alıcının hediyesi aynı numarayla giriş yapana kadar bekler. SMS yalnızca bilgilendirme/giriş davetidir ve kullanım kodu içermez. Hediye koduyla veya misafir olarak kullanım uç noktası yoktur. `redeemed` durumu hesaba aktarımı belirtir; kahvenin ya da bakiyenin harcandığı anlamına gelmez. Geliştirme ortamındaki SMS sağlayıcısı mesajı yalnızca loglar; gerçek SMS teslimatı için sağlayıcı entegrasyonu gerekir.
 
@@ -176,12 +197,12 @@ kodları `UNAUTHORIZED` (401), `VALIDATION_ERROR` (400), `RATE_LIMITED`
 ## Uygulama notları (v1)
 
 - Sipariş fiyatı **sunucuda yeniden hesaplanır**; istemcinin gönderdiği
-  toplamlara güvenilmez. Opsiyon farkları sunucuda sabittir: yulaf/badem
-  sütü +60 ₺, çift shot +40 ₺ (ileride `/menu/options` endpoint'ine taşınabilir).
+  toplamlara güvenilmez. Opsiyon farkları panelden yönetilen `ProductOption`
+  kayıtlarından okunur; istemcinin tanınmayan/pasif seçenek göndermesi reddedilir.
 - İkram, sepetteki damga kazandıran en yüksek birim fiyatlı içeceği bedava
   yapar; ikram edilen içecek de damga kazandırır.
-- Çoklu şube: menü ve fiyatlar merkezidir; şube bazlı müsaitlik (ve ileride
-  fiyat farkı) `BranchProduct` tablosuyla yönetilir. Müsait olmayan ürün
+- Çoklu şube: merkezi menü ve şube bazlı fiyat/müsaitlik
+  `BranchProduct` tablosuyla yönetilir. Müsait olmayan ürün
   siparişte `PRODUCT_UNAVAILABLE` döner.
 - Kayıtlı olmayan telefona gönderilen hediye `PENDING` bekler; alıcı o
   numarayla ilk giriş yaptığında otomatik hesabına işlenir.
@@ -200,3 +221,119 @@ kodları `UNAUTHORIZED` (401), `VALIDATION_ERROR` (400), `RATE_LIMITED`
 - Finans defteri CSV/XLSX aynı `type`, `from`, `to`, `q` filtrelerini kullanır. 10.000 satır üstü açık hata; kısmi dosya döndürülmez.
 - `POST /admin/branches/:id/availability/:productId` gövdesinde `priceOverride` gönderilmezse mevcut fiyat korunur. `null` açıkça temizler.
 - Para girişleri en çok iki ondalık basamaktır. Ayarlar: hedef 1..100 tam sayı; ikram adedi 0..100 tam sayı; eşik 0,01..100000 TL; ilk-yükleme seçeneği gerçek boolean.
+
+## Panel işlem ve oturum güvenliği (11.10.2026)
+
+- `POST /admin/customers/:id/balance` ve `POST /admin/menu/bulk-price`
+  gövdelerinde UUID `idempotencyKey` zorunludur. Anahtar yönetici ve işlem
+  kapsamında tutulur. Aynı anahtar ve gövde ilk başarılı sonucu döndürür;
+  farklı gövde `409 IDEMPOTENCY_CONFLICT` olur. İşlem, audit ve sonuç kaydı
+  aynı transaction içindedir; geri alınan işlem aynı anahtarla yeniden denenebilir.
+- Panel anahtarı isteği göndermeden önce kalıcılaştırır; belirsiz yanıt veya
+  sayfa yenileme anahtarı değiştirmez. Mobil de anahtar yazımı doğrulanmadan
+  sipariş/hediye/yükleme isteği göndermez.
+- `/admin/auth/login` ve `/admin/auth/me` içindeki yönetici bilgisi
+  `mustChangePassword` ve `tempPasswordExpiresAt` alanlarını içerir. Yeni
+  oluşturulan/sıfırlanan geçici şifreler 24 saat geçerlidir. Şifre değiştirilene
+  kadar panel işlemleri `403 PASSWORD_CHANGE_REQUIRED` döndürür; oturum
+  bilgisi ve `POST /admin/auth/password` erişilebilir. Süresi dolmuş geçici
+  şifre `401 TEMP_PASSWORD_EXPIRED` olur. Mevcut kalıcı şifreler korunur.
+- Müşteri ve yönetici refresh tekrar kullanımı yalnız ilgili oturum ailesini
+  kapatır; süresi dolmuş eski token diğer girişleri iptal etmez. Aileye bağlı
+  access token'ları da iptal kontrolünden geçer.
+- Müşterinin tüm oturumlarını iptal etme ve hesap dondurma, henüz kullanılmamış
+  ödeme QR'larını aynı transaction içinde geçersiz kılar. QR üretimi ve
+  tahsilatı aynı kullanıcı kilidiyle bu işlemlerle sıralanır.
+- Promo güncellemesinde `expiresAt` verilmezse mevcut süre korunur;
+  ISO tarih yeni süreyi belirler, yalnız açıkça gönderilen `null` süreyi kaldırır.
+
+
+## Hesap talepleri ve kişisel veri dışa aktarımı (07.10.2026)
+
+Tüm `/me` uçları müşteri Bearer tokenı gerektirir ve yalnız oturum sahibini kapsar.
+Hesap talebi kaydı şu alanları döndürür:
+`{ id, kind, status, note, response, createdAt, updatedAt }`.
+`kind`: `CLOSURE | DATA_EXPORT`; `status`: `OPEN | IN_REVIEW | COMPLETED | REJECTED | CANCELLED`.
+
+| Metot | Endpoint | Gövde / yanıt |
+|---|---|---|
+| GET | `/me/account-requests` | Kullanıcının talepleri, yeni → eski kayıt dizisi |
+| POST | `/me/account-requests` | `{ kind, note? }` → kayıt (201); not en çok 1000 karakter |
+| POST | `/me/account-requests/:id/cancel` | Kendi açık/incelemedeki talebini iptal eder → kayıt; aynı iptalin tekrarı güvenlidir |
+| GET | `/me/data-export?section=profile&page=1` | `{ section, page, entries, hasMore }`; sayfa başına en çok 100 satır |
+| GET | `/admin/account-requests?status=OPEN&page=1` | `{ page, total, pageSize: 30, entries }` |
+| PATCH | `/admin/account-requests/:id` | `{ status: IN_REVIEW|COMPLETED|REJECTED, response }` → güncel kayıt |
+
+Aynı kullanıcı ve tür için yalnız bir açık talep bulunur; eşzamanlı POST tekrarları
+aynı kaydı döndürür. Sonuçlanma veya iptalden sonra yeni talep açılabilir.
+Yönetici yanıtı 3–2000 karakterdir. Yönetici/super admin güncelleyebilir;
+görüntüleyici listeleyebilir; şube yöneticisi bu modüle erişemez.
+
+Kapatma tamamlanmadan önce cüzdan bakiyesi sıfır olmalı; aktif sipariş, bekleyen
+yükleme ve gönderilen/alınan bekleyen hediye bulunmamalıdır. Tamamlama,
+`closedAt` kaydı, hesap engeli, token sürüm artışı, refresh/QR iptali ve audit
+kaydını tek transaction içinde yazar. Kapatılan hesap yeniden OTP girişi yapamaz.
+Bu işlem hukuki silme/anonimleştirme taahhüdü değildir; finans ve denetim kayıtları korunur.
+
+Dışa aktarım bölümleri:
+
+| `section` | İçerik |
+|---|---|
+| `profile` | Kendi kimliği/iletişimi, oluşturulma tarihi, bildirim tercihleri, cüzdan özeti ve sadakat özeti; tek kayıt |
+| `orders` | Kendi siparişleri, ürün kalemleri ve işlem anındaki tutarlar |
+| `wallet` | Kendi hareketleri; üçüncü kişi telefonları açıklamalarda maskelenir |
+| `gifts` | Gönderilen/alınan kendi hediyeleri; gönderim alıcısının telefonu maskelenir |
+| `loyalty` | Kendi sadakat geçmişi; iç journal metadata'sı paylaşılmaz |
+| `requests` | Kendi hesap talepleri |
+
+API açık alan listeleri kullanır; tokenlar, token hash'leri, OTP kodları, şifreler
+ve başka kullanıcıların hesap kayıtları dışa aktarılmaz. `page` pozitif tam sayıdır;
+`hasMore` true oldukça sonraki sayfa alınır. Veri talebinin tamamlanması, bu
+kişisel dışa aktarımın hazır olduğuna ilişkin yönetici yanıtıdır; tek seferde
+sınırsız sunucu dosyası veya hukuki uyumluluk garantisi değildir.
+
+## Uygulama içi bildirim merkezi (07.10.2026)
+
+| Metot | Endpoint | Yanıt |
+|---|---|---|
+| GET | `/me/notifications?page=1` | `{ page, entries, unreadCount, hasMore }`; sayfa boyu 30 |
+| PATCH | `/me/notifications/:id/read` | Yalnız sahibinin bildirimini okundu yapar → `{ id, readAt }` |
+
+Bildirim: `{ id, kind, title, body, targetPath, readAt, createdAt }`.
+Türler: `ORDER_STATUS`, `GIFT_RECEIVED`, `ACCOUNT_REQUEST`, `CAMPAIGN`.
+`readAt` okunmamış kayıtta null'dır; tekrar okundu isteği tarihi değiştirmez.
+
+Sipariş/iptal ve hediye/talep bildirimleri alan işlemiyle aynı transaction'da
+oluşturulur. Kullanıcı + olay anahtarı tekildir; aynı olay tekrar bildirim üretmez.
+Sipariş ve kampanya tercihleri gözetilir; hediye ve hesap talebi mesajları
+operasyonel olduğundan bu iki tercihle kapatılmaz.
+
+Liste okuması, kullanıcının kampanya tercihi açıksa en yeni 50 aktif hikâyeyi
+başlangıç/bitiş ve bağlı kampanya durumuna göre değerlendirir. Her hikâye kullanıcıya
+yalnız bir kez eklenir; metni düzenlemek tekrar bildirim göndermez.
+Bu merkez uygulama içi listeleme/yenilemedir. Firebase/APNs yapılandırması henüz
+hazır olmadığından uzaktan cihaz push'u veya arka planda teslim garantisi vermez.
+
+## Hediye, finans ve zaman tutarlılığı ekleri (07.10.2026)
+
+- `POST /gifts/claim`: gövdesiz, oturumlu ve idempotent; `{ claimed: number }`
+  döndürür. Kayıt/hesap açılması sonrasında beklemiş hediyeleri yeniden değerlendirir.
+  Telefon kilidi kullanıcı kilitlerinden önce alınır; kayıt ile gönderim yarışı
+  hediyeyi kaçırmaz. Kapatılmış hesaba yeni hediye gönderimi reddedilir.
+- `WalletTxType.ADJUSTMENT`: yeni manuel panel düzeltmelerinin ayrı hareket türüdür.
+  Artı/eksi tutar işareti korunur; düzeltme gerçek yükleme veya sipariş sayılmaz.
+  Eski hareketler yeniden yazılmaz. İlk yükleme kampanyası yalnız başarılı
+  `PaymentIntent` kayıtlarını sayar; geçmişte `TOPUP` diye yazılmış panel düzeltmesi
+  kampanya hakkını tüketmez. Kapatılan hesaba bakiye/sadakat düzeltmesi yapılamaz.
+- Paralel QR üretimi kullanıcı kilidiyle seri hale gelir. Yenilenen eski kodlar
+  açıkça iptal edilir; tahsilatın süre toleransı bu eski kodları canlandırmaz.
+- `pickupSlot`, `asap`, `En kısa (~7 dk)` benzeri mevcut en-kısa etiketi veya `HH:mm`
+  olabilir. Sunucu `Europe/Istanbul` saatinde çalışma aralığını, hazırlık süresini ve
+  kapanıştan önce hazır olmayı doğrular. Gece yarısını aşan açık şubede ertesi günün
+  uygun saati kabul edilebilir; geçmiş/hatalı/çok yakın saat reddedilir.
+- Şube çalışma saati biçimi `08:00–01:00`, `08:00–24:00` veya `24 saat açık`tır.
+  Manuel `isOpen=false` her durumda siparişi durdurur. Geçersiz saat formatı panelde reddedilir.
+- Günlük/saatlik işletme raporları `Europe/Istanbul` kullanır; sunucunun yerel
+  saat dilimi sonucu değiştirmez. Anlık kayıt tarihleri JSON'da ISO 8601 UTC kalır.
+  Ciro, iptal edilmemiş siparişleri ve iptal edilmemiş QR tahsilatlarını kapsar;
+  şube filtresi her ikisine de uygulanır.

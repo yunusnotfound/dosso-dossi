@@ -1,9 +1,20 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val signingProperties = Properties()
+val signingPropertiesFile = rootProject.file("key.properties")
+if (signingPropertiesFile.exists()) {
+    FileInputStream(signingPropertiesFile).use { signingProperties.load(it) }
+}
+val signingKeys = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+val hasReleaseSigning = signingKeys.all { !signingProperties.getProperty(it).isNullOrBlank() }
 
 android {
     namespace = "com.dossodossi.dosso_dossi"
@@ -30,11 +41,36 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = rootProject.file(signingProperties.getProperty("storeFile"))
+                storePassword = signingProperties.getProperty("storePassword")
+                keyAlias = signingProperties.getProperty("keyAlias")
+                keyPassword = signingProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName("release")
+        }
+    }
+}
+
+// Debug builds remain available without a production keystore. A release
+// must never silently fall back to the debug key (or produce an unsigned APK).
+tasks.configureEach {
+    if (name == "preReleaseBuild") {
+        doFirst {
+            check(hasReleaseSigning) {
+                "Release signing missing: configure android/key.properties using key.properties.example."
+            }
+            val keystore = rootProject.file(signingProperties.getProperty("storeFile"))
+            check(keystore.isFile && keystore.name != "debug.keystore") {
+                "A valid production keystore is required for release."
+            }
         }
     }
 }

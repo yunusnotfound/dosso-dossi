@@ -44,14 +44,14 @@ export function DownloadMenu({ items, disabled = false }: { items: Item[]; disab
       <button
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-2 rounded-[--radius-pill] bg-surface px-5 py-2.5 text-sm font-semibold text-ink ring-1 ring-line hover:bg-surface-sunken"
+        className="inline-flex items-center gap-2 rounded-chip bg-surface px-5 py-2.5 text-sm font-semibold text-ink ring-1 ring-line hover:bg-surface-sunken"
       >
         Dışa aktar
         <span aria-hidden="true" className="text-xs text-ink-muted">▾</span>
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-30 mt-2 w-72 overflow-hidden rounded-[--radius-card] bg-surface shadow-xl ring-1 ring-line">
+        <div className="absolute right-0 z-30 mt-2 w-72 overflow-hidden rounded-card bg-surface shadow-xl ring-1 ring-line">
           {items.map((item) => (
             <button
               key={item.path}

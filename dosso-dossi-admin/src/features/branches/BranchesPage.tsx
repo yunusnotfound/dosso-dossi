@@ -1,33 +1,13 @@
-import { useState } from 'react';
-import { useAuth } from '../../auth/AuthContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiError, api } from '../../api/client';
+import { useState } from 'react';
+import { ApiError, api, readApi } from '../../api/client';
+import { fmtNum, fmtTL } from '../../api/format';
+import type { Branch } from '../../api/schemas';
+import { availabilitySchema, branchSchema } from '../../api/schemas';
+import { useAuth } from '../../auth/auth-state';
 import { Checkbox, Drawer, Field, Input } from '../../components/form';
 import { DataTable, PageHeader, type Column } from '../../components/table';
-import { Badge, Button, Card, SectionTitle, fmtNum, fmtTL } from '../../components/ui';
-
-interface Branch {
-  id: string;
-  name: string;
-  address: string;
-  city: string;
-  phone: string;
-  lat: number;
-  lng: number;
-  hours: string;
-  isOpen: boolean;
-  prepMinutes: number;
-  orderCount: number;
-}
-
-interface Availability {
-  productId: string;
-  name: string;
-  categoryName: string;
-  basePrice: number;
-  isAvailable: boolean;
-  priceOverride: number | null;
-}
+import { QueryError, Spinner, EmptyState, Badge, Button, Card, SectionTitle, } from '../../components/ui';
 
 const EMPTY: Branch = {
   id: '',
@@ -53,7 +33,7 @@ export function BranchesPage() {
 
   const list = useQuery({
     queryKey: ['branches'],
-    queryFn: () => api<Branch[]>('/admin/branches'),
+    queryFn: ({ signal }) => readApi(branchSchema.array(), '/admin/branches', { signal }),
   });
   const refresh = () => void qc.invalidateQueries({ queryKey: ['branches'] });
 
@@ -136,7 +116,7 @@ export function BranchesPage() {
         rows={list.data}
         rowKey={(b) => b.id}
         onRowClick={canManage ? setEditing : undefined}
-        loading={list.isLoading}
+        loading={list.isLoading} error={list.error} onRetry={() => void list.refetch()}
       />
 
       <BranchDrawer
@@ -265,7 +245,7 @@ function BranchDrawer({
           onChange={(v) => set('isOpen', v)}
         />
         {error ? (
-          <p className="rounded-[--radius-chip] bg-bad-soft px-3 py-2 text-sm text-bad">
+          <p className="rounded-chip bg-bad-soft px-3 py-2 text-sm text-bad">
             {error}
           </p>
         ) : null}
@@ -287,7 +267,7 @@ function AvailabilityDrawer({
 
   const list = useQuery({
     queryKey: ['availability', branch?.id],
-    queryFn: () => api<Availability[]>(`/admin/branches/${branch!.id}/availability`),
+    queryFn: ({ signal }) => readApi(availabilitySchema.array(), `/admin/branches/${branch!.id}/availability`, { signal }),
     enabled: !!branch,
   });
 
@@ -316,6 +296,9 @@ function AvailabilityDrawer({
           Kapatılan ürün bu şubede sipariş edilemez. Kayıt yoksa ürün müsait sayılır.
         </p>
         {set.error ? <p role="alert" className="text-sm text-bad">{set.error.message}</p> : null}
+        {list.isLoading ? <Spinner /> : null}
+        <QueryError error={list.error} onRetry={() => void list.refetch()} />
+        {!list.isLoading && !list.error && rows.length === 0 ? <EmptyState>Ürün bulunamadı</EmptyState> : null}
         <Input placeholder="Ürün ara" value={q} onChange={(e) => setQ(e.target.value)} />
         <Card className="p-0">
           <ul>

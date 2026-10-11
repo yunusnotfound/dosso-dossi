@@ -91,7 +91,10 @@ Bu kararlar audit sayısını sıfır göstermez. Son taramadaki 5 kayıt, bu ik
 | Admin ana JavaScript | 723,63 kB → 274,55 kB; gzip 210,31 kB → 86,75 kB |
 | En büyük ayrı admin parçası | 380,46 kB; gzip 109,43 kB |
 
-Sorgu AuditLog üzerinde hâlâ tam tarama yapıyor. Bu küçük yerel ölçekte belirgin darboğaz görülmedi; çok sayıda gerçek istemci için kapasite/SLA sonucu çıkarılmaz. Canlı revision davranışını geciktirecek yeni cache süresi eklenmedi.
+Bu ölçüm eski AuditLog toplulaştırma sorgusuna aittir. 11 Ekim düzeltmesinde
+bu sorgu kaldırıldı; transaction içinde artırılan `SyncRevision` sayaçları
+ve hesaba özel yenileme kullanılıyor. Yukarıdaki eski ölçümler yeni sürümün
+kapasite/SLA sonucu olarak kullanılmamalıdır.
 
 ## Bilinen sınırlar ve işletim kararı
 
@@ -116,3 +119,40 @@ Sorgu AuditLog üzerinde hâlâ tam tarama yapıyor. Bu küçük yerel ölçekte
 - Son yerel erişim kontrolü: backend `http://localhost:3000/health` ve admin `http://localhost:5173/` HTTP 200. Uygulama ana sayfada açık bırakıldı.
 
 Testler gerçek kullanıcı bakiyesiyle sipariş, hediye veya tahsilat oluşturmadı. Finansal senaryolar ayrı test veritabanında yürütüldü.
+
+## 11 Ekim 2026 denetim düzeltmeleri
+
+- Panel bakiye ve toplu fiyat komutlarında kalıcı UUID, transaction ile aynı
+  commit'e bağlı sonuç kaydı ve içerik çakışma denetimi var. Yanıt kaybı/sayfa
+  yenileme aynı işlem anahtarını kullanır. Mobil kalıcı anahtar yazımı
+  başarısızsa istek göndermez; tamamlanma kaydı da güvenli biçimde saklanır.
+- Refresh replay yalnız ilgili oturum ailesini kapatır; süresi dolmuş token
+  yan etki üretmez. Tüm oturumları kapatma kullanılmamış QR'ları da kapatır.
+  QR üretimi yetkiyi kilit altında tekrar doğrular; tüketim süresini atomik
+  iddia anında da denetler. Geçici admin şifresi 24 saat ve zorunlu değişimle
+  sınırlıdır; mevcut kalıcı şifreler değiştirilmedi.
+- `SyncRevision` sorgusu en çok 12 anahtar okur. Panel finans değişiklikleri
+  yalnız sahibini yeniler; QR iadesi hem bakiye hem sadakat sürümünü değiştirir.
+  Mobil kontrol 15–60 saniye arası uyarlanır, hatalarda 5 dakikaya kadar bekler.
+- Sipariş/hediye/ikram geçmişleri cursor ile sayfalanır; eşit tarihli kayıtlar,
+  yeni kayıt gelişleri, geç yanıtlar ve hesap değişimi korunur. Uzun mobil
+  geçmişler görünür satırları oluşturur. Cüzdan/sadakat yüklenirken önceki
+  hesabın verisi temizlenir.
+- Ana sayfa Yükle hedefi, OTP telefon sabitleme, İstanbul çalışma/hazırlık
+  saatleriyle şube durumu ve şube raporunun gün başlangıcı düzeltildi.
+- Promo tarihinin atlanması korunur; açık null dışında silinmez. Panel hata,
+  boş ve yükleniyor durumları ayrıldı; filtre/pager, arama bekleme/iptal,
+  klavye, modal odak yönetimi ve mobil erişilebilirlik iyileştirildi.
+  Görsel decode boyutları sınırlandı; görsel dosyaları değiştirilmedi.
+- Ürün fotoğraflarındaki bilinçli boşluklar korundu. 224 asset/içerik dosyasının
+  SHA-256 karşılaştırması ve Product tablosunun yedekle karşılaştırması eşit.
+  Harici ödeme/SMS/POS/push ve yayın/local DB bağlantı ayarları değiştirilmedi.
+
+Doğrulama: backend 28 dosyada **293/293**, mobil analiz temiz ve **158/158**;
+admin tip/lint/build, **10** birim/sözleşme kontrolü ve **34** izole tarayıcı
+senaryosu başarılı. Yeni panel senaryoları kalite pipeline'ına eklendi.
+Finansal testler ayrı `dosso_audit_20261011_test` DB'sinde çalıştı. Geliştirme
+DB'si yedeklendikten sonra yalnız additive migration uygulandı; seed/reset
+yapılmadı. Bir ara tam koşuda yeniden üretilemeyen Supertest socket hatası
+görüldü; hedefli 15/15 ve son tam 293/293 koşu geçti. Hataları gizleyen retry
+veya kanıtsız ağ ayarı eklenmedi.

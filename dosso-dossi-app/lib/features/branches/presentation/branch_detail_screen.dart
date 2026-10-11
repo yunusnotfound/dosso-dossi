@@ -11,6 +11,8 @@ import '../../../core/widgets/coffee_bean_icon.dart';
 import '../../../routing/app_router.dart';
 import '../../order/application/order_providers.dart';
 import '../application/branch_providers.dart';
+import '../application/branch_availability.dart';
+import '../../order/domain/pickup_slots.dart';
 import '../domain/branch.dart';
 import 'branch_directions.dart';
 
@@ -65,7 +67,9 @@ class _BranchDetailBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final today = DateTime.now().weekday; // 1 = Pazartesi
+    final now = ref.watch(branchClockProvider);
+    final today = turkeyWallTime(now).weekday;
+    final accepting = ref.watch(branchAcceptingOrdersProvider(branch));
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.page),
       children: [
@@ -94,14 +98,16 @@ class _BranchDetailBody extends ConsumerWidget {
                             style: AppTypography.title.copyWith(fontSize: 19),
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
-                          child: Text(
-                            branch.distanceLabel,
-                            style: AppTypography.bodySecondary,
+                        if (branch.distanceMeters != null) ...[
+                          const SizedBox(width: AppSpacing.sm),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: Text(
+                              branch.distanceLabel,
+                              style: AppTypography.bodySecondary,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -234,15 +240,19 @@ class _BranchDetailBody extends ConsumerWidget {
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: FilledButton(
-                onPressed: () {
-                  ref.read(selectedBranchProvider.notifier).select(branch);
-                  context.go(Routes.order);
-                },
+                onPressed: !accepting
+                    ? null
+                    : () {
+                        ref
+                            .read(selectedBranchProvider.notifier)
+                            .select(branch);
+                        context.go(Routes.order);
+                      },
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
                   textStyle: AppTypography.body,
                 ),
-                child: const Text('Sipariş Ver'),
+                child: Text(accepting ? 'Sipariş Ver' : 'Kapalı'),
               ),
             ),
           ],

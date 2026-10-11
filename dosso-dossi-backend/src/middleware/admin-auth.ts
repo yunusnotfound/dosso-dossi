@@ -2,7 +2,8 @@ import type { NextFunction, Request, Response } from 'express';
 import type { AdminRole } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
-import { AppError } from '../lib/errors.js';
+import { AppError, ErrorCodes } from '../lib/errors.js';
+import { assertTemporaryPasswordActive } from '../features/admin/temporary-password.js';
 import { prisma } from '../lib/prisma.js';
 
 /// Panel oturumunun istek boyunca taşınan kimliği.
@@ -12,6 +13,8 @@ export interface AdminContext {
   role: AdminRole;
   /// Yalnız BRANCH_MANAGER için dolu; veri kapsamı bununla daraltılır.
   branchId: string | null;
+  mustChangePassword: boolean;
+  tempPasswordExpiresAt: string | null;
 }
 
 declare module 'express-serve-static-core' {
@@ -24,8 +27,8 @@ declare module 'express-serve-static-core' {
 /// farklı sırla imzalandığı için zaten geçmez; `aud` ikinci bir kilit.
 const ADMIN_AUDIENCE = 'admin';
 
-export function signAdminToken(adminId: string, tokenVersion = 0): string {
-  return jwt.sign({ sub: adminId, v: tokenVersion }, env.ADMIN_JWT_SECRET, {
+export function signAdminToken(adminId: string, tokenVersion = 0, familyId?: string): string {
+  return jwt.sign({ sub: adminId, v: tokenVersion, ...(familyId ? { sid: familyId } : {}) }, env.ADMIN_JWT_SECRET, {
     audience: ADMIN_AUDIENCE,
     expiresIn: env.ADMIN_JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
   });
@@ -35,6 +38,15 @@ export function signAdminToken(adminId: string, tokenVersion = 0): string {
 /// Yetki her istekte DB'den okunur: rolü düşürülen ya da pasifleştirilen
 /// bir yönetici, token'ının ömrü dolmadan yetkisini kaybeder.
 export function requireAdmin(...roles: AdminRole[]) {
+  return adminGuard(false, roles);
+}
+
+/** Restricted temporary credentials may only inspect their session or change it. */
+export function requireAdminPasswordAccess() {
+  return adminGuard(true, []);
+}
+
+function adminGuard(allowPasswordChange: boolean, roles: AdminRole[]) {
   return async (
     req: Request,
     _res: Response,
@@ -48,17 +60,19 @@ export function requireAdmin(...roles: AdminRole[]) {
 
     let adminId: string;
     let tokenVersion: number;
+    let familyId: string | undefined;
     try {
       const payload = jwt.verify(header.slice(7), env.ADMIN_JWT_SECRET, {
         audience: ADMIN_AUDIENCE,
         algorithms: ['HS256'],
       });
-      if (typeof payload === 'string' || typeof payload.sub !== 'string' || (payload.v !== undefined && !Number.isInteger(payload.v))) {
+      if (typeof payload === 'string' || typeof payload.sub !== 'string' || (payload.v !== undefined && !Number.isInteger(payload.v)) || (payload.sid !== undefined && typeof payload.sid !== 'string')) {
         next(AppError.unauthorized());
         return;
       }
       adminId = payload.sub;
       tokenVersion = payload.v ?? 0;
+      familyId = payload.sid;
     } catch {
       next(AppError.unauthorized('Oturum süresi doldu, yeniden giriş yapın'));
       return;
@@ -67,6 +81,14 @@ export function requireAdmin(...roles: AdminRole[]) {
     const admin = await prisma.adminUser.findUnique({ where: { id: adminId } });
     if (!admin || !admin.isActive || admin.tokenVersion !== tokenVersion) {
       next(AppError.unauthorized('Hesap pasif veya bulunamadı'));
+      return;
+    }
+    if (familyId && !await prisma.adminRefreshToken.findFirst({
+      where: { adminId, familyId, familyRevokedAt: null, expiresAt: { gt: new Date() } }, select: { id: true },
+    })) { next(AppError.unauthorized()); return; }
+    assertTemporaryPasswordActive(admin);
+    if (admin.mustChangePassword && !allowPasswordChange) {
+      next(new AppError(ErrorCodes.PASSWORD_CHANGE_REQUIRED, 403, 'Panele devam etmek için geçici şifrenizi değiştirin.'));
       return;
     }
     if (roles.length > 0 && !roles.includes(admin.role)) {
@@ -79,6 +101,8 @@ export function requireAdmin(...roles: AdminRole[]) {
       email: admin.email,
       role: admin.role,
       branchId: admin.branchId,
+      mustChangePassword: admin.mustChangePassword,
+      tempPasswordExpiresAt: admin.tempPasswordExpiresAt?.toISOString() ?? null,
     };
     next();
   };
@@ -88,7 +112,7 @@ export function requireAdmin(...roles: AdminRole[]) {
 /// İstenen şube yoksa kendi şubesi, varsa yetkisi doğrulanır.
 /// Diğer roller için istenen şube olduğu gibi geçer (hepsi = undefined).
 export function scopeBranch(
-  admin: AdminContext,
+  admin: Pick<AdminContext, 'role' | 'branchId'>,
   requested?: string,
 ): string | undefined {
   if (admin.role !== 'BRANCH_MANAGER') return requested;

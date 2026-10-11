@@ -1,30 +1,15 @@
-import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiError, api } from '../../api/client';
+import { useState } from 'react';
+import { ApiError, api, readApi } from '../../api/client';
+import { promoExpiryPatch } from '../../api/promo-expiry';
+import { fmtNum, fmtTL } from '../../api/format';
+import type { Campaign, Promo } from '../../api/schemas';
+import { campaignSchema, promoSchema, settingsSchema } from '../../api/schemas';
+import { useAuth } from '../../auth/auth-state';
 import { Checkbox, Drawer, Field, Input, Select, Tabs, Textarea } from '../../components/form';
 import { DataTable, PageHeader, type Column } from '../../components/table';
-import { Badge, Button, Card, SectionTitle, fmtNum, fmtTL } from '../../components/ui';
-import { useAuth } from '../../auth/AuthContext';
+import { Badge, Button, Card, SectionTitle, } from '../../components/ui';
 import { StoriesTab } from './StoriesTab';
-
-interface Campaign {
-  id: string;
-  title: string;
-  badge: string;
-  description: string;
-  style: 'orange' | 'dark';
-  sortOrder: number;
-  isActive: boolean;
-}
-
-interface Promo {
-  code: string;
-  discountRate: number;
-  isActive: boolean;
-  expiresAt: string | null;
-  usageCount: number;
-  totalDiscount: number;
-}
 
 const EMPTY: Campaign = {
   id: '',
@@ -67,7 +52,7 @@ function CampaignsTab() {
 
   const list = useQuery({
     queryKey: ['campaigns'],
-    queryFn: () => api<Campaign[]>('/admin/campaigns'),
+    queryFn: ({ signal }) => readApi(campaignSchema.array(), '/admin/campaigns', { signal }),
   });
   const refresh = () => void qc.invalidateQueries({ queryKey: ['campaigns'] });
   const remove = useMutation({
@@ -128,7 +113,7 @@ function CampaignsTab() {
         rows={list.data}
         rowKey={(c) => c.id}
         onRowClick={canEdit ? setEditing : undefined}
-        loading={list.isLoading}
+        loading={list.isLoading} error={list.error} onRetry={() => void list.refetch()}
       />
       {remove.error ? <p role="alert" className="text-sm text-bad">{remove.error.message}</p> : null}
       <CampaignDrawer
@@ -238,7 +223,7 @@ function CampaignDrawer({
           onChange={(v) => set('isActive', v)}
         />
         {error ? (
-          <p className="rounded-[--radius-chip] bg-bad-soft px-3 py-2 text-sm text-bad">
+          <p className="rounded-chip bg-bad-soft px-3 py-2 text-sm text-bad">
             {error}
           </p>
         ) : null}
@@ -252,11 +237,13 @@ function PromosTab() {
   const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
   const [form, setForm] = useState({ code: '', rate: 10, isActive: true });
+  const [expiryAction, setExpiryAction] = useState<'keep' | 'set' | 'clear'>('keep');
+  const [expiry, setExpiry] = useState('');
   const [error, setError] = useState('');
 
   const list = useQuery({
     queryKey: ['promos'],
-    queryFn: () => api<Promo[]>('/admin/promos'),
+    queryFn: ({ signal }) => readApi(promoSchema.array(), '/admin/promos', { signal }),
   });
   const refresh = () => void qc.invalidateQueries({ queryKey: ['promos'] });
 
@@ -269,11 +256,13 @@ function PromosTab() {
           // Panelde yüzde girilir, sözleşme oran bekler (10 → 0.10)
           discountRate: Number(form.rate) / 100,
           isActive: form.isActive,
-          expiresAt: null,
+          ...promoExpiryPatch(expiryAction, expiry),
         },
       }),
     onSuccess: () => {
       setForm({ code: '', rate: 10, isActive: true });
+      setExpiryAction('keep');
+      setExpiry('');
       setError('');
       refresh();
     },
@@ -292,6 +281,7 @@ function PromosTab() {
       numeric: true,
       render: (p) => `%${Math.round(p.discountRate * 100)}`,
     },
+    { key: 'expiry', header: 'Son kullanım', render: (p) => p.expiresAt ? new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', dateStyle: 'short', timeStyle: 'short' }).format(new Date(p.expiresAt)) : 'Süresiz' },
     { key: 'usage', header: 'Kullanım', numeric: true, render: (p) => fmtNum(p.usageCount) },
     {
       key: 'total',
@@ -311,7 +301,7 @@ function PromosTab() {
       header: '',
       render: (p) => (
         <button
-          onClick={() => remove.mutate(p.code)}
+          onClick={(event) => { event.stopPropagation(); remove.mutate(p.code); }}
           disabled={!canEdit || remove.isPending}
           className="text-xs font-semibold text-bad hover:underline disabled:opacity-50"
         >
@@ -328,11 +318,12 @@ function PromosTab() {
           columns={columns}
           rows={list.data}
           rowKey={(p) => p.code}
-          loading={list.isLoading}
+          onRowClick={canEdit ? (promo) => { setForm({ code: promo.code, rate: promo.discountRate * 100, isActive: promo.isActive }); setExpiryAction('keep'); setExpiry(''); setError(''); } : undefined}
+          loading={list.isLoading} error={list.error} onRetry={() => void list.refetch()}
         />
       </div>
       {canEdit ? <Card>
-        <SectionTitle>Kod ekle</SectionTitle>
+        <SectionTitle>Kod ekle / düzenle</SectionTitle>
         <div className="flex flex-col gap-3">
           <Field label="Kod">
             <Input
@@ -347,13 +338,21 @@ function PromosTab() {
               onChange={(e) => setForm((f) => ({ ...f, rate: Number(e.target.value) }))}
             />
           </Field>
+          <Field label="Son kullanma tarihi" hint="Tüm tarihler İstanbul saatidir. Mevcut kodun tarihini kaldırmak için açıkça Süresiz yap seçin.">
+            <Select value={expiryAction} onChange={(event) => setExpiryAction(event.target.value as 'keep' | 'set' | 'clear')}>
+              <option value="keep">Mevcut tarihi koru</option>
+              <option value="set">Tarih belirle / değiştir</option>
+              <option value="clear">Süresiz yap</option>
+            </Select>
+          </Field>
+          {expiryAction === 'set' ? <Field label="Tarih ve saat (İstanbul)"><Input type="datetime-local" value={expiry} onChange={(event) => setExpiry(event.target.value)} /></Field> : null}
           <Checkbox
             label="Aktif"
             checked={form.isActive}
             onChange={(v) => setForm((f) => ({ ...f, isActive: v }))}
           />
           {error ? <p className="text-sm text-bad">{error}</p> : null}
-          <Button onClick={() => save.mutate()} disabled={!form.code || save.isPending}>
+          <Button onClick={() => save.mutate()} disabled={!form.code.trim() || save.isPending || (expiryAction === 'set' && !expiry)}>
             Kaydet
           </Button>
         </div>
@@ -391,7 +390,7 @@ function LoyaltyTab() {
   const { admin } = useAuth();
   const settings = useQuery({
     queryKey: ['settings'],
-    queryFn: () => api<Record<SettingKey, number | boolean>>('/admin/settings'),
+    queryFn: ({ signal }) => readApi(settingsSchema, '/admin/settings', { signal }),
   });
   return (
     <Card>
@@ -435,7 +434,7 @@ function SettingEditor({ settingKey, value, canEdit }: { settingKey: SettingKey;
     onError: (e) => setError(e instanceof Error ? e.message : 'Kaydedilemedi'),
   });
   return (
-    <form className="rounded-[--radius-chip] bg-surface-sunken px-4 py-3" onSubmit={(e) => { e.preventDefault(); if (valid && canEdit && changed) save.mutate(); }}>
+    <form className="rounded-chip bg-surface-sunken px-4 py-3" onSubmit={(e) => { e.preventDefault(); if (valid && canEdit && changed) save.mutate(); }}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-ink">{meta.label}</p><p className="text-xs text-ink-muted">{meta.hint}</p></div>
         {isBool ? <Checkbox label={draft === 'true' ? 'Açık' : 'Kapalı'} checked={draft === 'true'} disabled={!canEdit || save.isPending} onChange={(v) => { setDraft(String(v)); setSaved(false); }} /> : (

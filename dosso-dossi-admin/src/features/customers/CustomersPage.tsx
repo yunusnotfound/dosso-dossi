@@ -1,74 +1,34 @@
-import { useState } from 'react';
-import { useAuth } from '../../auth/AuthContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiError, api } from '../../api/client';
+import { useState } from 'react';
+import { useDebouncedValue } from '../../api/use-debounced-value';
+import { ApiError, readApi } from '../../api/client';
+import { fmtNum, fmtTL } from '../../api/format';
+import type { CustomerRow } from '../../api/schemas';
+import { balanceUpdateSchema, blockUpdateSchema, customerDetailSchema, customerListSchema, loyaltyUpdateSchema, revokedSessionsSchema } from '../../api/schemas';
+import { DurableIntentError, withDurableIntent } from '../../api/mutation-intents';
+import { useAuth } from '../../auth/auth-state';
 import { Drawer, Field, Input, ReasonDialog, Select, Tabs } from '../../components/form';
 import { DataTable, PageHeader, Pager, type Column } from '../../components/table';
-import { Badge, Button, Card, Kpi, SectionTitle, fmtNum, fmtTL } from '../../components/ui';
-
-interface CustomerRow {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  isBlocked: boolean;
-  balance: number;
-  stamps: number;
-  target: number;
-  freeDrinks: number;
-  orderCount: number;
-  lifetimeSpend: number;
-  createdAt: string;
-}
-
-interface CustomerList {
-  page: number;
-  pageSize: number;
-  total: number;
-  customers: CustomerRow[];
-}
-
-interface CustomerDetail extends Pick<CustomerRow, 'id' | 'name' | 'phone' | 'email' | 'isBlocked' | 'balance' | 'orderCount' | 'createdAt'> {
-  activeSessions: number;
-  loyalty: { stamps: number; target: number; freeDrinks: number };
-  transactions: {
-    id: string;
-    type: string;
-    amount: number;
-    balanceAfter: number;
-    note: string;
-    createdAt: string;
-  }[];
-  orders: {
-    id: string;
-    status: string;
-    branchName: string;
-    total: number;
-    createdAt: string;
-  }[];
-  loyaltyEvents: { id: string; type: string; title: string; createdAt: string }[];
-  giftsSent: { id: string; label: string; status: string; recipientPhone: string }[];
-  giftsReceived: { id: string; label: string; status: string }[];
-  qrCharges: { id: string; amount: number; status: string; createdAt: string }[];
-}
+import { QueryError, Spinner, Badge, Button, Card, Kpi, SectionTitle, } from '../../components/ui';
 
 const fmtDate = (iso: string) =>
-  new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(
+  new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', dateStyle: 'short', timeStyle: 'short' }).format(
     new Date(iso),
   );
 
 export function CustomersPage() {
   const [q, setQ] = useState('');
+  const search = useDebouncedValue(q.trim());
   const [sort, setSort] = useState<'recent' | 'ltv'>('recent');
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const list = useQuery({
-    queryKey: ['customers', { q, sort, page }],
-    queryFn: () => {
+    queryKey: ['customers', { q: search, sort, page }],
+    queryFn: ({ signal }) => {
       const p = new URLSearchParams({ page: String(page), pageSize: '25', sort });
-      if (q) p.set('q', q);
-      return api<CustomerList>(`/admin/customers?${p}`);
+      if (search) p.set('q', search);
+      return readApi(customerListSchema, `/admin/customers?${p}`, { signal });
     },
   });
 
@@ -120,7 +80,7 @@ export function CustomersPage() {
           }}
           className="w-64"
         />
-        <Select value={sort} onChange={(e) => setSort(e.target.value as 'recent' | 'ltv')}>
+        <Select value={sort} onChange={(e) => { setSort(e.target.value as 'recent' | 'ltv'); setPage(1); }}>
           <option value="recent">En yeni kayıt</option>
           <option value="ltv">En çok harcayan</option>
         </Select>
@@ -131,12 +91,12 @@ export function CustomersPage() {
         rows={list.data?.customers}
         rowKey={(c) => c.id}
         onRowClick={(c) => setOpenId(c.id)}
-        loading={list.isLoading}
+        loading={list.isLoading} error={list.error} onRetry={() => void list.refetch()}
       />
       <Pager
         page={list.data?.page ?? 1}
         pageSize={list.data?.pageSize ?? 25}
-        total={list.data?.total ?? 0}
+        total={list.data?.total}
         onPage={setPage}
       />
 
@@ -158,11 +118,13 @@ function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => voi
   const [freeDrinks, setFreeDrinks] = useState(0);
   const [error, setError] = useState('');
 
-  const { data } = useQuery({
+  const detail = useQuery({
     queryKey: ['customer', id],
-    queryFn: () => api<CustomerDetail>(`/admin/customers/${id}`),
+    queryFn: ({ signal }) => readApi(customerDetailSchema, `/admin/customers/${id}`, { signal }),
     enabled: !!id,
   });
+
+  const { data } = detail;
 
   const done = () => {
     setAction(null);
@@ -172,32 +134,33 @@ function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => voi
   };
 
   const run = useMutation({
-    mutationFn: (reason: string) => {
+    mutationFn: async (reason: string) => {
       switch (action) {
-        case 'balance':
-          return api(`/admin/customers/${id}/balance`, {
-            method: 'POST',
-            body: { amount: Number(amount), reason },
-          });
+        case 'balance': {
+          const body = { amount: Number(amount), reason: reason.trim() };
+          return withDurableIntent(`${admin!.id}:/admin/customers/${id}/balance`, body, (idempotencyKey) => readApi(balanceUpdateSchema, `/admin/customers/${id}/balance`, {
+            method: 'POST', body: { ...body, idempotencyKey },
+          }));
+        }
         case 'loyalty':
-          return api(`/admin/customers/${id}/loyalty`, {
+          return readApi(loyaltyUpdateSchema, `/admin/customers/${id}/loyalty`, {
             method: 'POST',
             body: { stamps: Number(stamps), freeDrinks: Number(freeDrinks), reason },
           });
         case 'sessions':
-          return api(`/admin/customers/${id}/revoke-sessions`, {
+          return readApi(revokedSessionsSchema, `/admin/customers/${id}/revoke-sessions`, {
             method: 'POST',
             body: { reason },
           });
         default:
-          return api(`/admin/customers/${id}/block`, {
+          return readApi(blockUpdateSchema, `/admin/customers/${id}/block`, {
             method: 'POST',
             body: { isBlocked: action === 'block', reason },
           });
       }
     },
     onSuccess: done,
-    onError: (e) => setError(e instanceof ApiError ? e.message : 'İşlem başarısız'),
+    onError: (e) => setError(e instanceof ApiError || e instanceof DurableIntentError ? e.message : 'İşlem başarısız'),
   });
 
   const openLoyalty = () => {
@@ -213,7 +176,9 @@ function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => voi
         title={data ? data.name || data.phone : 'Müşteri'}
         onClose={onClose}
       >
-        {!data ? null : (
+        {detail.isLoading ? <Spinner /> : null}
+        <QueryError error={detail.error} onRetry={() => void detail.refetch()} />
+        {!data || detail.error ? null : (
           <div className="flex flex-col gap-5">
             <div className="grid grid-cols-3 gap-3">
               <Kpi label="Bakiye" value={fmtTL(data.balance)} />
@@ -349,7 +314,7 @@ function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => voi
       <Drawer
         open={action === 'balance'}
         title="Bakiye düzeltmesi"
-        onClose={() => setAction(null)}
+        onClose={() => { if (!run.isPending) setAction(null); }}
       >
         <Field
           label="Tutar (₺)"
@@ -357,6 +322,7 @@ function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => voi
         >
           <Input
             type="number"
+            disabled={run.isPending}
             value={amount}
             onChange={(e) => setAmount(Number(e.target.value))}
           />
@@ -374,7 +340,7 @@ function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => voi
       <Drawer
         open={action === 'loyalty'}
         title="Damga / ikram düzeltmesi"
-        onClose={() => setAction(null)}
+        onClose={() => { if (!run.isPending) setAction(null); }}
       >
         <div className="flex flex-col gap-4">
           <Field label="Damga" hint={`0 – ${(data?.loyalty.target ?? 5) - 1} arası`}>
@@ -419,7 +385,7 @@ function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => voi
         busy={run.isPending}
         error={error}
         onConfirm={(r) => run.mutate(r)}
-        onClose={() => setAction(null)}
+        onClose={() => { if (!run.isPending) setAction(null); }}
       />
     </>
   );
@@ -441,10 +407,10 @@ function ReasonInline({
   return (
     <div className="flex flex-col gap-3">
       <Field label="Gerekçe" hint="En az 5 karakter — kayda geçer.">
-        <Input value={reason} onChange={(e) => setReason(e.target.value)} />
+        <Input disabled={busy} value={reason} onChange={(e) => setReason(e.target.value)} />
       </Field>
       {error ? (
-        <p className="rounded-[--radius-chip] bg-bad-soft px-3 py-2 text-sm text-bad">
+        <p className="rounded-chip bg-bad-soft px-3 py-2 text-sm text-bad">
           {error}
         </p>
       ) : null}

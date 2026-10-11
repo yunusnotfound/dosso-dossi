@@ -21,10 +21,15 @@ final cartProvider = NotifierProvider<CartController, CartState>(
 
 class CartController extends Notifier<CartState> {
   Future<OrderRecord?>? _checkoutPending;
+  _CheckoutAttempt? _unconfirmedAttempt;
+  _CheckoutAttempt? _activeAttempt;
+  int _nextLineId = 0;
 
   @override
   CartState build() {
     _checkoutPending = null;
+    _unconfirmedAttempt = null;
+    _activeAttempt = null;
     ref.listen(selectedBranchProvider, (_, next) {
       if (state.quotedTotal != null) state = state.copyWith();
     });
@@ -123,7 +128,7 @@ class CartController extends Notifier<CartState> {
         quantity: items[index].quantity + item.quantity,
       );
     } else {
-      items.add(item);
+      items.add(item.copyWith(localId: '${++_nextLineId}'));
     }
     state = state.copyWith(items: items);
   }
@@ -135,7 +140,18 @@ class CartController extends Notifier<CartState> {
 
   void updateAt(int index, CartItem item) {
     final items = [...state.items];
-    items[index] = item;
+    final previous = items[index];
+    if (previous.mergeKey == item.mergeKey) {
+      final quantities =
+          (_activeAttempt ?? _unconfirmedAttempt)?.remainingQuantities;
+      final submitted = quantities?[previous.localId];
+      if (submitted != null && item.quantity < submitted) {
+        quantities![previous.localId] = item.quantity;
+      }
+      items[index] = item.copyWith(localId: previous.localId);
+    } else {
+      items[index] = item.copyWith(localId: '${++_nextLineId}');
+    }
     state = state.copyWith(items: items);
   }
 
@@ -164,7 +180,14 @@ class CartController extends Notifier<CartState> {
   void setUseFreeDrink(bool value) =>
       state = state.copyWith(useFreeDrink: value);
 
-  void clear() => state = const CartState();
+  void clear() =>
+      state = CartState(unconfirmedCheckout: state.unconfirmedCheckout);
+
+  Future<OrderRecord?> retryCheckout() {
+    final attempt = _unconfirmedAttempt;
+    if (attempt == null) return Future.value(null);
+    return checkout(branch: attempt.branch, pickupLabel: attempt.pickupLabel);
+  }
 
   /// Siparişi tamamlar. Bakiye yetersizse null döner.
   /// Mock modunda ödeme/damga simülasyonu burada; API modunda bakiye,
@@ -187,10 +210,31 @@ class CartController extends Notifier<CartState> {
   }) async {
     final scope = ref.read(sessionScopeProvider);
     final epoch = scope.revision;
-    final cart = state;
-    final selectedBranchId = ref.read(selectedBranchProvider)?.id;
+    final attempt =
+        _unconfirmedAttempt ??
+        _CheckoutAttempt(
+          cart: state.copyWith(
+            items: List.unmodifiable(state.items),
+            quotedTotal: state.quotedTotal,
+          ),
+          branch: branch,
+          pickupLabel: pickupLabel,
+          epoch: epoch,
+          selectedBranchId: ref.read(selectedBranchProvider)?.id,
+        );
+    if (attempt.epoch != epoch) {
+      throw const ApiException(
+        code: 'SESSION_CHANGED',
+        message: 'Oturum değişti. Sipariş geçmişini kontrol et.',
+      );
+    }
+    final cart = attempt.cart;
+    branch = attempt.branch;
+    pickupLabel = attempt.pickupLabel;
+    final selectedBranchId = attempt.selectedBranchId;
     if (cart.items.isEmpty) return null;
-    if (!branch.isOpen) {
+    // A closed branch must not prevent replay of an already submitted order.
+    if (_unconfirmedAttempt == null && !branch.isOpen) {
       throw const ApiException(
         code: 'BRANCH_CLOSED',
         message: 'Bu şube şu anda kapalı.',
@@ -201,6 +245,7 @@ class CartController extends Notifier<CartState> {
       return _checkoutMock(cart, branch: branch, pickupLabel: pickupLabel);
     }
 
+    _activeAttempt = attempt;
     try {
       final record = await ref
           .read(orderRepositoryProvider)
@@ -214,9 +259,32 @@ class CartController extends Notifier<CartState> {
       ref.read(ordersProvider.notifier).add(record);
       ref.invalidate(walletProvider);
       ref.invalidate(loyaltyStatusProvider);
-      state = const CartState();
+      _unconfirmedAttempt = null;
+      _removeSubmittedItems(attempt);
       return record;
     } on ApiException catch (e) {
+      if (ref.mounted && scope.revision == epoch) {
+        if (e.isDefinitiveRejection ||
+            {'PRICE_CHANGED', 'INSUFFICIENT_BALANCE'}.contains(e.code)) {
+          _unconfirmedAttempt = null;
+          state = state.copyWith(
+            quotedTotal: state.quotedTotal,
+            clearUnconfirmedCheckout: true,
+          );
+        } else {
+          // Keep every submitted field, including prices and the pickup time.
+          // MutationIntents can therefore reuse the original idempotency key.
+          _unconfirmedAttempt = attempt;
+          state = state.copyWith(
+            quotedTotal: state.quotedTotal,
+            unconfirmedCheckout: UnconfirmedCheckout(
+              branchName: branch.name,
+              pickupLabel: pickupLabel,
+              total: cart.total,
+            ),
+          );
+        }
+      }
       if (e.code == 'PRICE_CHANGED' && ref.mounted && scope.revision == epoch) {
         try {
           await Future.wait([
@@ -252,7 +320,27 @@ class CartController extends Notifier<CartState> {
       }
       if (e.code == 'INSUFFICIENT_BALANCE') return null;
       rethrow;
+    } finally {
+      if (identical(_activeAttempt, attempt)) _activeAttempt = null;
     }
+  }
+
+  void _removeSubmittedItems(_CheckoutAttempt submitted) {
+    final quantities = submitted.remainingQuantities;
+    final remaining = <CartItem>[];
+    for (final item in state.items) {
+      final quantity = item.quantity - (quantities[item.localId] ?? 0);
+      if (quantity > 0) remaining.add(item.copyWith(quantity: quantity));
+    }
+    state = remaining.isEmpty
+        ? const CartState()
+        : state.copyWith(
+            items: remaining,
+            clearUnconfirmedCheckout: true,
+            useFreeDrink: submitted.cart.useFreeDrink
+                ? false
+                : state.useFreeDrink,
+          );
   }
 
   Future<OrderRecord?> _checkoutMock(
@@ -298,4 +386,23 @@ class CartController extends Notifier<CartState> {
     state = const CartState();
     return record;
   }
+}
+
+class _CheckoutAttempt {
+  _CheckoutAttempt({
+    required this.cart,
+    required this.branch,
+    required this.pickupLabel,
+    required this.epoch,
+    required this.selectedBranchId,
+  }) : remainingQuantities = {
+         for (final item in cart.items) item.localId: item.quantity,
+       };
+
+  final CartState cart;
+  final Branch branch;
+  final String pickupLabel;
+  final int epoch;
+  final String? selectedBranchId;
+  final Map<String?, int> remainingQuantities;
 }

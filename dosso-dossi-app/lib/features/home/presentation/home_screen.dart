@@ -159,14 +159,21 @@ class _GreetingHeader extends ConsumerWidget {
             ],
           ),
         ),
-        GestureDetector(
-          onTap: () => context.push(Routes.profile),
-          child: CircleAvatar(
-            radius: 24,
-            backgroundColor: AppColors.primary,
-            child: Text(
-              isGuest ? 'M' : initialsOf(user?.name ?? ''),
-              style: AppTypography.title.copyWith(color: Colors.white),
+        Semantics(
+          container: true,
+          button: true,
+          label: 'Profilim',
+          child: GestureDetector(
+            onTap: () => context.push(Routes.profile),
+            child: ExcludeSemantics(
+              child: CircleAvatar(
+                radius: 24,
+                backgroundColor: AppColors.primary,
+                child: Text(
+                  isGuest ? 'M' : initialsOf(user?.name ?? ''),
+                  style: AppTypography.title.copyWith(color: Colors.white),
+                ),
+              ),
             ),
           ),
         ),

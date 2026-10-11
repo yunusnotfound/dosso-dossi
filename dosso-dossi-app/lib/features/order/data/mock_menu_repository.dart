@@ -27,7 +27,7 @@ class MockMenuRepository implements MenuRepository {
     MenuCategory(id: 'sandvic-tost', name: 'Sandviç & Tost'),
     MenuCategory(id: 'atistirmalik', name: 'Atıştırmalıklar'),
     MenuCategory(id: 'cekirdek', name: 'Çekirdek Kahveler'),
-    MenuCategory(id: 'merch', name: 'Termos & Mug'),
+    MenuCategory(id: 'merch', name: 'Termoslar'),
   ];
 
   static final _products = <Product>[
@@ -42,25 +42,53 @@ class MockMenuRepository implements MenuRepository {
     _p('sicak-kahveler', 'Türk Kahvesi Büyük', 170, ml: 240),
     _p('sicak-kahveler', 'Cafe Americano', 160, ml: 410),
     _p('sicak-kahveler', 'Cappuccino', 190, ml: 410, options: true),
-    _p('sicak-kahveler', 'Caffe Latte', 190,
-        ml: 410, options: true, featured: true),
-    _p('sicak-kahveler', 'Flat White', 190,
-        ml: 410, options: true, featured: true),
+    _p(
+      'sicak-kahveler',
+      'Caffe Latte',
+      190,
+      ml: 410,
+      options: true,
+      featured: true,
+    ),
+    _p(
+      'sicak-kahveler',
+      'Flat White',
+      190,
+      ml: 410,
+      options: true,
+      featured: true,
+    ),
 
     // ── AROMALI KAHVELER (Espresso Collection) ────────────────
-    _p('aromali-kahveler', 'Cafe Mocha', 260,
-        ml: 410, options: true, featured: true),
+    _p(
+      'aromali-kahveler',
+      'Cafe Mocha',
+      260,
+      ml: 410,
+      options: true,
+      featured: true,
+    ),
     _p('aromali-kahveler', 'Mocha Bianco', 260, ml: 410, options: true),
-    _p('aromali-kahveler', 'Caramel Macchiato', 250,
-        ml: 410, options: true, featured: true),
+    _p(
+      'aromali-kahveler',
+      'Caramel Macchiato',
+      250,
+      ml: 410,
+      options: true,
+      featured: true,
+    ),
     _p('aromali-kahveler', 'Latte Brulee', 270, ml: 410, options: true),
-    _p('aromali-kahveler', 'Spice Vaniglia Eleganza', 270,
-        ml: 410, options: true),
+    _p(
+      'aromali-kahveler',
+      'Spice Vaniglia Eleganza',
+      270,
+      ml: 410,
+      options: true,
+    ),
 
     // ── SICAK ÇİKOLATALAR (Cioccolata Calda) ──────────────────
     _p('sicak-cikolatalar', 'Cacao Royale', 240, ml: 410, options: true),
-    _p('sicak-cikolatalar', 'Cacao Bianco Royale', 240,
-        ml: 410, options: true),
+    _p('sicak-cikolatalar', 'Cacao Bianco Royale', 240, ml: 410, options: true),
 
     // ── ÇAYLAR (Tea) ──────────────────────────────────────────
     _p('caylar', 'Çay (Bardak)', 70, ml: 240),
@@ -73,19 +101,41 @@ class MockMenuRepository implements MenuRepository {
     _p('caylar', 'Matcha Vaniglia Latte', 270, ml: 410),
 
     // ── SOĞUK KAHVELER (Dolce Freddo + Espresso Freddo) ───────
-    _p('soguk-kahveler', 'Cafe Freddo', 180,
-        ml: 470, options: true, featured: true),
+    _p(
+      'soguk-kahveler',
+      'Cafe Freddo',
+      180,
+      ml: 470,
+      options: true,
+      featured: true,
+    ),
     _p('soguk-kahveler', 'Americano Freddo', 180, ml: 470),
     _p('soguk-kahveler', 'Latte Freddo', 200, ml: 470, options: true),
     _p('soguk-kahveler', 'Dolce Mocha Freddo', 270, ml: 470, options: true),
     _p('soguk-kahveler', 'Bianco Mocha Freddo', 270, ml: 470, options: true),
-    _p('soguk-kahveler', 'Dolce Caramel Macchiato', 260,
-        ml: 470, options: true),
+    _p(
+      'soguk-kahveler',
+      'Dolce Caramel Macchiato',
+      260,
+      ml: 470,
+      options: true,
+    ),
     _p('soguk-kahveler', 'Freddo Latte Brulee', 280, ml: 470, options: true),
-    _p('soguk-kahveler', 'Caramel Volt', 280,
-        ml: 470, options: true, isNew: true),
-    _p('soguk-kahveler', 'Spice Vaniglia Eleganza Freddo', 290,
-        ml: 470, options: true),
+    _p(
+      'soguk-kahveler',
+      'Caramel Volt',
+      280,
+      ml: 470,
+      options: true,
+      isNew: true,
+    ),
+    _p(
+      'soguk-kahveler',
+      'Spice Vaniglia Eleganza Freddo',
+      290,
+      ml: 470,
+      options: true,
+    ),
 
     // ── SOĞUK ÇAYLAR (soğuk chai/matcha + Fuse Tea) ───────────
     _p('soguk-caylar', 'Chai Tea Latte Freddo', 250, ml: 470),
@@ -139,24 +189,43 @@ class MockMenuRepository implements MenuRepository {
     _p('soft-icecekler', 'Flavz Meyve Suyu Vişne', 170, ml: 250, emoji: '🧃'),
     _p('soft-icecekler', 'Flavz Meyve Suyu Elma', 170, ml: 250, emoji: '🧃'),
     _p('soft-icecekler', 'Flavz Meyve Suyu Nar', 170, ml: 250, emoji: '🧃'),
-    _p('soft-icecekler', 'Flavz Meyve Suyu Portakal', 170,
-        ml: 250, emoji: '🧃'),
-    _p('soft-icecekler', 'Flavz Meyve Suyu Elma & Şeftali', 170,
-        ml: 250, emoji: '🧃'),
-    _p('soft-icecekler', 'Flavz Meyve Suyu Elma & Pancar', 170,
-        ml: 250, emoji: '🧃'),
+    _p(
+      'soft-icecekler',
+      'Flavz Meyve Suyu Portakal',
+      170,
+      ml: 250,
+      emoji: '🧃',
+    ),
+    _p(
+      'soft-icecekler',
+      'Flavz Meyve Suyu Elma & Şeftali',
+      170,
+      ml: 250,
+      emoji: '🧃',
+    ),
+    _p(
+      'soft-icecekler',
+      'Flavz Meyve Suyu Elma & Pancar',
+      170,
+      ml: 250,
+      emoji: '🧃',
+    ),
     _p('soft-icecekler', 'Beyoğlu Gazozu Klasik', 130, ml: 250),
     _p('soft-icecekler', 'Beyoğlu Gazozu Reyhan', 130, ml: 250),
     _p('soft-icecekler', 'Beyoğlu Gazozu Zencefilli', 130, ml: 250),
     _p('soft-icecekler', 'Beyoğlu Gazozu Turuncu', 130, ml: 250),
     _p('soft-icecekler', 'Beyoğlu Gazozu Limon', 130, ml: 250),
-    _p('soft-icecekler', 'Elite Organic Portakal Havuç Elma', 170,
-        ml: 200, emoji: '🧃'),
+    _p(
+      'soft-icecekler',
+      'Elite Organic Portakal Havuç Elma',
+      170,
+      ml: 200,
+      emoji: '🧃',
+    ),
     _p('soft-icecekler', 'Elite Organic Karadut', 170, ml: 200, emoji: '🧃'),
     _p('soft-icecekler', 'Elite Organic Defence', 170, ml: 200, emoji: '🧃'),
     _p('soft-icecekler', 'Elite Organic Skinny', 170, ml: 200, emoji: '🧃'),
-    _p('soft-icecekler', 'Elite Organic Super Hero', 170,
-        ml: 200, emoji: '🧃'),
+    _p('soft-icecekler', 'Elite Organic Super Hero', 170, ml: 200, emoji: '🧃'),
     _p('soft-icecekler', 'Süt (Bardak)', 60, ml: 250, emoji: '🥛'),
 
     // ── KAHVALTILIKLAR (Breakfast) ────────────────────────────
@@ -198,8 +267,12 @@ class MockMenuRepository implements MenuRepository {
     _p('tatlilar', 'Dondurmalı Çikolatalı Brownie', 430),
 
     // ── KEK & KURABİYE (Kek + Kurabiye + Muffin + Donut) ──────
-    _p('kek-kurabiye', 'Sweet Çikolatalı Cookie', 130,
-        images: ['assets/images/cookie_cikolatali.png']),
+    _p(
+      'kek-kurabiye',
+      'Sweet Çikolatalı Cookie',
+      130,
+      images: ['assets/images/cookie_cikolatali.png'],
+    ),
     _p('kek-kurabiye', 'Sweet Cookie', 130),
     _p('kek-kurabiye', 'Mermer Kek', 180),
     _p('kek-kurabiye', 'Havuçlu Kek', 180),
@@ -242,8 +315,11 @@ class MockMenuRepository implements MenuRepository {
     _p('atistirmalik', 'Glutensiz Hindistan Cevizli Bisküvi Portakallı', 240),
     _p('atistirmalik', 'Glutensiz Hindistan Cevizli Bisküvi Limonlu', 240),
     _p('atistirmalik', 'Glutensiz Hindistan Cevizli Bisküvi Fındıklı', 240),
-    _p('atistirmalik', 'Glutensiz Hindistan Cevizli Bisküvi Beyaz Çikolatalı',
-        240),
+    _p(
+      'atistirmalik',
+      'Glutensiz Hindistan Cevizli Bisküvi Beyaz Çikolatalı',
+      240,
+    ),
     _p('atistirmalik', 'Glutensiz Çörekotlu Kurabiye', 170),
     _p('atistirmalik', 'Glutensiz Tuzlu Kurabiye', 130),
     _p('atistirmalik', 'Glutensiz Tohumlu Kraker', 145),
@@ -261,8 +337,11 @@ class MockMenuRepository implements MenuRepository {
     _p('atistirmalik', 'Fropie Kuruyemiş Bar Çok Tohumlu', 170),
     _p('atistirmalik', 'Fropie Kuruyemiş Bar Çilekli', 140),
     _p('atistirmalik', 'Fropie Kuruyemiş Bar Fındıklı & Kakaolu', 140),
-    _p('atistirmalik', 'Fropie Kuruyemiş Bar Yer Fıstığı Ezmeli & Kakaolu',
-        140),
+    _p(
+      'atistirmalik',
+      'Fropie Kuruyemiş Bar Yer Fıstığı Ezmeli & Kakaolu',
+      140,
+    ),
     _p('atistirmalik', 'Fropie Vegan Protein Bar Çilekli', 140),
     _p('atistirmalik', 'Fropie Vegan Protein Bar Fındıklı', 140),
     _p('atistirmalik', 'Fropie Vegan Protein Bar Hindistan Cevizli', 140),
@@ -284,8 +363,13 @@ class MockMenuRepository implements MenuRepository {
     _p('atistirmalik', 'Beyoğlu Çikolata Bite Joy Oreo', 190, emoji: '🍫'),
     _p('atistirmalik', 'Beyoğlu Çikolata Luxury Fıstıklı', 190, emoji: '🍫'),
     _p('atistirmalik', 'Beyoğlu Matchico Matcha Çikolata', 290, emoji: '🍫'),
-    _p('atistirmalik', 'Beyoğlu Dubaco Çıtır Kadayıflı Dubai Çikolatası', 290,
-        emoji: '🍫', isNew: true),
+    _p(
+      'atistirmalik',
+      'Beyoğlu Dubaco Çıtır Kadayıflı Dubai Çikolatası',
+      290,
+      emoji: '🍫',
+      isNew: true,
+    ),
     _p('atistirmalik', "Macaron 6'lı", 230, emoji: '🍬'),
 
     // ── ÇEKİRDEK KAHVELER (Coffee Beans) ──────────────────────
@@ -296,26 +380,40 @@ class MockMenuRepository implements MenuRepository {
     _p('cekirdek', 'Türk Kahvesi 250 Gr', 350),
     _p('cekirdek', 'Türk Kahvesi 500 Gr', 650),
 
-    // ── TERMOS & MUG (Merchandise) — termoslar 500 ml, 4 renk ─
-    _p('merch', 'Termos Turuncu 500 ml', 890,
-        emoji: '🧉',
-        featured: true,
-        desc: 'Çift cidarlı çelik termos, 500 ml — turuncu.',
-        images: ['assets/images/termos_turuncu.png']),
-    _p('merch', 'Termos Krem 500 ml', 890,
-        emoji: '🧉',
-        desc: 'Çift cidarlı çelik termos, 500 ml — krem.',
-        images: ['assets/images/termos_krem.png']),
-    _p('merch', 'Termos Pembe 500 ml', 890,
-        emoji: '🧉',
-        desc: 'Çift cidarlı çelik termos, 500 ml — pembe.',
-        images: ['assets/images/termos_pembe.png']),
-    _p('merch', 'Termos Yeşil 500 ml', 890,
-        emoji: '🧉',
-        desc: 'Çift cidarlı çelik termos, 500 ml — yeşil.',
-        images: ['assets/images/termos_yesil.png']),
-    _p('merch', 'Mug Konik', 390, emoji: '🏺'),
-    _p('merch', 'Mug Terra Cotta', 790, emoji: '🏺'),
+    // ── TERMOSLAR (Merchandise) — termoslar 500 ml, 4 renk ─
+    _p(
+      'merch',
+      'Termos Turuncu 500 ml',
+      890,
+      emoji: '🧉',
+      featured: true,
+      desc: 'Çift cidarlı çelik termos, 500 ml — turuncu.',
+      images: ['assets/images/termos_turuncu.png'],
+    ),
+    _p(
+      'merch',
+      'Termos Krem 500 ml',
+      890,
+      emoji: '🧉',
+      desc: 'Çift cidarlı çelik termos, 500 ml — krem.',
+      images: ['assets/images/termos_krem.png'],
+    ),
+    _p(
+      'merch',
+      'Termos Pembe 500 ml',
+      890,
+      emoji: '🧉',
+      desc: 'Çift cidarlı çelik termos, 500 ml — pembe.',
+      images: ['assets/images/termos_pembe.png'],
+    ),
+    _p(
+      'merch',
+      'Termos Yeşil 500 ml',
+      890,
+      emoji: '🧉',
+      desc: 'Çift cidarlı çelik termos, 500 ml — yeşil.',
+      images: ['assets/images/termos_yesil.png'],
+    ),
   ];
 
   @override
@@ -368,7 +466,8 @@ Product _p(
     'merch': '🏺',
   };
   const descriptions = {
-    'sicak-kahveler': 'Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.',
+    'sicak-kahveler':
+        'Taze kavrulmuş çekirdeklerle, sipariş üzerine hazırlanır.',
     'aromali-kahveler': 'Ev yapımı şuruplarla hazırlanan imza kahve.',
     'sicak-cikolatalar': 'Yoğun çikolata, buharda ısıtılmış süt.',
     'caylar': 'Demleme ve latte çay çeşitleri.',
@@ -404,8 +503,19 @@ Product _p(
 
 String _slug(String value) {
   const turkish = {
-    'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u',
-    'Ç': 'c', 'Ğ': 'g', 'İ': 'i', 'I': 'i', 'Ö': 'o', 'Ş': 's', 'Ü': 'u',
+    'ç': 'c',
+    'ğ': 'g',
+    'ı': 'i',
+    'ö': 'o',
+    'ş': 's',
+    'ü': 'u',
+    'Ç': 'c',
+    'Ğ': 'g',
+    'İ': 'i',
+    'I': 'i',
+    'Ö': 'o',
+    'Ş': 's',
+    'Ü': 'u',
   };
   final buffer = StringBuffer();
   for (final char in value.split('')) {

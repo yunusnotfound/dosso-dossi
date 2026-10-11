@@ -39,7 +39,7 @@ describe('refresh token', () => {
     expect(me.status).toBe(200);
   });
 
-  it('reuse tespiti: iptal edilmiş token kullanılırsa TÜM oturumlar iptal edilir', async () => {
+  it('reuse tespiti: iptal edilmiş token kullanılırsa aynı oturum zinciri iptal edilir', async () => {
     const { refreshToken } = await loginPair();
     const rotated = await request(app)
       .post('/auth/refresh')

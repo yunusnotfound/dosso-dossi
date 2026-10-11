@@ -197,4 +197,36 @@ describe('gifts', () => {
     expect(res.body.error.code).toBe('INSUFFICIENT_BALANCE');
     expect(await prisma.gift.count()).toBe(0);
   });
+
+  it('kayıt ile gönderim yarıştığında hediye giriş sonunda yalnız bir kez aktarılır', async () => {
+    const token = await senderToken(500);
+    const [sent, recipientToken] = await Promise.all([
+      request(app).post('/gifts').set('Authorization', `Bearer ${token}`)
+        .send({ recipientPhone: RECIPIENT, type: 'balance', amount: 100, note: '' }),
+      login(app, RECIPIENT),
+    ]);
+    expect(sent.status).toBe(201);
+    const gift = await prisma.gift.findFirstOrThrow();
+    expect(gift.status).toBe('REDEEMED');
+    const wallet = await request(app).get('/me/wallet').set('Authorization', `Bearer ${recipientToken}`);
+    expect(wallet.body.balance).toBe(100);
+    expect(await prisma.walletTransaction.count({ where: { type: 'GIFT_RECEIVED' } })).toBe(1);
+    const sender = await request(app).get('/me/wallet').set('Authorization', `Bearer ${token}`);
+    expect(sender.body.balance).toBe(400);
+  });
+
+  it('bekleyen hediye claim tekrarıyla oturum kapatmadan yalnız bir kez aktarılır', async () => {
+    const token = await senderToken(500);
+    const recipientToken = await login(app, RECIPIENT);
+    const recipient = await prisma.user.update({ where: { phone: '5559998877' }, data: { isBlocked: true } });
+    const sent = await request(app).post('/gifts').set('Authorization', `Bearer ${token}`)
+      .send({ recipientPhone: RECIPIENT, type: 'balance', amount: 100 });
+    expect(sent.body.status).toBe('pending');
+    await prisma.user.update({ where: { id: recipient.id }, data: { isBlocked: false } });
+    const results = await Promise.all(Array.from({ length: 2 }, () => request(app).post('/gifts/claim')
+      .set('Authorization', `Bearer ${recipientToken}`)));
+    expect(results.map((res) => res.status)).toEqual([200, 200]);
+    expect(results.map((res) => res.body.claimed).sort()).toEqual([0, 1]);
+    expect(Number((await prisma.wallet.findUniqueOrThrow({ where: { userId: recipient.id } })).balance)).toBe(100);
+  });
 });

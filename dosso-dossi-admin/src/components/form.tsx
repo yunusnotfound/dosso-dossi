@@ -1,5 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button } from './ui';
+import { X } from 'lucide-react';
 
 /// Etiketli alan sarmalayıcı — tüm formlar aynı ritimde dursun.
 export function Field({
@@ -20,8 +21,7 @@ export function Field({
   );
 }
 
-const inputCls =
-  'rounded-[--radius-chip] bg-surface-sunken px-3 py-2 text-sm outline-none ring-brand/40 focus:ring-2 disabled:opacity-60';
+const inputCls = 'admin-input';
 
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`${inputCls} ${props.className ?? ''}`} />;
@@ -53,11 +53,60 @@ export function Checkbox({
         disabled={disabled}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="size-4 accent-[--color-brand]"
+        className="size-4 accent-brand"
       />
       {label}
     </label>
   );
+}
+
+// Only the topmost dialog owns the keyboard when confirmation dialogs nest.
+const modalStack: HTMLElement[] = [];
+function useModalFocus(open: boolean, onClose: () => void) {
+  const ref = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  useEffect(() => { close.current = onClose; }, [onClose]);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!open || !dialog) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    modalStack.push(dialog);
+    document.body.style.overflow = 'hidden';
+    const focusables = () => [...dialog.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])')]
+      .filter((element) => element.getClientRects().length > 0);
+    const focusFirst = () => (focusables()[0] ?? dialog).focus();
+    if (!dialog.contains(document.activeElement)) focusFirst();
+    const onKey = (event: KeyboardEvent) => {
+      if (modalStack.at(-1) !== dialog) return;
+      if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close.current(); }
+      if (event.key !== 'Tab') return;
+      const elements = focusables();
+      const first = elements[0];
+      const last = elements.at(-1);
+      if (!first || !last) { event.preventDefault(); dialog.focus(); return; }
+      if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    const onFocus = (event: FocusEvent) => {
+      if (modalStack.at(-1) === dialog && !dialog.contains(event.target as Node)) focusFirst();
+    };
+    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('focusin', onFocus);
+    return () => {
+      document.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('focusin', onFocus);
+      const wasTop = modalStack.at(-1) === dialog;
+      const index = modalStack.indexOf(dialog);
+      if (index >= 0) modalStack.splice(index, 1);
+      if (!modalStack.length) document.body.style.overflow = previousOverflow === 'hidden' ? '' : previousOverflow;
+      if (wasTop && previous?.isConnected) previous.focus();
+    };
+  }, [open]);
+  return ref;
 }
 
 /// Sağdan açılan çekmece — detay ve form ekranları sayfayı terk ettirmesin.
@@ -74,35 +123,27 @@ export function Drawer({
   children: ReactNode;
   footer?: ReactNode;
 }) {
-  // Esc ile kapanma: klavyeyle çalışan operatör fareye uzanmasın.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  const dialogRef = useModalFocus(open, onClose);
 
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <div
-        className="absolute inset-0 bg-black/30"
+        className="absolute inset-0 bg-coffee/35"
         onClick={onClose}
         aria-hidden
       />
-      <div className="relative flex h-full w-full max-w-xl flex-col bg-canvas shadow-2xl">
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className="relative flex h-full w-full max-w-xl flex-col bg-surface shadow-2xl">
         <header className="flex items-center justify-between border-b border-line bg-surface px-6 py-4">
-          <h2 className="font-[family-name:--font-display] text-xl font-extrabold text-ink">
+          <h2 className="font-display text-xl font-bold tracking-tight text-ink">
             {title}
           </h2>
           <button
             onClick={onClose}
             aria-label="Kapat"
-            className="rounded-[--radius-pill] px-3 py-1 text-ink-muted hover:bg-surface-sunken"
+            className="rounded-chip border border-line p-2 text-ink-muted hover:bg-surface-sunken"
           >
-            ✕
+            <X size={18} aria-hidden="true" />
           </button>
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto p-6">{children}</div>
@@ -116,8 +157,11 @@ export function Drawer({
 
 /// Para/sadakat değiştiren işlemler gerekçesiz yapılamaz — sunucu da
 /// zorunlu tutuyor; bu diyalog aynı kuralı arayüzde görünür kılar.
-export function ReasonDialog({
-  open,
+export function ReasonDialog(props: React.ComponentProps<typeof ReasonDialogContent>) {
+  return props.open ? <ReasonDialogContent {...props} /> : null;
+}
+
+function ReasonDialogContent({
   title,
   description,
   confirmLabel = 'Onayla',
@@ -136,16 +180,12 @@ export function ReasonDialog({
   error?: string;
 }) {
   const [reason, setReason] = useState('');
-  useEffect(() => {
-    if (open) setReason('');
-  }, [open]);
-
-  if (!open) return null;
+  const dialogRef = useModalFocus(true, () => { if (!busy) onClose(); });
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-md rounded-[--radius-card-lg] bg-surface p-6">
-        <h3 className="font-[family-name:--font-display] text-lg font-extrabold text-ink">
+      <div className="absolute inset-0 bg-coffee/40" onClick={() => { if (!busy) onClose(); }} aria-hidden />
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className="relative w-full max-w-md rounded-card-lg bg-surface p-6">
+        <h3 className="font-display text-lg font-bold tracking-tight text-ink">
           {title}
         </h3>
         {description ? (
@@ -164,13 +204,13 @@ export function ReasonDialog({
         </div>
 
         {error ? (
-          <p className="mt-3 rounded-[--radius-chip] bg-bad-soft px-3 py-2 text-sm text-bad">
+          <p className="mt-3 rounded-chip bg-bad-soft px-3 py-2 text-sm text-bad">
             {error}
           </p>
         ) : null}
 
         <div className="mt-5 flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" disabled={busy} onClick={onClose}>
             Vazgeç
           </Button>
           <Button
@@ -195,13 +235,14 @@ export function Tabs({
   onChange: (id: string) => void;
 }) {
   return (
-    <div className="flex gap-1 rounded-[--radius-pill] bg-surface-sunken p-1">
+    <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-line">
       {tabs.map((t) => (
         <button
           key={t.id}
           onClick={() => onChange(t.id)}
-          className={`rounded-[--radius-pill] px-4 py-1.5 text-sm font-semibold transition ${
-            active === t.id ? 'bg-surface text-ink shadow-sm' : 'text-ink-muted'
+          aria-pressed={active === t.id}
+          className={`border-b-2 px-0.5 py-3 text-sm font-medium transition-colors ${
+            active === t.id ? 'border-brand text-brand-ink' : 'border-transparent text-ink-muted hover:text-ink'
           }`}
         >
           {t.label}

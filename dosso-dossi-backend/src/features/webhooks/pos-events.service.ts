@@ -111,10 +111,11 @@ export async function runPosEvent(
     }
     return { duplicate: false, response };
   } catch (err) {
-    // İş geri sarıldı; olay bilgilendirme amaçlı FAILED işaretlenir
+    // A retry may have committed after this attempt rolled back. Never let
+    // a delayed error handler reopen a completed event for another processing.
     await prisma.posEvent
-      .update({
-        where: { id: eventId },
+      .updateMany({
+        where: { id: eventId, status: { in: ['RECEIVED', 'FAILED'] } },
         data: {
           status: 'FAILED',
           error:

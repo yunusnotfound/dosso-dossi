@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { makeRateLimiter } from '../../middleware/rate-limit.js';
-import { requireAdmin } from '../../middleware/admin-auth.js';
+import { requireAdminPasswordAccess } from '../../middleware/admin-auth.js';
 import { validate } from '../../middleware/validate.js';
 import {
   adminLoginSchema,
@@ -51,13 +51,13 @@ adminAuthRouter.post('/logout', validate(refreshSchema), async (req, res, next) 
 });
 
 /// Oturumdaki yöneticinin kendisi — panel açılışta bunu çağırır.
-adminAuthRouter.get('/me', requireAdmin(), (req, res) => {
+adminAuthRouter.get('/me', requireAdminPasswordAccess(), (req, res) => {
   res.json(req.admin);
 });
 
 adminAuthRouter.post(
   '/password',
-  requireAdmin(),
+  requireAdminPasswordAccess(),
   validate(changePasswordSchema),
   async (req, res, next) => {
     try {

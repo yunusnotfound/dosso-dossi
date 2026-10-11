@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/history_load_more.dart';
+import '../../../core/widgets/history_sliver.dart';
 
 import '../../campaigns/application/public_config.dart';
 import '../../../core/theme/app_colors.dart';
@@ -41,58 +43,73 @@ class RewardsScreen extends ConsumerWidget {
             style: AppTypography.bodySecondary,
           ),
         ),
-        data: (status) => ListView(
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.page,
-            topPadding,
-            AppSpacing.page,
-            AppSpacing.page,
-          ),
-          children: [
-            _ProgressCard(status: status, topBleed: topPadding),
-            const SizedBox(height: AppSpacing.xxl),
-            Text('NASIL ÇALIŞIR', style: AppTypography.sectionLabel),
-            const SizedBox(height: AppSpacing.md),
-            const _HowItWorksCard(),
-            const SizedBox(height: AppSpacing.xxl),
-            Text('İKRAM GEÇMİŞİ', style: AppTypography.sectionLabel),
-            const SizedBox(height: AppSpacing.md),
-            if (status.history.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Center(
-                  child: Text(
-                    'Henüz ikram geçmişin yok',
-                    style: AppTypography.bodySecondary,
-                  ),
-                ),
-              )
-            else
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Column(
-                  children: [
-                    for (var i = 0; i < status.history.length; i++) ...[
-                      if (i > 0) const Divider(indent: AppSpacing.lg),
-                      _HistoryRow(entry: status.history[i]),
-                    ],
-                  ],
-                ),
+        data: (status) => CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                topPadding,
+                AppSpacing.page,
+                AppSpacing.page,
               ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'İkram içeceğin, dilediğin boyda tek bir el yapımı içecek için geçerlidir.',
-              textAlign: TextAlign.center,
-              style: AppTypography.bodySecondary.copyWith(fontSize: 13),
+              sliver: SliverMainAxisGroup(
+                slivers: [
+                  SliverList.list(
+                    children: [
+                      _ProgressCard(status: status, topBleed: topPadding),
+                      const SizedBox(height: AppSpacing.xxl),
+                      Text('NASIL ÇALIŞIR', style: AppTypography.sectionLabel),
+                      const SizedBox(height: AppSpacing.md),
+                      const _HowItWorksCard(),
+                      const SizedBox(height: AppSpacing.xxl),
+                      Text('İKRAM GEÇMİŞİ', style: AppTypography.sectionLabel),
+                      const SizedBox(height: AppSpacing.md),
+                    ],
+                  ),
+                  if (status.history.isEmpty)
+                    SliverToBoxAdapter(
+                      child: Container(
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Henüz ikram geçmişin yok',
+                            style: AppTypography.bodySecondary,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    HistorySliver(
+                      itemCount: status.history.length,
+                      itemBuilder: (_, index) =>
+                          _HistoryRow(entry: status.history[index]),
+                    ),
+                  SliverList.list(
+                    children: [
+                      HistoryLoadMore(
+                        pagination: ref.watch(loyaltyPaginationProvider),
+                        enabled: !loyalty.isLoading,
+                        onLoad: () =>
+                            ref.read(loyaltyStatusProvider.notifier).loadMore(),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        'İkram içeceğin, dilediğin boyda tek bir el yapımı içecek için geçerlidir.',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.bodySecondary.copyWith(
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: AppSpacing.xl),
           ],
         ),
       ),

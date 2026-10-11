@@ -5,15 +5,20 @@ import { prisma } from '../../lib/prisma.js';
 import { signAdminToken } from '../../middleware/admin-auth.js';
 import { login as customerLogin } from '../../test/helpers.js';
 import { invalidateSettingsCache } from '../settings/settings.service.js';
+import { randomUUID } from 'node:crypto';
+import type { Request } from 'express';
+import { audit } from '../admin/audit.js';
+import { bumpRevisions } from './sync.service.js';
 
 const app = createApp();
 const domains = ['menu', 'branches', 'campaigns', 'loyalty', 'wallet', 'orders'] as const;
 type Domain = (typeof domains)[number];
 type Revisions = Record<Domain, string>;
 
-async function revisions(): Promise<Revisions> {
-  // Intentionally anonymous: the response must be safe before customer login.
-  const res = await request(app).get('/sync/revisions');
+async function revisions(customerToken?: string): Promise<Revisions> {
+  const query = request(app).get('/sync/revisions');
+  if (customerToken) query.set('Authorization', `Bearer ${customerToken}`);
+  const res = await query;
   expect(res.status).toBe(200);
   expect(res.headers['cache-control']).toBe('no-store');
   expect(Object.keys(res.body).sort()).toEqual([...domains].sort());
@@ -165,13 +170,16 @@ describe('GET /sync/revisions', () => {
   it('customer wallet and loyalty corrections invalidate their own domains', async () => {
     const customer = await customerLogin(app, '05551112233');
     const user = await prisma.user.findFirstOrThrow();
-    const before = await revisions();
+    const otherCustomer = await customerLogin(app, '05551112234');
+    const anonymousBefore = await revisions();
+    const otherBefore = await revisions(otherCustomer);
+    const before = await revisions(customer);
     const balance = await request(app)
       .post(`/admin/customers/${user.id}/balance`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ amount: 100, reason: 'Test bakiye düzeltmesi' });
+      .send({ amount: 100, reason: 'Test bakiye düzeltmesi', idempotencyKey: randomUUID() });
     expect(balance.status).toBe(200);
-    const afterBalance = await revisions();
+    const afterBalance = await revisions(customer);
     expectChangedOnly(before, afterBalance, ['wallet']);
     const wallet = await request(app)
       .get('/me/wallet')
@@ -184,7 +192,9 @@ describe('GET /sync/revisions', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ stamps: 2, freeDrinks: 1, reason: 'Test sadakat düzeltmesi' });
     expect(loyalty.status).toBe(200);
-    expectChangedOnly(afterBalance, await revisions(), ['loyalty']);
+    expectChangedOnly(afterBalance, await revisions(customer), ['loyalty']);
+    expect(await revisions()).toEqual(anonymousBefore);
+    expect(await revisions(otherCustomer)).toEqual(otherBefore);
     const account = await request(app)
       .get('/me/loyalty')
       .set('Authorization', `Bearer ${customer}`);
@@ -200,13 +210,8 @@ describe('GET /sync/revisions', () => {
           where: { id: 'caffe-latte' },
           data: { name: 'Uncommitted rename' },
         });
-        await tx.auditLog.create({
-          data: {
-            adminId,
-            entity: 'Product',
-            entityId: 'caffe-latte',
-            action: 'product.update',
-          },
+        await audit(tx, { admin: { id: adminId } } as Request, {
+          entity: 'Product', entityId: 'caffe-latte', action: 'product.update',
         });
         throw new Error('Intentional rollback');
       }),
@@ -216,6 +221,20 @@ describe('GET /sync/revisions', () => {
     const product = await prisma.product.findUniqueOrThrow({ where: { id: 'caffe-latte' } });
     expect(product.name).toBe('Caffe Latte');
     expect(await prisma.auditLog.count({ where: { entity: 'Product' } })).toBe(0);
+  });
+
+  it('a panel QR refund refreshes both wallet and loyalty only for its customer', async () => {
+    const customer = await customerLogin(app, '05551112233');
+    const user = await prisma.user.findFirstOrThrow();
+    const qr = await prisma.qrToken.create({ data: { userId: user.id, code: randomUUID(), expiresAt: new Date(Date.now() + 60_000) } });
+    const charge = await prisma.posCharge.create({ data: { userId: user.id, qrTokenId: qr.id, branchId: 'beylikduzu-vadi-loca', amount: 10 } });
+    const before = await revisions(customer);
+    const publicBefore = await revisions();
+    const response = await request(app).post(`/admin/finance/charges/${charge.id}/void`)
+      .set('Authorization', `Bearer ${token}`).send({ reason: 'Test iadesi' });
+    expect(response.status).toBe(200);
+    expectChangedOnly(before, await revisions(customer), ['wallet', 'loyalty']);
+    expect(await revisions()).toEqual(publicBefore);
   });
 
   it('unauthorized, invalid and rejected transactional writes leave revisions unchanged', async () => {
@@ -234,7 +253,7 @@ describe('GET /sync/revisions', () => {
     const rejected = await request(app)
       .post(`/admin/customers/${user.id}/balance`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ amount: -100, reason: 'Test geçersiz bakiye düzeltmesi' });
+      .send({ amount: -100, reason: 'Test geçersiz bakiye düzeltmesi', idempotencyKey: randomUUID() });
     expect(rejected.status).toBe(400);
     expect(rejected.body.error.code).toBe('INSUFFICIENT_BALANCE');
     expect(await revisions()).toEqual(before);
@@ -244,37 +263,56 @@ describe('GET /sync/revisions', () => {
     { entity: 'Category', action: 'category.update', changed: ['menu'] },
     { entity: 'ProductOption', action: 'option.update', changed: ['menu'] },
     { entity: 'PromoCode', action: 'promo.delete', changed: ['campaigns'] },
-    { entity: 'PosCharge', action: 'posCharge.void', changed: ['wallet'] },
-    { entity: 'Order', action: 'order.status', changed: ['orders'] },
-    { entity: 'Order', action: 'order.cancel', changed: ['orders', 'wallet', 'loyalty'] },
+    // Missing private entities must not invalidate everyone's data.
+    { entity: 'PosCharge', action: 'posCharge.void', changed: [] },
+    { entity: 'Order', action: 'order.status', changed: [] },
+    { entity: 'Order', action: 'order.cancel', changed: [] },
     { entity: 'AdminUser', action: 'admin.update', changed: [] },
     { entity: 'User', action: 'user.block', changed: [] },
     // An unrelated entity must not gain order cancellation side effects by action alone.
     { entity: 'User', action: 'order.cancel', changed: [] },
   ])('$entity / $action invalidates only its affected domains', async ({ entity, action, changed }) => {
     const before = await revisions();
-    await prisma.auditLog.create({
-      data: { adminId, entity, action, entityId: 'private-entity-id' },
-    });
+    await audit(prisma, { admin: { id: adminId } } as Request, { entity, action, entityId: 'private-entity-id' });
     expectChangedOnly(before, await revisions(), changed);
   });
 
-  it('detects another committed audit even when its timestamp and id sort before the latest', async () => {
+  it('detects committed changes regardless of audit timestamps and identifiers', async () => {
     const data = {
       adminId,
       entity: 'Product',
       action: 'product.update',
       entityId: 'caffe-latte',
     };
-    await prisma.auditLog.create({
-      data: { ...data, id: 'z-existing-audit', createdAt: new Date('2026-09-20T12:00:00Z') },
+    await prisma.$transaction(async tx => {
+      await tx.auditLog.create({ data: { ...data, id: 'z-existing-audit', createdAt: new Date('2026-09-20T12:00:00Z') } });
+      await bumpRevisions(tx, ['menu']);
     });
     const before = await revisions();
-    await prisma.auditLog.create({
-      data: { ...data, id: 'a-later-commit', createdAt: new Date('2026-09-19T12:00:00Z') },
+    await prisma.$transaction(async tx => {
+      await tx.auditLog.create({ data: { ...data, id: 'a-later-commit', createdAt: new Date('2026-09-19T12:00:00Z') } });
+      await bumpRevisions(tx, ['menu']);
     });
     const after = await revisions();
     expectChangedOnly(before, after, ['menu']);
     expect(await revisions()).toEqual(after);
+  });
+
+  it('rejects invalid auth and does not let anonymous callers choose a customer', async () => {
+    expect((await request(app).get('/sync/revisions').set('Authorization', 'Bearer invalid')).status).toBe(401);
+    const anonymous = await revisions();
+    const res = await request(app).get('/sync/revisions?userId=another-user');
+    expect(res.body).toEqual(anonymous);
+  });
+
+  it('increments counters without losing concurrent commits', async () => {
+    const before = await revisions();
+    await Promise.all(Array.from({ length: 6 }, () => prisma.$transaction(tx => bumpRevisions(tx, ['menu', 'branches']))));
+    expectChangedOnly(before, await revisions(), ['menu', 'branches']);
+    const counters = await prisma.syncRevision.findMany();
+    expect(counters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'global:menu', version: 6n }),
+      expect.objectContaining({ key: 'global:branches', version: 6n }),
+    ]));
   });
 });

@@ -32,6 +32,8 @@ TEST_DATABASE_URL=postgresql://dosso:dosso@localhost:5433/dosso_dossi_test npm t
 ```
 
 Geliştirme SMS adaptörü kodu konsola yazar. `111111` yalnız `OTP_DEV_MODE=true` iken geçerlidir. Backend ve veritabanı bu aşamada bilinçli olarak local çalışır.
+API geliştirmede yalnız `127.0.0.1` üzerinden dinler. Fiziksel cihazdan test
+gerektiğinde `HOST` açıkça ayarlanabilir; production varsayılanı `0.0.0.0`'dır.
 
 Var olan verileri koruyarak kurulum güncellemek için `npx prisma migrate deploy && npx prisma generate` kullanın. `npm run build && npm start` derlenmiş sunucuyu başlatır.
 
@@ -63,7 +65,19 @@ flutter test                                 # testler kendiliğinden mock modun
 ```
 
 Android emülatöründe `--dart-define=API_BASE_URL=http://10.0.2.2:3000` ekleyin.
-Yayın derlemesinde de ayar dosyasını aktarın:
+Local geliştirmede canlı API adresi veya yayın imzası gerekmez.
+Mağazalar ekranındaki **Mesafeler için konumumu kullan** işlemi izinle cihaz
+konumunu alır; izin verilmezse mesafe veya en yakın şube iddiası gösterilmez.
+
+Yayına geçerken ayar dosyasına gerçek HTTPS `API_BASE_URL`, `USE_MOCKS=false`
+ve onaylı metne yönlenen HTTPS `PRIVACY_POLICY_URL` ekleyin. Gizlilik adresi
+hazır değilken uygulama taslak hukuk metni göstermez. Release uygulaması HTTP,
+localhost API veya mock verilerle açılmaz.
+
+Android release için `android/key.properties.example` dosyasını gitignored
+`android/key.properties` dosyasına kopyalayıp gerçek yayın anahtarını tanımlayın.
+Eksik imza ayarı release derlemesini durdurur; debug anahtarına geri dönülmez.
+Yayın derlemesinde ayar dosyasını aktarın:
 
 ```bash
 flutter build apk --dart-define-from-file=dart_defines.json
@@ -77,3 +91,29 @@ flutter build ios --dart-define-from-file=dart_defines.json
 - [docs/ROADMAP.md](docs/ROADMAP.md) — yol haritası
 
 - [docs/RELIABILITY_WORK.md](docs/RELIABILITY_WORK.md) — bağımsız düzeltmeler, test izolasyonu, veri geçişi ve bakım kararları
+- [docs/PROFESSIONAL_REVIEW_2026_10.md](docs/PROFESSIONAL_REVIEW_2026_10.md) — son kod iyileştirmeleri, doğrulamalar ve hazır olması gereken dış ayarlar
+
+## Kalite kontrolleri
+
+`.github/workflows/quality.yml` her push ve PR için backend işlem testlerini ayrı PostgreSQL veritabanında, admin tip/lint/kontrat/tarayıcı testlerini ve Flutter analiz/testlerini çalıştırır. Yerelde aynı komutlar:
+
+```bash
+# dosso-dossi-backend (önceden oluşturulmuş, yalnız teste ayrılan *_test DB)
+npm run build
+TEST_DATABASE_URL=postgresql://dosso:dosso@localhost:5433/dosso_dossi_test npm test
+
+# dosso-dossi-admin
+npm run typecheck
+npm run lint -- --deny-warnings
+npm run test:contracts
+npm run build
+npm run test:regression
+npm run test:stories
+npm run test:audit-fixes
+
+# dosso-dossi-app
+flutter analyze
+flutter test
+```
+
+Profilde **Bildirimler**, **Hesap ve Veri Talepleri** ve sayfalı kişisel veri görünümü bulunur. Yönetici talepleri panelde inceler; kapatma finansal işlemler sonuçlandıktan sonra oturumları iptal eder, işlem/audit kayıtlarını fiziksel olarak silmez. Uygulama içi bildirimler API'de saklanır. Firebase/APNs hazır olmadığından uygulama kapalıyken uzaktan push teslimi henüz etkin değildir.

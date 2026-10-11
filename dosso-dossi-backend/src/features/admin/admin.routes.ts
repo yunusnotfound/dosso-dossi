@@ -4,6 +4,7 @@ import { dashboardRouter } from './dashboard.routes.js';
 import { adminOrdersRouter } from './orders.routes.js';
 import { adminStoriesRouter } from '../campaign-stories/stories.routes.js';
 import { modulesRouter } from './modules.routes.js';
+import { adminAccountRequestsRouter } from '../account-requests/account-requests.routes.js';
 
 /// Panelin route ağacı. Modüller (sipariş, menü, şube, CRM, finans...)
 /// buraya takılır; her biri kendi requireAdmin(rol...) korumasını taşır.
@@ -13,5 +14,6 @@ adminRouter.use('/auth', adminAuthRouter);
 adminRouter.use('/dashboard', dashboardRouter);
 adminRouter.use('/orders', adminOrdersRouter);
 adminRouter.use('/campaign-stories', adminStoriesRouter);
+adminRouter.use('/account-requests', adminAccountRequestsRouter);
 // Menü, şube, kampanya, müşteri, finans, POS, yönetim modülleri
 adminRouter.use('/', modulesRouter);

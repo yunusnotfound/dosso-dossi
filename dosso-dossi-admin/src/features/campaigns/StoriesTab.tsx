@@ -1,8 +1,9 @@
-import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../api/client';
-import { useAuth } from '../../auth/AuthContext';
-import { Badge, Button, Card, EmptyState, SectionTitle } from '../../components/ui';
+import { useState } from 'react';
+import { api, readApi } from '../../api/client';
+import { campaignSchema, campaignStorySchema } from '../../api/schemas';
+import { useAuth } from '../../auth/auth-state';
+import { QueryError, Badge, Button, Card, EmptyState, SectionTitle } from '../../components/ui';
 import { StoryDrawer } from './StoryDrawer';
 import { StoryThumbnail } from './StoryThumbnail';
 import { EMPTY_STORY, STORY_ACTIONS, hasBuiltInArtwork, storyInput, storyStatus, type CampaignStory, type StoryInput } from './stories';
@@ -13,8 +14,8 @@ export function StoriesTab() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<{ key: string; story: StoryInput } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const list = useQuery({ queryKey: ['campaign-stories'], queryFn: ({ signal }) => api<CampaignStory[]>('/admin/campaign-stories', { signal }), refetchInterval: 30_000 });
-  const campaigns = useQuery({ queryKey: ['campaigns'], queryFn: ({ signal }) => api<{ id: string; isActive: boolean }[]>('/admin/campaigns', { signal }), refetchInterval: 30_000 });
+  const list = useQuery({ queryKey: ['campaign-stories'], queryFn: ({ signal }) => readApi(campaignStorySchema.array(), '/admin/campaign-stories', { signal }), refetchInterval: 30_000 });
+  const campaigns = useQuery({ queryKey: ['campaigns'], queryFn: ({ signal }) => readApi(campaignSchema.array(), '/admin/campaigns', { signal }), refetchInterval: 30_000 });
   const refresh = () => void qc.invalidateQueries({ queryKey: ['campaign-stories'] });
   const change = useMutation({
     mutationFn: ({ story, remove }: { story: CampaignStory; remove?: boolean }) => remove
@@ -42,6 +43,7 @@ export function StoriesTab() {
         </div> : null}
       </Card>
       {list.isLoading ? <p role="status" className="text-sm text-ink-muted">Hikâyeler yükleniyor…</p> : null}
+      <QueryError error={campaigns.error} onRetry={() => void campaigns.refetch()} />
       {list.error ? <Card><p role="alert" className="text-sm text-bad">Hikâyeler yüklenemedi.</p><Button variant="ghost" onClick={() => void list.refetch()}>Yeniden dene</Button></Card> : null}
       {!list.isLoading && !list.error && !stories.length ? <EmptyState>Henüz hikâye yok. İlk kampanya hikâyenizi ekleyin.</EmptyState> : null}
       {change.error ? <p role="alert" className="text-sm text-bad">{change.error.message}</p> : null}

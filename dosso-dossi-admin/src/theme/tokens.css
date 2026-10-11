@@ -1,24 +1,27 @@
 @import 'tailwindcss';
 
-/* Panelin TÜM renkleri burada. Kaynak: mobil app_colors.dart — değerler
-   birebir. Ekran kodlarına ham renk yazılmaz, her şey token'dan gelir. */
+/* Onaylanan Sıcak krem tasarımı; operasyon ekranları için
+   açık yüzeyler, kahve tonları ve marka turuncusu. */
 @theme {
   /* ── Marka ── */
-  --color-brand: #d9682a;
-  --color-brand-light: #e68a4e;
-  --color-coffee: #2e211a;
+  --color-brand: #ef6024;
+  --color-brand-light: #f27846;
+  --color-brand-ink: #a54216;
+  --color-coffee: #2c241e;
+  --color-coffee-raised: #49382d;
+  --color-coffee-line: #514238;
 
   /* ── Zeminler ── */
-  --color-canvas: #f3ede2;
+  --color-canvas: #f8f6f2;
   --color-surface: #ffffff;
-  --color-surface-tint: #f9e9dc;
-  --color-surface-sunken: #ede5d8;
+  --color-surface-tint: #fcf0e6;
+  --color-surface-sunken: #f2efea;
 
   /* ── Metin ── */
-  --color-ink: #1e1611;
-  --color-ink-muted: #8a7f76;
+  --color-ink: #2b241e;
+  --color-ink-muted: #756b63;
   --color-on-dark: #f7f2ea;
-  --color-on-dark-muted: #b8a99c;
+  --color-on-dark-muted: #baafa5;
 
   /* ── Vurgu ── */
   --color-gold: #eac980;
@@ -26,30 +29,52 @@
   --color-gold-dark: #d4a94e;
 
   /* ── Durum ── */
-  --color-ok: #3e7c4f;
-  --color-ok-soft: #ddebdd;
-  --color-warn: #b8860b;
+  --color-ok: #306b48;
+  --color-ok-soft: #edf5ef;
+  --color-warn: #875510;
   --color-warn-soft: #f7ecd0;
   --color-bad: #c24a30;
   --color-bad-soft: #f6e0d8;
 
-  --color-line: #efe9df;
+  --color-line: #e8e3dc;
   --color-story-accent: #ff671f;
   --color-story-highlight: #f5bc79;
 
   /* ── Köşeler: mobil AppRadius ── */
   --radius-card: 16px;
-  --radius-card-lg: 24px;
-  --radius-chip: 12px;
+  --radius-card-lg: 20px;
+  --radius-chip: 8px;
   --radius-pill: 100px;
 
-  /* Başlıklar marka sesi, gövde/tablo yoğun veri okunabilirliği için Inter.
-     Baloo 2 rakamları tabular değil; tablolarda sayılar kaymasın. */
-  --font-display: 'Baloo 2', ui-rounded, system-ui, sans-serif;
-  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer components {
+  .admin-card {
+    @apply rounded-card border border-line bg-surface p-5;
+  }
+  .admin-input {
+    @apply max-w-full min-w-0 rounded-chip border border-line bg-surface px-3 py-2.5 text-sm text-ink transition-colors placeholder:text-ink-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:opacity-60;
+  }
+  .admin-sidebar {
+    @apply sticky top-0 flex h-dvh w-56 shrink-0 flex-col border-r border-coffee-line bg-coffee px-4 py-6 text-on-dark;
+  }
+  .admin-navigation-link {
+    @apply flex min-h-10 items-center gap-3 rounded-chip px-3 py-2.5 text-[13px] font-medium text-on-dark-muted transition-colors hover:bg-coffee-raised hover:text-on-dark;
+  }
+  .admin-navigation-link[aria-current='page'] {
+    @apply bg-coffee-raised text-on-dark;
+  }
+  .admin-navigation-link[aria-current='page'] svg {
+    @apply text-brand-light;
+  }
+  .admin-page-content {
+    @apply mx-auto w-full max-w-[1600px] p-5 sm:p-7 xl:p-8;
+  }
+  .admin-section-label {
+    @apply px-3 text-[11px] font-semibold tracking-[0.12em] text-on-dark-muted uppercase;
+  }
   .story-ring {
     background: linear-gradient(140deg, var(--color-story-accent), var(--color-brand-light) 48%, var(--color-story-highlight));
     border-radius: 50%;
@@ -72,8 +97,20 @@
   body {
     margin: 0;
   }
+  button, a, input, select, textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:not(:disabled), select { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--color-brand); outline-offset: 3px; }
   /* Tablolarda ve KPI'larda rakamlar hizalı aksın */
   .tnum {
     font-variant-numeric: tabular-nums;
   }
+}
+
+@media (max-width: 767px) {
+  .admin-sidebar { position: static; width: 100%; height: auto; padding: 18px 20px; }
+}
+@media (pointer: coarse) {
+  button, input, select { min-height: 44px; }
 }

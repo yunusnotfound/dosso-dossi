@@ -77,7 +77,7 @@
     },
     {
       "id": "merch",
-      "name": "Termos & Mug",
+      "name": "Termoslar",
       "sortOrder": 15
     }
   ],
@@ -592,12 +592,13 @@
       "price": 250,
       "categoryId": "soguk-caylar",
       "description": "Buz gibi servis edilir.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/chai-tea-latte-freddo.webp?v=37926f83",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/chai-tea-latte-freddo.webp?v=1fbcd297"
     },
     {
       "id": "matcha-latte-freddo",
@@ -605,12 +606,13 @@
       "price": 250,
       "categoryId": "soguk-caylar",
       "description": "Buz gibi servis edilir.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/matcha-latte-freddo.webp?v=05f4a3f5",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/matcha-latte-freddo.webp?v=9c26ac86"
     },
     {
       "id": "matcha-fragola-latte-freddo",
@@ -618,12 +620,13 @@
       "price": 280,
       "categoryId": "soguk-caylar",
       "description": "Buz gibi servis edilir.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/matcha-fragola-latte-freddo.webp?v=7263aa9a",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/matcha-fragola-latte-freddo.webp?v=f7edb257"
     },
     {
       "id": "matcha-vaniglia-latte-freddo",
@@ -631,12 +634,13 @@
       "price": 280,
       "categoryId": "soguk-caylar",
       "description": "Buz gibi servis edilir.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/matcha-vaniglia-latte-freddo.webp?v=60e83ac0",
       "sizeMl": 470,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/matcha-vaniglia-latte-freddo.webp?v=a48142c5"
     },
     {
       "id": "fuse-tea-limon",
@@ -963,12 +967,13 @@
       "price": 70,
       "categoryId": "soft-icecekler",
       "description": "Soğuk servis edilir.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/soda-uludag.webp?v=780f56fa",
       "sizeMl": 200,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/soda-uludag.webp?v=a13bc93b"
     },
     {
       "id": "soda-uludag-premium",
@@ -976,12 +981,13 @@
       "price": 110,
       "categoryId": "soft-icecekler",
       "description": "Soğuk servis edilir.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/soda-uludag-premium.webp?v=f313e045",
       "sizeMl": 250,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/soda-uludag-premium.webp?v=ee1aa57d"
     },
     {
       "id": "uludag-mandalina",
@@ -1015,12 +1021,13 @@
       "price": 130,
       "categoryId": "soft-icecekler",
       "description": "Soğuk servis edilir.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/san-pellegrino.webp?v=790bb82f",
       "sizeMl": 250,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/san-pellegrino.webp?v=53ebfc35"
     },
     {
       "id": "cola-sise",
@@ -1080,12 +1087,13 @@
       "price": 130,
       "categoryId": "soft-icecekler",
       "description": "Soğuk servis edilir.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/fanta-kutu.webp?v=5a29ce82",
       "sizeMl": 330,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/fanta-kutu.webp?v=03f6220c"
     },
     {
       "id": "sprite-kutu",
@@ -1366,12 +1374,13 @@
       "price": 60,
       "categoryId": "soft-icecekler",
       "description": "Soğuk servis edilir.",
-      "imageUrl": null,
+      "imageUrl": "/media/products/sut-bardak.webp?v=b42c57aa",
       "sizeMl": 250,
       "stampMultiplier": 0,
       "isNew": false,
       "isFeatured": false,
-      "hasOptions": false
+      "hasOptions": false,
+      "gridImageUrl": "/media/products/grid/sut-bardak.webp?v=f0ac14bd"
     },
     {
       "id": "tereyagli-kruvasan",
@@ -3026,32 +3035,6 @@
       "categoryId": "merch",
       "description": "Çift cidarlı çelik termos, 500 ml — yeşil.",
       "imageUrl": "assets/images/termos_yesil.png",
-      "sizeMl": 0,
-      "stampMultiplier": 0,
-      "isNew": false,
-      "isFeatured": false,
-      "hasOptions": false
-    },
-    {
-      "id": "mug-konik",
-      "name": "Mug Konik",
-      "price": 390,
-      "categoryId": "merch",
-      "description": "Dosso Dossi tasarım ürünü.",
-      "imageUrl": null,
-      "sizeMl": 0,
-      "stampMultiplier": 0,
-      "isNew": false,
-      "isFeatured": false,
-      "hasOptions": false
-    },
-    {
-      "id": "mug-terra-cotta",
-      "name": "Mug Terra Cotta",
-      "price": 790,
-      "categoryId": "merch",
-      "description": "Dosso Dossi tasarım ürünü.",
-      "imageUrl": null,
       "sizeMl": 0,
       "stampMultiplier": 0,
       "isNew": false,

@@ -1,52 +1,16 @@
-import { useState } from 'react';
-import { useAuth } from '../../auth/AuthContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiError, api } from '../../api/client';
+import { useState } from 'react';
+import { ApiError, api, readApi } from '../../api/client';
+import type { AdminRow, AuditRow, Branch } from '../../api/schemas';
+import { adminRowSchema, auditListSchema, branchSchema, tempPasswordSchema } from '../../api/schemas';
+import { ROLE_LABELS, type AdminRole } from '../../api/types';
+import { useAuth } from '../../auth/auth-state';
 import { Drawer, Field, Input, Select, Tabs } from '../../components/form';
 import { DataTable, PageHeader, Pager, type Column } from '../../components/table';
-import { Badge, Button, Card, SectionTitle } from '../../components/ui';
-import { ROLE_LABELS, type AdminRole } from '../../api/types';
-
-interface AdminRow {
-  id: string;
-  email: string;
-  name: string;
-  role: AdminRole;
-  branchId: string | null;
-  branchName: string | null;
-  isActive: boolean;
-  lastLoginAt: string | null;
-  createdAt: string;
-}
-
-interface AuditRow {
-  id: string;
-  adminEmail: string;
-  adminName: string;
-  action: string;
-  entity: string;
-  entityId: string;
-  before: unknown;
-  after: unknown;
-  reason: string;
-  ip: string;
-  createdAt: string;
-}
-
-interface AuditList {
-  page: number;
-  pageSize: number;
-  total: number;
-  logs: AuditRow[];
-}
-
-interface Branch {
-  id: string;
-  name: string;
-}
+import { QueryError, Badge, Button, Card, SectionTitle } from '../../components/ui';
 
 const fmtDate = (iso: string) =>
-  new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(
+  new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', dateStyle: 'short', timeStyle: 'short' }).format(
     new Date(iso),
   );
 
@@ -78,17 +42,17 @@ function AdminsTab() {
 
   const list = useQuery({
     queryKey: ['admins'],
-    queryFn: () => api<AdminRow[]>('/admin/admins'),
+    queryFn: ({ signal }) => readApi(adminRowSchema.array(), '/admin/admins', { signal }),
   });
   const branches = useQuery({
     queryKey: ['branches'],
-    queryFn: () => api<Branch[]>('/admin/branches'),
+    queryFn: ({ signal }) => readApi(branchSchema.array(), '/admin/branches', { signal }),
   });
   const refresh = () => void qc.invalidateQueries({ queryKey: ['admins'] });
 
   const reset = useMutation({
     mutationFn: (id: string) =>
-      api<{ tempPassword: string }>(`/admin/admins/${id}/reset-password`, {
+      readApi(tempPasswordSchema, `/admin/admins/${id}/reset-password`, {
         method: 'POST',
       }),
     onSuccess: (r) => {
@@ -156,7 +120,8 @@ function AdminsTab() {
       {tempPassword ? (
         <Card className="bg-warn-soft">
           <SectionTitle>Geçici şifre — bir daha gösterilmez</SectionTitle>
-          <p className="tnum font-[family-name:--font-display] text-2xl font-extrabold text-ink">
+          <p className="mb-3 text-sm text-ink-muted">24 saat geçerlidir. Yönetici ilk girişte bu şifreyi değiştirmeden paneli kullanamaz.</p>
+          <p className="tnum font-display text-2xl font-extrabold text-ink">
             {tempPassword}
           </p>
           <Button variant="ghost" onClick={() => setTempPassword(null)}>
@@ -170,9 +135,10 @@ function AdminsTab() {
         rows={list.data}
         rowKey={(a) => a.id}
         onRowClick={setEditing}
-        loading={list.isLoading}
+        loading={list.isLoading} error={list.error} onRetry={() => void list.refetch()}
       />
 
+      <QueryError error={branches.error} onRetry={() => void branches.refetch()} />
       <AdminForm
         open={creating || !!editing}
         admin={editing}
@@ -234,7 +200,7 @@ function AdminForm({
         });
         return undefined;
       }
-      const res = await api<{ tempPassword: string }>('/admin/admins', {
+      const res = await readApi(tempPasswordSchema, '/admin/admins', {
         method: 'POST',
         body: { email, name, role, branchId: branchId || null },
       });
@@ -304,12 +270,12 @@ function AdminForm({
             </Select>
           </Field>
         ) : (
-          <p className="rounded-[--radius-chip] bg-surface-sunken px-3 py-2 text-sm text-ink-muted">
+          <p className="rounded-chip bg-surface-sunken px-3 py-2 text-sm text-ink-muted">
             Kaydedince geçici bir şifre üretilir ve bir kez gösterilir.
           </p>
         )}
         {error ? (
-          <p className="rounded-[--radius-chip] bg-bad-soft px-3 py-2 text-sm text-bad">
+          <p className="rounded-chip bg-bad-soft px-3 py-2 text-sm text-bad">
             {error}
           </p>
         ) : null}
@@ -326,11 +292,11 @@ function AuditTab() {
 
   const q = useQuery({
     queryKey: ['audit', { entity, action, page }],
-    queryFn: () => {
+    queryFn: ({ signal }) => {
       const p = new URLSearchParams({ page: String(page), pageSize: '50' });
       if (entity) p.set('entity', entity);
       if (action) p.set('action', action);
-      return api<AuditList>(`/admin/audit?${p}`);
+      return readApi(auditListSchema, `/admin/audit?${p}`, { signal });
     },
   });
 
@@ -362,7 +328,7 @@ function AuditTab() {
   return (
     <>
       <div className="flex flex-wrap gap-3">
-        <Select value={entity} onChange={(e) => setEntity(e.target.value)}>
+        <Select value={entity} onChange={(e) => { setEntity(e.target.value); setPage(1); }}>
           <option value="">Tüm kayıtlar</option>
           {['Order', 'Wallet', 'LoyaltyAccount', 'Product', 'Branch', 'Campaign', 'PromoCode', 'AdminUser', 'Setting', 'PosEvent', 'PosCharge'].map(
             (e) => (
@@ -375,7 +341,7 @@ function AuditTab() {
         <Input
           placeholder="İşlem ara (order.cancel)"
           value={action}
-          onChange={(e) => setAction(e.target.value)}
+          onChange={(e) => { setAction(e.target.value); setPage(1); }}
           className="w-56"
         />
       </div>
@@ -385,12 +351,12 @@ function AuditTab() {
         rows={q.data?.logs}
         rowKey={(l) => l.id}
         onRowClick={setOpen}
-        loading={q.isLoading}
+        loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()}
       />
       <Pager
         page={q.data?.page ?? 1}
         pageSize={q.data?.pageSize ?? 50}
-        total={q.data?.total ?? 0}
+        total={q.data?.total}
         onPage={setPage}
       />
 
@@ -404,20 +370,20 @@ function AuditTab() {
                 {open.ip}
               </p>
               {open.reason ? (
-                <p className="mt-2 rounded-[--radius-chip] bg-surface-sunken px-3 py-2 text-sm">
+                <p className="mt-2 rounded-chip bg-surface-sunken px-3 py-2 text-sm">
                   {open.reason}
                 </p>
               ) : null}
             </Card>
             <Card>
               <SectionTitle>Öncesi</SectionTitle>
-              <pre className="overflow-x-auto rounded-[--radius-chip] bg-surface-sunken p-3 text-xs">
+              <pre className="overflow-x-auto rounded-chip bg-surface-sunken p-3 text-xs">
                 {JSON.stringify(open.before, null, 2) ?? '—'}
               </pre>
             </Card>
             <Card>
               <SectionTitle>Sonrası</SectionTitle>
-              <pre className="overflow-x-auto rounded-[--radius-chip] bg-surface-sunken p-3 text-xs">
+              <pre className="overflow-x-auto rounded-chip bg-surface-sunken p-3 text-xs">
                 {JSON.stringify(open.after, null, 2) ?? '—'}
               </pre>
             </Card>

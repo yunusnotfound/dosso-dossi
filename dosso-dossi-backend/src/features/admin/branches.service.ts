@@ -3,6 +3,8 @@ import { AppError } from '../../lib/errors.js';
 import { toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
 import { audit } from './audit.js';
+import { parseOpeningHours } from '../orders/pickup-policy.js';
+import { startOfBusinessDay } from '../../lib/business-time.js';
 
 export async function listBranches(scope?: string) {
   const rows = await prisma.branch.findMany({
@@ -39,6 +41,9 @@ export interface BranchInput {
 }
 
 export async function upsertBranch(req: Request, input: BranchInput) {
+  if (!parseOpeningHours(input.hours)) {
+    throw new AppError('VALIDATION_ERROR', 400, 'Çalışma saatini 08:00–01:00 veya 24 saat açık biçiminde girin');
+  }
   return prisma.$transaction(async (tx) => {
     const before = await tx.branch.findUnique({ where: { id: input.id } });
     const data = {
@@ -91,8 +96,7 @@ export async function branchDetail(id: string) {
   const branch = await prisma.branch.findUnique({ where: { id } });
   if (!branch) throw AppError.notFound('Şube bulunamadı');
 
-  const since = new Date();
-  since.setHours(0, 0, 0, 0);
+  const since = startOfBusinessDay();
 
   const [today, unavailable, overrides] = await Promise.all([
     prisma.order.aggregate({

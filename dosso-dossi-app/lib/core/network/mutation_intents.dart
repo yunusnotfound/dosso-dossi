@@ -12,13 +12,21 @@ class MutationIntents extends Interceptor {
     this.store, {
     required this.session,
     Future<bool> Function(String, String)? writeIntent,
-  }) : _writeIntent = writeIntent ?? store.setString;
+    Future<bool> Function(String)? removeIntent,
+  }) : _writeIntent = writeIntent ?? store.setString,
+       _removeIntent = removeIntent ?? store.remove;
   final SessionScope session;
   final Future<bool> Function(String, String) _writeIntent;
+  final Future<bool> Function(String) _removeIntent;
   final SharedPreferences store;
   static const _slot = 'mutation-intent-slot';
+  static const deferCompletion = 'defer-mutation-completion';
   static const _paths = {'/orders', '/gifts', '/me/wallet/topup'};
+  static const _completedPrefix = 'completed:';
   final _random = Random.secure();
+  // SharedPreferences changes its in-memory cache before the platform write
+  // completes. Retain the pending key independently when that write fails.
+  final _pendingKeys = <String, String>{};
 
   String _uuid() {
     final bytes = List<int>.generate(16, (_) => _random.nextInt(256));
@@ -49,8 +57,16 @@ class MutationIntents extends Interceptor {
             : (jsonDecode(raw) as Map)['phone'];
         final slot =
             'pending_intent:${base64Url.encode(utf8.encode('$account|${options.path}|${jsonEncode(body)}'))}';
-        final key = store.getString(slot) ?? _uuid();
-        await _writeIntent(slot, key);
+        final stored = store.getString(slot);
+        final key =
+            _pendingKeys[slot] ??
+            (stored != null && !stored.startsWith(_completedPrefix)
+                ? stored
+                : _uuid());
+        _pendingKeys[slot] = key;
+        if (!await _writeIntent(slot, key)) {
+          throw StateError('İşlem güvenli biçimde kaydedilemedi.');
+        }
         body['idempotencyKey'] = key;
         options.extra[_slot] = slot;
         options.data = body;
@@ -69,16 +85,47 @@ class MutationIntents extends Interceptor {
 
   Future<void> _finish(RequestOptions options) async {
     final slot = options.extra[_slot];
+    final data = options.data;
+    final key = data is Map ? data['idempotencyKey'] : null;
     if (slot is String &&
-        store.getString(slot) == (options.data as Map?)?['idempotencyKey']) {
-      await store.remove(slot);
+        key is String &&
+        (_pendingKeys[slot] ?? store.getString(slot)) == key) {
+      // A durable completion marker separates a confirmed action from the next
+      // deliberate purchase even if best-effort deletion fails or the app exits.
+      _pendingKeys[slot] = key;
+      if (!await _writeIntent(slot, '$_completedPrefix$key')) {
+        throw StateError('İşlem sonucu güvenli biçimde kaydedilemedi.');
+      }
+      if (_pendingKeys[slot] == key) _pendingKeys.remove(slot);
+      try {
+        if (store.getString(slot) == '$_completedPrefix$key') {
+          await _removeIntent(slot);
+        }
+      } catch (_) {
+        // The persisted marker is enough; the next action replaces it safely.
+      }
     }
   }
 
+  /// Repositories with structured receipts acknowledge after decoding them.
+  Future<void> confirm(RequestOptions options) => _finish(options);
+
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
-    if (response.data is! Map || response.data['status'] != 'pending') {
-      await _finish(response.requestOptions);
+    if (response.requestOptions.extra[deferCompletion] != true &&
+        (response.data is! Map || response.data['status'] != 'pending')) {
+      try {
+        await _finish(response.requestOptions);
+      } catch (error) {
+        handler.reject(
+          DioException(
+            requestOptions: response.requestOptions,
+            response: response,
+            error: error,
+          ),
+        );
+        return;
+      }
     }
     handler.next(response);
   }
@@ -91,7 +138,11 @@ class MutationIntents extends Interceptor {
         code >= 400 &&
         code < 500 &&
         !{401, 408, 429}.contains(code)) {
-      await _finish(err.requestOptions);
+      try {
+        await _finish(err.requestOptions);
+      } catch (_) {
+        // Keep the original rejection and its retry key; always settle Dio.
+      }
     }
     handler.next(err);
   }

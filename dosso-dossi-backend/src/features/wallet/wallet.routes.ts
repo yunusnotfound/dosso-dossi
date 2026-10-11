@@ -36,7 +36,7 @@ walletRouter.get('/payments/:paymentId', async (req, res, next) => {
 
 walletRouter.post('/qr-token', qrLimiter, async (req, res, next) => {
   try {
-    res.json(await createQrToken(req.userId));
+    res.json(await createQrToken(req.userId, { tokenVersion: req.userTokenVersion, familyId: req.userSessionFamily }));
   } catch (err) {
     next(err);
   }

@@ -15,6 +15,7 @@ import '../../wallet/application/wallet_providers.dart';
 import '../data/auth_repository.dart';
 import '../domain/app_user.dart';
 import 'guest_mode.dart';
+import '../../../core/diagnostics/app_telemetry.dart';
 
 /// Oturum durumu: null = giriş yapılmamış.
 /// Cihaza kaydedilir; uygulama yeniden açıldığında oturum devam eder.
@@ -88,6 +89,7 @@ class AuthController extends AsyncNotifier<AppUser?> {
   }
 
   Future<void> logout() async {
+    final telemetry = ref.read(telemetryProvider);
     final tokens = ref.read(tokenStorageProvider);
     final repository = ref.read(authRepositoryProvider);
     final prefs = ref.read(sharedPreferencesProvider);
@@ -114,7 +116,9 @@ class AuthController extends AsyncNotifier<AppUser?> {
     if (refresh != null) {
       try {
         await repository.logout(refresh);
-      } catch (_) {}
+      } catch (error) {
+        telemetry.report(TelemetryOperation.logout, error);
+      }
     }
   }
 

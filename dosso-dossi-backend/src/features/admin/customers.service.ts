@@ -4,6 +4,7 @@ import { AppError } from '../../lib/errors.js';
 import { dec, toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
 import { lockUsers } from '../../lib/financial-locks.js';
+import { withAdminMutation } from '../../lib/admin-idempotency.js';
 import { journalMetadata, loyaltyState } from '../loyalty/loyalty-journal.js';
 import { audit } from './audit.js';
 
@@ -210,11 +211,14 @@ export async function adjustBalance(
   userId: string,
   amount: number,
   reason: string,
+  idempotencyKey: string,
 ) {
   if (amount === 0) throw AppError.notFound('Tutar sıfır olamaz');
   const delta = dec(amount);
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => withAdminMutation(tx, req.admin.id, 'wallet.adjust', idempotencyKey,
+    { userId, amount, reason }, async () => {
     await lockUsers(tx, [userId]);
+    await assertAccountNotClosed(tx, userId);
     const wallet = await tx.wallet.findUnique({ where: { userId } });
     if (!wallet) throw AppError.notFound('Cüzdan bulunamadı');
 
@@ -231,9 +235,8 @@ export async function adjustBalance(
     await tx.walletTransaction.create({
       data: {
         walletId: wallet.id,
-        // İşaretine göre defter tipi: artı düzeltme yükleme, eksi iade gibi
-        // görünmesin diye ikisi de nötr bir not taşır.
-        type: amount > 0 ? 'TOPUP' : 'ORDER_PAYMENT',
+        // Operatör düzeltmesi tahsilat veya sipariş değildir.
+        type: 'ADJUSTMENT',
         amount: dec(amount),
         balanceAfter: updated.balance,
         note: `Panel düzeltmesi: ${reason}`,
@@ -248,7 +251,7 @@ export async function adjustBalance(
       reason,
     });
     return { balance: toMoney(updated.balance) };
-  });
+  }));
 }
 
 /// Damga ve ikram düzeltmesi (mutlak değer atanır, delta değil —
@@ -261,6 +264,7 @@ export async function adjustLoyalty(
 ) {
   return prisma.$transaction(async (tx) => {
     await lockUsers(tx, [userId]);
+    await assertAccountNotClosed(tx, userId);
     const loyalty = await tx.loyaltyAccount.findUnique({ where: { userId } });
     if (!loyalty) throw AppError.notFound('Sadakat hesabı bulunamadı');
 
@@ -301,14 +305,23 @@ export async function adjustLoyalty(
   });
 }
 
+async function assertAccountNotClosed(tx: Prisma.TransactionClient, userId: string): Promise<void> {
+  const user = await tx.user.findUnique({ where: { id: userId }, select: { closedAt: true } });
+  if (!user) throw AppError.notFound('Müşteri bulunamadı');
+  if (user.closedAt) throw AppError.invalidStatusTransition('Kapatılan hesapta bakiye veya sadakat düzeltmesi yapılamaz');
+}
+
 /// Tüm oturumları kapat (çalıntı cihaz, şüpheli erişim).
 export async function revokeSessions(req: Request, userId: string, reason: string) {
   return prisma.$transaction(async (tx) => {
+    await lockUsers(tx, [userId]);
+    const now = new Date();
     await tx.user.update({ where: { id: userId }, data: { tokenVersion: { increment: 1 } } });
     const res = await tx.refreshToken.updateMany({
-      where: { userId, revokedAt: null },
-      data: { revokedAt: new Date() },
+      where: { userId, familyRevokedAt: null },
+      data: { revokedAt: now, familyRevokedAt: now },
     });
+    await tx.qrToken.updateMany({ where: { userId, consumedAt: null }, data: { consumedAt: now, expiresAt: now } });
     await audit(tx, req, {
       action: 'user.revokeSessions',
       entity: 'User',
@@ -327,6 +340,7 @@ export async function setBlocked(
   reason: string,
 ) {
   return prisma.$transaction(async (tx) => {
+    await lockUsers(tx, [userId]);
     const before = await tx.user.findUnique({ where: { id: userId } });
     if (!before) throw AppError.notFound('Müşteri bulunamadı');
     const after = await tx.user.update({
@@ -335,10 +349,12 @@ export async function setBlocked(
     });
     // Dondurulan hesabın açık oturumları da düşsün.
     if (isBlocked) {
+      const now = new Date();
       await tx.refreshToken.updateMany({
-        where: { userId, revokedAt: null },
-        data: { revokedAt: new Date() },
+        where: { userId, familyRevokedAt: null },
+        data: { revokedAt: now, familyRevokedAt: now },
       });
+      await tx.qrToken.updateMany({ where: { userId, consumedAt: null }, data: { consumedAt: now, expiresAt: now } });
     }
     await audit(tx, req, {
       action: isBlocked ? 'user.block' : 'user.unblock',

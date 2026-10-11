@@ -1,86 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/scrollable_page_scaffold.dart';
-import '../../wallet/application/wallet_providers.dart';
 
-/// Kayıtlı kartlar. Kart numarası cüzdandan gelir; gerçek kart saklama,
-/// ödeme sağlayıcısı entegrasyonunda (iyzico/PayTR tokenizasyon) yapılacak.
-class SavedCardsScreen extends ConsumerWidget {
+/// Dosso Dossi cüzdan kartı bir banka kartı kaydı değildir.
+class SavedCardsScreen extends StatelessWidget {
   const SavedCardsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final wallet = ref.watch(walletProvider).value;
-
+  Widget build(BuildContext context) {
     return ScrollablePageScaffold(
       title: 'Kayıtlı Kartlar',
       children: [
         Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
-          child: Row(
+          child: Column(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceTint,
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: const Icon(Icons.credit_card, color: AppColors.primary),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Visa •••• ${wallet?.cardLast4 ?? '····'}',
-                      style: AppTypography.body,
-                    ),
-                    Text(
-                      'Varsayılan kart',
-                      style: AppTypography.bodySecondary.copyWith(fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
               const Icon(
-                Icons.check_circle,
-                size: 20,
-                color: AppColors.success,
+                Icons.credit_card_outlined,
+                color: AppColors.primary,
+                size: 44,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Kayıtlı banka kartın yok', style: AppTypography.title),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Banka kartı kaydetme şu anda kullanılamıyor. Dosso Dossi Kart bakiyeni Tara & Öde ekranından görüntüleyebilirsin.',
+                style: AppTypography.bodySecondary,
+                textAlign: TextAlign.center,
               ),
             ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        OutlinedButton.icon(
-          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Kart ekleme, ödeme sağlayıcısı entegrasyonuyla açılacak',
-              ),
-            ),
-          ),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(56),
-            side: const BorderSide(color: AppColors.primary),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-            ),
-          ),
-          icon: const Icon(Icons.add, color: AppColors.primary),
-          label: Text(
-            'Yeni Kart Ekle',
-            style: AppTypography.body.copyWith(color: AppColors.primary),
           ),
         ),
       ],

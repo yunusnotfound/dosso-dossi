@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../branches/application/branch_availability.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -225,7 +226,9 @@ class _BranchSelector extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Hazırlık ~${b.prepMinutes} dk · ${b.distanceLabel}',
+                      ref.watch(branchAcceptingOrdersProvider(b))
+                          ? 'Hazırlık ~${b.prepMinutes} dk${b.distanceMeters == null ? '' : ' · ${b.distanceLabel}'}'
+                          : 'Şu anda sipariş almıyor',
                       style: AppTypography.bodySecondary.copyWith(fontSize: 13),
                     ),
                   ],
@@ -342,7 +345,7 @@ class _BranchOption extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${branch.distanceLabel} · ${branch.hours}',
+                    '${branch.distanceMeters == null ? '' : '${branch.distanceLabel} · '}${branch.hours}',
                     style: AppTypography.bodySecondary.copyWith(fontSize: 13),
                   ),
                 ],
@@ -419,73 +422,82 @@ class _ProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      onTap: () => context.push(Routes.productPath(product.id)),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: SizedBox.expand(
-                      // Kare vitrin fotoğrafı (varsa) grid kutusunu kenardan
-                      // kenara doldurur; detay ekranı bundan etkilenmez.
-                      child: ProductImage(product: product, preferGrid: true),
-                    ),
-                  ),
-                  if (product.stampMultiplier > 1)
-                    Positioned(
-                      top: AppSpacing.sm,
-                      left: AppSpacing.sm,
-                      child: _ProductBadge(
-                        text: '${product.stampMultiplier}x Damga',
-                        background: AppColors.gold,
-                        foreground: AppColors.onGold,
-                      ),
-                    )
-                  else if (product.isNew)
-                    Positioned(
-                      top: AppSpacing.sm,
-                      left: AppSpacing.sm,
-                      child: _ProductBadge(
-                        text: 'Yeni',
-                        background: AppColors.surfaceTint,
-                        foreground: AppColors.primary,
+    return Semantics(
+      container: true,
+      button: true,
+      child: GestureDetector(
+        onTap: () => context.push(Routes.productPath(product.id)),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                      child: SizedBox.expand(
+                        // Kare vitrin fotoğrafı (varsa) grid kutusunu kenardan
+                        // kenara doldurur; detay ekranı bundan etkilenmez.
+                        child: ExcludeSemantics(
+                          child: ProductImage(
+                            product: product,
+                            preferGrid: true,
+                          ),
+                        ),
                       ),
                     ),
-                ],
+                    if (product.stampMultiplier > 1)
+                      Positioned(
+                        top: AppSpacing.sm,
+                        left: AppSpacing.sm,
+                        child: _ProductBadge(
+                          text: '${product.stampMultiplier}x Damga',
+                          background: AppColors.gold,
+                          foreground: AppColors.onGold,
+                        ),
+                      )
+                    else if (product.isNew)
+                      Positioned(
+                        top: AppSpacing.sm,
+                        left: AppSpacing.sm,
+                        child: _ProductBadge(
+                          text: 'Yeni',
+                          background: AppColors.surfaceTint,
+                          foreground: AppColors.primary,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              product.name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.body.copyWith(height: 1.2),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              formatTl(product.price),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.title,
-            ),
-            // Kişiselleştirmesiz ürünler (tatlı, atıştırmalık, soft içecek)
-            // karttan direkt sepete eklenir; süt/shot seçenekli kahveler
-            // detay ekranından eklenir.
-            if (!product.hasOptions) ...[
               const SizedBox(height: AppSpacing.sm),
-              AddToCartButton(product: product),
+              Text(
+                product.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.body.copyWith(height: 1.2),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                formatTl(product.price),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.title,
+              ),
+              // Kişiselleştirmesiz ürünler (tatlı, atıştırmalık, soft içecek)
+              // karttan direkt sepete eklenir; süt/shot seçenekli kahveler
+              // detay ekranından eklenir.
+              if (!product.hasOptions) ...[
+                const SizedBox(height: AppSpacing.sm),
+                AddToCartButton(product: product),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

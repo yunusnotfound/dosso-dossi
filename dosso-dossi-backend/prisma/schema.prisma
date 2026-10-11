@@ -27,21 +27,26 @@ model AdminUser {
   branchId     String? // yalnız BRANCH_MANAGER için anlamlı
   isActive     Boolean   @default(true)
   tokenVersion Int       @default(0)
+  mustChangePassword Boolean @default(false)
+  tempPasswordExpiresAt DateTime?
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
 
   branch        Branch?             @relation(fields: [branchId], references: [id])
   refreshTokens AdminRefreshToken[]
   auditLogs     AuditLog[]
+  mutationRequests AdminMutationRequest[]
 }
 
 // RefreshToken deseninin admin kopyası: ham token saklanmaz, rotasyonda
 // eski satır revoke edilir, iptal edilmiş token yeniden kullanılırsa
-// (çalıntı şüphesi) yöneticinin tüm oturumları düşer.
+// (çalıntı şüphesi) yalnız ilgili oturum ailesi iptal edilir.
 model AdminRefreshToken {
   id           String    @id @default(cuid())
   adminId      String
   tokenHash    String    @unique // sha256(opak token)
+  familyId     String    @default(uuid())
+  familyRevokedAt DateTime?
   deviceInfo   String    @default("")
   expiresAt    DateTime
   revokedAt    DateTime?
@@ -52,6 +57,26 @@ model AdminRefreshToken {
   admin AdminUser @relation(fields: [adminId], references: [id])
 
   @@index([adminId])
+  @@index([adminId, familyId])
+}
+
+// A panel operator's retried financial intent commits with its original result.
+model AdminMutationRequest {
+  id String @id @default(cuid())
+  adminId String
+  scope String
+  key String
+  requestHash String
+  response Json?
+  createdAt DateTime @default(now())
+  admin AdminUser @relation(fields: [adminId], references: [id])
+
+  @@unique([adminId, scope, key])
+}
+
+model SyncRevision {
+  key String @id
+  version BigInt @default(0)
 }
 
 // Panelden yapılan HER yazma buraya düşer. Para ve sadakat düzeltmelerinde
@@ -85,6 +110,7 @@ model User {
   // Panelden dondurulan hesap: giriş yapabilir ama işlem yapamaz.
   isBlocked Boolean  @default(false)
   tokenVersion Int   @default(0)
+  closedAt DateTime?
   createdAt DateTime @default(now())
 
   wallet            Wallet?
@@ -98,15 +124,19 @@ model User {
   paymentIntents    PaymentIntent[]
   refreshTokens     RefreshToken[]
   financialRequests FinancialRequest[]
+  accountRequests AccountRequest[]
+  notifications UserNotification[]
 }
 
 // Cihaz başına oturum yenileme token'ı. Ham token DB'de tutulmaz (sha256).
 // Rotasyonda eski satır revoke edilir; iptal edilmiş token yeniden
-// kullanılırsa (çalıntı şüphesi) kullanıcının tüm token'ları iptal edilir.
+// kullanılırsa yalnız ilgili oturum ailesi iptal edilir; bağımsız girişler korunur.
 model RefreshToken {
   id           String    @id @default(cuid())
   userId       String
   tokenHash    String    @unique // sha256(opak token)
+  familyId     String    @default(uuid())
+  familyRevokedAt DateTime?
   deviceInfo   String    @default("")
   expiresAt    DateTime
   revokedAt    DateTime?
@@ -117,6 +147,7 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([userId, familyId])
 }
 
 model OtpCode {
@@ -197,12 +228,65 @@ model BranchProduct {
 // ── Cüzdan ──────────────────────────────────────────────────────────
 
 enum WalletTxType {
+  ADJUSTMENT
   TOPUP
   ORDER_PAYMENT
   GIFT_SENT
   GIFT_RECEIVED
   QR_PAYMENT
   REFUND
+}
+
+enum AccountRequestKind {
+  CLOSURE
+  DATA_EXPORT
+}
+
+enum AccountRequestStatus {
+  OPEN
+  IN_REVIEW
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+model AccountRequest {
+  id String @id @default(cuid())
+  userId String
+  kind AccountRequestKind
+  status AccountRequestStatus @default(OPEN)
+  note String @default("")
+  response String @default("")
+  openKey String? @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+enum NotificationKind {
+  ORDER_STATUS
+  GIFT_RECEIVED
+  ACCOUNT_REQUEST
+  CAMPAIGN
+}
+
+model UserNotification {
+  id String @id @default(cuid())
+  userId String
+  kind NotificationKind
+  dedupeKey String
+  title String
+  body String
+  targetPath String @default("")
+  readAt DateTime?
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, createdAt])
 }
 
 model Wallet {

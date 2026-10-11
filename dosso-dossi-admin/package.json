@@ -11,14 +11,18 @@
     "e2e": "node e2e/smoke.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "test:regression": "node e2e/regression.mjs",
-    "test:stories": "node e2e/stories.mjs"
+    "test:audit-fixes": "node e2e/audit-fixes.mjs",
+    "test:stories": "node e2e/stories.mjs",
+    "test:contracts": "node --experimental-strip-types --test src/api/*.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
+    "lucide-react": "^1.52.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",
-    "recharts": "^3.10.1"
+    "recharts": "^3.10.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

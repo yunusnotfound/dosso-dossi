@@ -8,6 +8,7 @@ import { buildWorkbook, type SheetSpec } from './xlsx.js';
 
 const TX_LABEL: Record<string, string> = {
   TOPUP: 'Yükleme',
+  ADJUSTMENT: 'Bakiye düzeltmesi',
   ORDER_PAYMENT: 'Sipariş ödemesi',
   GIFT_SENT: 'Hediye gönderimi',
   GIFT_RECEIVED: 'Hediye alımı',

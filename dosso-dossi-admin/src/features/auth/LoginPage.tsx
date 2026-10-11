@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { ApiError } from '../../api/client';
-import { useAuth } from '../../auth/AuthContext';
+import { useAuth } from '../../auth/auth-state';
 import { Button, Card } from '../../components/ui';
 
 export function LoginPage() {
@@ -28,13 +28,14 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-coffee p-6">
+    <div className="flex min-h-screen items-center justify-center bg-canvas p-6">
       <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <p className="font-[family-name:--font-display] text-2xl font-extrabold text-on-dark">
+        <div className="mb-7 text-center">
+          <img src="/brand/dosso-dossi-logo.png" alt="Dosso Dossi Coffee" className="mx-auto mb-5 size-24 rounded-full bg-surface object-contain" />
+          <p className="font-display text-2xl font-extrabold tracking-tight text-ink">
             Dosso Dossi
           </p>
-          <p className="text-sm text-on-dark-muted">Yönetim Paneli</p>
+          <p className="mt-2 text-sm text-ink-muted">Yönetim Paneli</p>
         </div>
 
         <Card>
@@ -48,7 +49,7 @@ export function LoginPage() {
                 autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="rounded-[--radius-chip] bg-surface-sunken px-3 py-2.5 text-sm outline-none ring-brand/40 focus:ring-2"
+                className="admin-input"
               />
             </label>
 
@@ -60,7 +61,7 @@ export function LoginPage() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="rounded-[--radius-chip] bg-surface-sunken px-3 py-2.5 text-sm outline-none ring-brand/40 focus:ring-2"
+                className="admin-input"
               />
             </label>
 
@@ -68,7 +69,7 @@ export function LoginPage() {
             {error ? (
               <p
                 role="alert"
-                className="rounded-[--radius-chip] bg-bad-soft px-3 py-2 text-sm text-bad"
+                className="rounded-chip bg-bad-soft px-3 py-2 text-sm text-bad"
               >
                 {error}
               </p>

@@ -36,15 +36,27 @@ class CampaignCarousel extends ConsumerWidget {
             height: cardHeight,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: items.length,
+              itemCount: items.length + 1,
               separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
               itemBuilder: (context, index) {
+                if (index == items.length) {
+                  return _ApprovedCampaignCard(
+                    width: cardWidth,
+                    height: cardHeight,
+                    asset: ApprovedCampaignAssets.thermos,
+                    label: 'Termos koleksiyonunu keşfet',
+                    route: Routes.shop,
+                  );
+                }
                 final campaign = items[index];
                 // Onaylanan afiş, kartın tamamını doldurur.
                 if (campaign.id == 'kahve-ictikce') {
-                  return _CoffeeRewardsCard(
+                  return _ApprovedCampaignCard(
                     width: cardWidth,
                     height: cardHeight,
+                    asset: ApprovedCampaignAssets.coffee,
+                    label: 'Kahve İçtikçe Kahve Kazan kampanyası',
+                    route: Routes.campaignKahve,
                   );
                 }
                 // Onaylanan Yükle Kazan afişi, mevcut ayrıntı sayfasını açar.
@@ -64,17 +76,26 @@ class CampaignCarousel extends ConsumerWidget {
   }
 }
 
-/// Onaylanan kahve afişini kırpmadan küçük karta sığdırır.
-class _CoffeeRewardsCard extends StatelessWidget {
-  const _CoffeeRewardsCard({required this.width, required this.height});
+/// Onaylanan afişleri kırpmadan, aynı ölçüde küçük karta sığdırır.
+class _ApprovedCampaignCard extends StatelessWidget {
+  const _ApprovedCampaignCard({
+    required this.width,
+    required this.height,
+    required this.asset,
+    required this.label,
+    required this.route,
+  });
   final double width;
   final double height;
+  final String asset;
+  final String label;
+  final String route;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Kahve İçtikçe Kahve Kazan kampanyası',
+      label: label,
       child: Material(
         color: AppColors.campaignBackground,
         shape: RoundedRectangleBorder(
@@ -83,13 +104,11 @@ class _CoffeeRewardsCard extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => context.push(Routes.campaignKahve),
+          onTap: () => context.push(route),
           child: SizedBox(
             width: width,
             height: height,
-            child: const ApprovedCampaignPoster(
-              asset: ApprovedCampaignAssets.coffee,
-            ),
+            child: ApprovedCampaignPoster(asset: asset),
           ),
         ),
       ),

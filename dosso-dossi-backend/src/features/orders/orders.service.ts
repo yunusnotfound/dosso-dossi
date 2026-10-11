@@ -1,3 +1,4 @@
+import { historyBoundary, historyPageResult, type HistoryPage } from '../../lib/history-page.js';
 import { Prisma } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
 import { dec, toMoney } from '../../lib/money.js';
@@ -10,6 +11,9 @@ import { applyLoyalty } from '../loyalty/loyalty-apply.js';
 import { loadOrderOptions } from '../menu/options.service.js';
 import { parseOrderNumber } from './order-status.service.js';
 import { kerzzPosClient } from './pos-client.js';
+import { validatePickupSlot } from './pickup-policy.js';
+import { businessNow } from '../../lib/business-time.js';
+import { notifyOrderStatus } from '../notifications/notifications.service.js';
 import type { PlaceOrderInput } from './orders.schemas.js';
 
 export async function placeOrder(userId: string, input: PlaceOrderInput) {
@@ -23,7 +27,7 @@ export async function placeOrder(userId: string, input: PlaceOrderInput) {
     const optionDelta = await loadOrderOptions(tx);
     const branch = await tx.branch.findUnique({ where: { id: input.branchId } });
     if (!branch) throw AppError.notFound('Şube bulunamadı');
-    if (!branch.isOpen) throw AppError.branchClosed();
+    validatePickupSlot(branch, input.pickupSlot, businessNow());
 
     const productIds = input.items.map((i) => i.productId);
     const products = await tx.product.findMany({
@@ -168,6 +172,7 @@ export async function placeOrder(userId: string, input: PlaceOrderInput) {
     });
 
     const response = serializeOrder(order);
+    await notifyOrderStatus(tx, order, 'RECEIVED');
     await saveFinancialResult(tx, request?.id, response, order.id);
     return { order, response };
   });
@@ -195,11 +200,21 @@ export async function getOrder(userId: string, orderId: string) {
 export async function listOrders(userId: string) {
   const orders = await prisma.order.findMany({
     where: { userId },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     include: { items: true, branch: true },
     take: 50,
   });
   return orders.map(serializeOrder);
+}
+
+export async function listOrderPage(userId: string, page: HistoryPage) {
+  const rows = await prisma.order.findMany({
+    where: { userId, ...historyBoundary(page) },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    include: { items: true, branch: true },
+    take: page.limit + 1,
+  });
+  return historyPageResult(rows, page, serializeOrder);
 }
 
 function serializeOrder(

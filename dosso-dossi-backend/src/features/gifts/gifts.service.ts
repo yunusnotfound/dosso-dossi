@@ -1,23 +1,29 @@
+import { historyBoundary, historyPageResult, type HistoryPage } from '../../lib/history-page.js';
 import { randomBytes } from 'node:crypto';
 import type { Gift } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
 import { dec, toMoney } from '../../lib/money.js';
 import { normalizePhone } from '../../lib/phone.js';
+import { lockRecipientPhone } from '../../lib/phone-lock.js';
 import { prisma } from '../../lib/prisma.js';
 import { assertActiveUser } from '../../lib/active-user.js';
 import { lockUsers } from '../../lib/financial-locks.js';
 import { lockFinancialRequest, saveFinancialResult } from '../../lib/idempotency.js';
 import { smsProvider } from '../../lib/sms/dev-sms-provider.js';
-import { claimGiftForUser } from './gift-claim.js';
+import { claimGiftForUser, claimPendingGiftsForUser } from './gift-claim.js';
 import type { SendGiftInput } from './gifts.schemas.js';
 
 export async function sendGift(senderId: string, input: SendGiftInput) {
   const recipientPhone = normalizePhone(input.recipientPhone);
 
   const result = await prisma.$transaction(async (tx) => {
+    await lockRecipientPhone(tx, recipientPhone);
     const recipient = await tx.user.findUnique({ where: { phone: recipientPhone } });
     await lockUsers(tx, recipient ? [senderId, recipient.id] : [senderId]);
     await assertActiveUser(tx, senderId);
+    if (recipient && (await tx.user.findUniqueOrThrow({ where: { id: recipient.id }, select: { closedAt: true } })).closedAt) {
+      throw AppError.invalidStatusTransition('Alıcı hesabı kapatılmış; bu hesaba hediye gönderilemez');
+    }
     const request = await lockFinancialRequest(tx, senderId, 'gift', input.idempotencyKey, {
       ...input, recipientPhone,
     });
@@ -99,10 +105,31 @@ export async function sendGift(senderId: string, input: SendGiftInput) {
 export async function listGifts(senderId: string) {
   const gifts = await prisma.gift.findMany({
     where: { senderId },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take: 50,
   });
   return gifts.map(serializeGift);
+}
+
+export async function listGiftPage(senderId: string, page: HistoryPage) {
+  const rows = await prisma.gift.findMany({
+    where: { senderId, ...historyBoundary(page) },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: page.limit + 1,
+  });
+  return historyPageResult(rows, page, serializeGift);
+}
+
+/** Reconcile already sent gifts after an interrupted registration or account unblock. */
+export async function claimPendingGifts(userId: string) {
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({ where: { id: userId }, select: { phone: true } });
+    if (!user) throw AppError.unauthorized();
+    await lockRecipientPhone(tx, user.phone);
+    await lockUsers(tx, [userId]);
+    await assertActiveUser(tx, userId);
+    return { claimed: await claimPendingGiftsForUser(tx, userId, user.phone) };
+  });
 }
 
 function serializeGift(gift: Gift) {

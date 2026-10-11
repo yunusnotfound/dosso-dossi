@@ -2,6 +2,14 @@ import type { Gift, Prisma } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
 import { lockUsers } from '../../lib/financial-locks.js';
 import { journalMetadata, loyaltyState } from '../loyalty/loyalty-journal.js';
+import { emitNotification } from '../notifications/notifications.service.js';
+
+/** Caller locks recipient phone, then the user. Safe for login and explicit retry. */
+export async function claimPendingGiftsForUser(tx: Prisma.TransactionClient, userId: string, phone: string): Promise<number> {
+  const pending = await tx.gift.findMany({ where: { recipientPhone: phone, status: 'PENDING' } });
+  for (const gift of pending) await claimGiftForUser(tx, gift, userId);
+  return pending.length;
+}
 
 /// Hediyeyi alıcıya işler: bakiye hediyesi cüzdana, içecek hediyesi
 /// ikram hakkına dönüşür. Hem kayıt anında (auth) hem gönderim anında
@@ -64,4 +72,9 @@ export async function claimGiftForUser(
       },
     });
   }
+  await emitNotification(tx, {
+    userId, kind: 'GIFT_RECEIVED', dedupeKey: `gift:${gift.id}`,
+    title: 'Hediyen geldi', body: 'Hediyen hesabına eklendi.',
+    targetPath: gift.type === 'DRINK' ? '/ikramlarim' : '/tara-ode',
+  });
 }

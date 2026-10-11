@@ -87,7 +87,7 @@ describe('financial integrity under concurrent requests', () => {
   it('concurrent negative adjustments cannot overdraw the wallet', async () => {
     const u = await user(100);
     const req = await adminReq();
-    const results = await Promise.allSettled([adjustBalance(req, u.id, -80, 'Fixture A'), adjustBalance(req, u.id, -80, 'Fixture B')]);
+    const results = await Promise.allSettled([adjustBalance(req, u.id, -80, 'Fixture A', randomUUID()), adjustBalance(req, u.id, -80, 'Fixture B', randomUUID())]);
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     expect(await balance(u.id)).toBe(20);
     expect(await prisma.walletTransaction.count()).toBe(1);

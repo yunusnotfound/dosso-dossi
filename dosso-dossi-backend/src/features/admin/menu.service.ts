@@ -5,6 +5,7 @@ import { dec, toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
 import { invalidateOptionCache } from '../menu/options.service.js';
 import { audit } from './audit.js';
+import { withAdminMutation } from '../../lib/admin-idempotency.js';
 
 // ── Kategoriler ─────────────────────────────────────────────────────
 
@@ -209,6 +210,7 @@ export async function setProductActive(
 }
 
 export interface BulkPriceInput {
+  idempotencyKey: string;
   categoryId?: string;
   /// Yüzde zam (10 ⇒ %10) veya sabit tutar (₺). Biri verilir.
   percent?: number;
@@ -224,7 +226,9 @@ export async function bulkPrice(req: Request, input: BulkPriceInput) {
   if (input.percent === undefined && input.amount === undefined) {
     throw AppError.notFound('percent veya amount verilmeli');
   }
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => withAdminMutation(tx, req.admin.id, 'product.bulkPrice', input.idempotencyKey, input, async () => {
+    // Serialize relative updates, including different operator intents.
+    await tx.$queryRaw`SELECT id FROM "Product" ORDER BY id FOR UPDATE`;
     const products = await tx.product.findMany({
       where: input.categoryId ? { categoryId: input.categoryId } : {},
     });
@@ -253,7 +257,7 @@ export async function bulkPrice(req: Request, input: BulkPriceInput) {
       reason: input.reason,
     });
     return { updated: changes.length, changes };
-  });
+  }));
 }
 
 // ── Şube × ürün müsaitlik matrisi ───────────────────────────────────

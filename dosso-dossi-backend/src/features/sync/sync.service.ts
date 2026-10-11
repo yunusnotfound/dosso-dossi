@@ -1,69 +1,65 @@
 import { createHash } from 'node:crypto';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 
-export type SyncDomain =
-  | 'menu'
-  | 'branches'
-  | 'campaigns'
-  | 'loyalty'
-  | 'wallet'
-  | 'orders';
-
+export const syncDomains = ['menu', 'branches', 'campaigns', 'loyalty', 'wallet', 'orders'] as const;
+export type SyncDomain = (typeof syncDomains)[number];
 export type SyncRevisions = Record<SyncDomain, string>;
 
-// Alan adı tüm işlemleri, "Alan:işlem" yalnız belirtilen işlemi kapsar.
-// İptal siparişin yanında bakiye ve damgaları da değiştirir; normal durum
-// ilerletmeleri ise yalnız sipariş görünümünü yenilemelidir.
-const sources: Record<SyncDomain, readonly string[]> = {
-  menu: ['Product', 'Category', 'ProductOption', 'BranchProduct'],
-  branches: ['Branch', 'BranchProduct'],
-  campaigns: ['Campaign', 'CampaignStory', 'PromoCode', 'Setting'],
-  loyalty: ['LoyaltyAccount', 'Setting', 'Order:order.cancel'],
-  wallet: ['Wallet', 'PosCharge', 'Order:order.cancel'],
-  orders: ['Order'],
+const globalSources: Record<string, readonly SyncDomain[]> = {
+  Product: ['menu'], Category: ['menu'], ProductOption: ['menu'],
+  BranchProduct: ['menu', 'branches'], Branch: ['branches'],
+  Campaign: ['campaigns'], CampaignStory: ['campaigns'], PromoCode: ['campaigns'],
+  Setting: ['campaigns', 'loyalty'],
 };
 
-const entities = [
-  ...new Set(Object.values(sources).flat().map((source) => source.split(':')[0]!)),
-];
+/** Increment durable, bounded counters in the same transaction as the change. */
+export async function bumpRevisions(tx: Prisma.TransactionClient, domains: readonly SyncDomain[], userId?: string) {
+  // Fixed ordering also prevents deadlocks when transactions affect several domains.
+  for (const domain of [...new Set(domains)].sort()) {
+    const key = userId ? `user:${userId}:${domain}` : `global:${domain}`;
+    await tx.syncRevision.upsert({
+      where: { key }, create: { key, version: 1 }, update: { version: { increment: 1 } },
+    });
+  }
+}
 
-/// Panel değişikliklerinin herkese açık, opak yenileme işaretleri.
-/// Audit kaydı asıl değişiklikle aynı transaction'da yazıldığı için yalnız
-/// tamamlanmış işlemler görünür; tek sorgu tüm alanları aynı DB anında okur.
-/// Sayı, geç tamamlanan/eski kimlikli işlemleri de yakalar. Silme ve toplu
-/// işlemler audit'te kaldığından bunlar da sürümü değiştirir.
-///
-/// Bellekte sayaç tutulmaz: farklı sunucular ve yeniden başlatmalar aynı
-/// sonucu üretir. Müşteri kimliği, audit içeriği ve ham sayaçlar dışa çıkmaz.
-/// Audit kullanmayan doğrudan SQL/seed değişiklikleri bu sözleşmenin dışında;
-/// istemci açılışta ve ön plana döndüğünde ayrıca verileri yenilemelidir.
-export async function getSyncRevisions(): Promise<SyncRevisions> {
-  const groups = await prisma.auditLog.groupBy({
-    by: ['entity', 'action'],
-    where: { entity: { in: entities } },
-    _count: { _all: true },
-    _max: { id: true },
-    orderBy: [{ entity: 'asc' }, { action: 'asc' }],
-  });
+/** Audit content stays private; financial changes invalidate only their owner. */
+export async function recordAuditRevision(
+  tx: Prisma.TransactionClient, input: { entity: string; entityId: string; action: string },
+): Promise<void> {
+  const global = globalSources[input.entity];
+  if (global) { await bumpRevisions(tx, global); return; }
+  let owner: { userId: string } | null = null;
+  let domains: readonly SyncDomain[] = [];
+  switch (input.entity) {
+    case 'Wallet':
+      owner = await tx.wallet.findUnique({ where: { id: input.entityId }, select: { userId: true } });
+      domains = ['wallet']; break;
+    case 'LoyaltyAccount':
+      owner = await tx.loyaltyAccount.findUnique({ where: { id: input.entityId }, select: { userId: true } });
+      domains = ['loyalty']; break;
+    case 'PosCharge':
+      owner = await tx.posCharge.findUnique({ where: { id: input.entityId }, select: { userId: true } });
+      domains = input.action === 'posCharge.void' ? ['wallet', 'loyalty'] : ['wallet']; break;
+    case 'Order':
+      owner = await tx.order.findUnique({ where: { id: input.entityId }, select: { userId: true } });
+      domains = input.action === 'order.cancel' ? ['orders', 'wallet', 'loyalty'] : ['orders']; break;
+  }
+  if (owner) await bumpRevisions(tx, domains, owner.userId);
+}
 
-  return Object.fromEntries(
-    Object.entries(sources).map(([domain, domainSources]) => {
-      const state = groups
-        .filter(
-          (group) =>
-            domainSources.includes(group.entity) ||
-            domainSources.includes(`${group.entity}:${group.action}`),
-        )
-        .map((group) => [
-          group.entity,
-          group.action,
-          group._count._all,
-          group._max.id,
-        ]);
-      const revision = createHash('sha256')
-        .update(JSON.stringify(['panel-sync-v1', domain, state]))
-        .digest('hex');
-      return [domain, revision];
-    }),
-  ) as SyncRevisions;
+/** Reads at most twelve primary keys, independent of the audit log's size. */
+export async function getSyncRevisions(userId?: string): Promise<SyncRevisions> {
+  const keys = syncDomains.flatMap(domain => [
+    `global:${domain}`, ...(userId ? [`user:${userId}:${domain}`] : []),
+  ]);
+  const rows = await prisma.syncRevision.findMany({ where: { key: { in: keys } } });
+  const versions = new Map(rows.map(row => [row.key, row.version.toString()]));
+  return Object.fromEntries(syncDomains.map(domain => [domain,
+    createHash('sha256').update(JSON.stringify([
+      'panel-sync-v2', domain, versions.get(`global:${domain}`) ?? '0',
+      userId ? versions.get(`user:${userId}:${domain}`) ?? '0' : '0',
+    ])).digest('hex'),
+  ])) as SyncRevisions;
 }

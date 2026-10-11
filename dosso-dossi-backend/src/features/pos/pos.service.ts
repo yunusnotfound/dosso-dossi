@@ -1,7 +1,9 @@
 import type { Prisma } from '@prisma/client';
 import { assertActiveUser } from '../../lib/active-user.js';
 import { AppError } from '../../lib/errors.js';
+import { lockUsers } from '../../lib/financial-locks.js';
 import { dec, toMoney } from '../../lib/money.js';
+import { journalMetadata, loyaltyState, reverseChargeLoyalty } from '../loyalty/loyalty-journal.js';
 import type { ChargeInput } from './pos.schemas.js';
 
 /// Kod ekranda geçerliyken kasanın isteği birkaç saniye gecikebilir;
@@ -36,7 +38,11 @@ export async function chargeQrCode(
 
     // Çifte okutma yarışı: tüketimi atomik yap
     const consumed = await tx.qrToken.updateMany({
-      where: { id: token.id, consumedAt: null },
+      where: {
+        id: token.id, consumedAt: null,
+        // A request may wait on the user lock past the allowed grace window.
+        expiresAt: { gte: new Date(Date.now() - QR_CHARGE_GRACE_MS) },
+      },
       data: { consumedAt: new Date() },
     });
     if (consumed.count === 0) throw AppError.invalidQr();
@@ -86,8 +92,12 @@ export async function voidCharge(
   chargeId: string,
 ) {
   {
-    const charge = await tx.posCharge.findUnique({ where: { id: chargeId } });
-    if (!charge) throw AppError.notFound('İşlem bulunamadı');
+    const initial = await tx.posCharge.findUnique({ where: { id: chargeId } });
+    if (!initial) throw AppError.notFound('İşlem bulunamadı');
+    await lockUsers(tx, [initial.userId]);
+    const charge = await tx.posCharge.findUniqueOrThrow({
+      where: { id: chargeId }, include: { qrToken: true },
+    });
     if (
       charge.status !== 'APPROVED' ||
       charge.createdAt.getTime() < Date.now() - VOID_WINDOW_MS
@@ -115,6 +125,27 @@ export async function voidCharge(
         note: `Tara & Öde iadesi`,
       },
     });
+
+    const loyalty = await tx.loyaltyAccount.findUniqueOrThrow({ where: { userId: charge.userId } });
+    const reversal = await reverseChargeLoyalty(tx, loyalty, { id: charge.id, qrCode: charge.qrToken.code });
+    if (reversal.purchaseEventIds.length > 0) {
+      await tx.loyaltyAccount.update({ where: { id: loyalty.id }, data: reversal.state });
+      await tx.loyaltyEvent.create({
+        data: {
+          accountId: loyalty.id, type: 'ADJUSTMENT',
+          title: 'Tara & Öde iadesi — sadakat geri alındı',
+          metadata: reversal.mode === 'journal'
+            ? journalMetadata({
+              kind: 'void', chargeId: charge.id, purchaseEventIds: reversal.purchaseEventIds,
+              before: loyaltyState(loyalty), after: reversal.state,
+            })
+            : journalMetadata({
+              kind: 'checkpoint', before: loyaltyState(loyalty), after: reversal.state,
+              reason: `QR void ${charge.id}: ${reversal.mode}`,
+            }),
+        },
+      });
+    }
 
     return { ok: true, chargeId: charge.id, refunded: toMoney(charge.amount) };
   }

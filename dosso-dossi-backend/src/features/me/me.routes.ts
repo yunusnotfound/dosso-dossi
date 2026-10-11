@@ -2,8 +2,14 @@ import { Router } from 'express';
 import { prisma } from '../../lib/prisma.js';
 import { validate } from '../../middleware/validate.js';
 import { notificationPrefsSchema, updateMeSchema } from './me.schemas.js';
+import { accountRequestsRouter, dataExportRouter } from '../account-requests/account-requests.routes.js';
+import { notificationsRouter } from '../notifications/notifications.routes.js';
 
 export const meRouter = Router();
+
+meRouter.use('/account-requests', accountRequestsRouter);
+meRouter.use('/data-export', dataExportRouter);
+meRouter.use('/notifications', notificationsRouter);
 
 meRouter.patch('/', validate(updateMeSchema), async (req, res, next) => {
   try {

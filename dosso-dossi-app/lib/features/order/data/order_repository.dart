@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/network/history_page.dart';
 import '../../branches/domain/branch.dart';
 import '../domain/cart.dart';
 import '../domain/order_record.dart';
@@ -20,6 +21,10 @@ abstract interface class OrderRepository {
 
   /// Canlı sipariş takibi: güncel durum sunucudan okunur.
   Future<OrderRecord> getOrder(String id);
+}
+
+abstract interface class PagedOrderRepository {
+  Future<HistoryPage<OrderRecord>> getOrdersPage({String? cursor});
 }
 
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {

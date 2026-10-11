@@ -13,6 +13,8 @@ interface ApplyLoyaltyOptions {
   /// Damga geçmişi başlığında görünen kaynak: "Sipariş DD-1042" | "Kasadan satış S123"
   sourceTitle: string;
   orderId?: string;
+  /// A QR charge is reversed together with its linked sale's loyalty.
+  chargeId?: string;
 }
 
 /// Damga/ikram işleme — hem uygulama içi sipariş hem kasadaki satış
@@ -58,6 +60,7 @@ export async function applyLoyalty(
         metadata: journalMetadata({
           kind: 'purchase', before, stampsEarned: opts.stampsEarned,
           consumeFreeDrink: !!opts.consumeFreeDrink, nextTarget,
+          chargeId: opts.chargeId,
         }),
       },
     });

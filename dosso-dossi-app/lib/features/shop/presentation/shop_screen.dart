@@ -14,7 +14,7 @@ import '../../order/application/menu_providers.dart';
 import '../../order/domain/menu.dart';
 import '../../order/presentation/widgets/add_to_cart_button.dart';
 
-/// Online Mağaza sekmesi: termos, mug ve çekirdek kahveler. Menüden ayrı
+/// Online Mağaza sekmesi: termoslar ve çekirdek kahveler. Menüden ayrı
 /// vitrin; ürün detayı, favoriler ve sepet sipariş akışıyla ortaktır.
 class ShopScreen extends ConsumerStatefulWidget {
   const ShopScreen({super.key});
@@ -43,6 +43,15 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
     setState(() {
       _categoryId = id;
       _query = '';
+    });
+  }
+
+  void _showThermos() {
+    _searchController.text = 'Termos';
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _categoryId = 'merch';
+      _query = 'Termos';
     });
   }
 
@@ -151,14 +160,21 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                   horizontal: AppSpacing.page,
                 ),
                 children: [
-                  _CoffeeBanner(
+                  _CollectionBanner(
+                    assetPath: 'assets/images/shop_thermos_collection.webp',
+                    label:
+                        'Rengini seç. Keyfini taşı. 500 ml, çift cidarlı çelik. Termosları keşfet.',
+                    onTap: _showThermos,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  _CollectionBanner(
                     assetPath: 'assets/images/shop_coffee_origins.png',
                     label:
                         'Dünyadan seç, evinde demle. Kolombiya, Kenya ve Nikaragua. Kahveleri keşfet.',
                     onTap: () => _selectCategory('cekirdek'),
                   ),
                   const SizedBox(width: AppSpacing.md),
-                  _CoffeeBanner(
+                  _CollectionBanner(
                     assetPath: 'assets/images/shop_coffee_ritual.png',
                     label:
                         'Kahve keyfi, senin usulün. Türk Kahvesi ve Mehmedi Meşari. Ürünleri incele.',
@@ -183,7 +199,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                   runSpacing: AppSpacing.sm,
                   children: [
                     // Sekme sırası shopCategoryIds sırasını izler (önce
-                    // Termos & Mug), menüdeki kategori sırasını değil.
+                    // Termoslar), menüdeki kategori sırasını değil.
                     for (final id in shopCategoryIds)
                       for (final category in list)
                         if (category.id == id)
@@ -270,9 +286,9 @@ class _HeaderIcon extends StatelessWidget {
   );
 }
 
-/// Onaylanan 2:1 afiş; tamamına dokunarak kahve koleksiyonu açılır.
-class _CoffeeBanner extends StatelessWidget {
-  const _CoffeeBanner({
+/// Onaylanan 2:1 afiş; tamamına dokunarak ilgili koleksiyon açılır.
+class _CollectionBanner extends StatelessWidget {
+  const _CollectionBanner({
     required this.assetPath,
     required this.label,
     required this.onTap,

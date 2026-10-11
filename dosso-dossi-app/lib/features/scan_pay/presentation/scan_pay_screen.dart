@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -10,9 +9,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../auth/application/guest_mode.dart';
 import '../../campaigns/application/public_config.dart';
 import '../../../core/network/session_scope.dart';
-import '../../../core/utils/error_feedback.dart';
 import '../../auth/presentation/guest_gate.dart';
-import '../../../core/constants/app_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
@@ -21,10 +18,12 @@ import '../../../core/widgets/brand_artwork.dart';
 import '../../../core/widgets/brand_logo.dart';
 import '../../../routing/app_router.dart';
 import '../../auth/application/auth_controller.dart';
-import '../../rewards/application/loyalty_providers.dart';
 import '../../wallet/application/wallet_providers.dart';
 import '../../wallet/data/wallet_repository.dart';
 import '../../wallet/domain/wallet.dart';
+import 'widgets/top_up_widgets.dart';
+
+export 'widgets/top_up_confirmation.dart' show confirmTopUp;
 
 /// Tara & Öde: kasada okutulan QR/barkod + bakiye yükleme.
 class ScanPayScreen extends ConsumerStatefulWidget {
@@ -212,9 +211,9 @@ class _ScanPayScreenState extends ConsumerState<ScanPayScreen>
               const SizedBox(height: AppSpacing.xxl),
               Text('HIZLI YÜKLEME', style: AppTypography.sectionLabel),
               const SizedBox(height: AppSpacing.md),
-              const _QuickTopUpRow(),
+              const QuickTopUpRow(),
             ] else
-              const _TopUpView(),
+              const TopUpView(),
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
@@ -519,313 +518,6 @@ class _StampBanner extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _QuickTopUpRow extends ConsumerWidget {
-  const _QuickTopUpRow();
-
-  static const _amounts = [100.0, 250.0, 500.0];
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Row(
-      children: [
-        for (final amount in _amounts) ...[
-          if (amount != _amounts.first) const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: OutlinedButton(
-              onPressed: ref.watch(topUpFlowProvider)
-                  ? null
-                  : () => confirmTopUp(context, ref, amount),
-              style: OutlinedButton.styleFrom(
-                backgroundColor: AppColors.surface,
-                side: BorderSide.none,
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                ),
-              ),
-              child: Text(
-                '${amount.toStringAsFixed(0)} ₺',
-                style: AppTypography.body,
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-/// Yükleme onayı — hızlı yükleme ve Bakiye Yükle sekmesi ortak kullanır.
-Future<void> confirmTopUp(
-  BuildContext context,
-  WidgetRef ref,
-  double amount,
-) async {
-  if (ref.read(topUpFlowProvider)) return;
-  final flow = ref.read(topUpFlowProvider.notifier);
-  flow.set(true);
-  final scope = ref.read(sessionScopeProvider);
-  final epoch = scope.revision;
-  try {
-    final cardLast4 = ref.read(walletProvider).value?.cardLast4 ?? '····';
-    final confirmed = await showModalBottomSheet<bool>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: AppColors.background,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
-      ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.page),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Bakiye Yükle', style: AppTypography.headline),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Kayıtlı kartın (Visa •$cardLast4) ile ${formatTl(amount)} yüklenecek. '
-                'Bu bir simülasyondur; gerçek ödeme alınmaz.',
-                style: AppTypography.bodySecondary,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: Text('Onayla · ${formatTl(amount)}'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    if (confirmed != true || !context.mounted || scope.revision != epoch) {
-      return;
-    }
-
-    final TopUpResult result;
-    try {
-      result = await ref.read(walletProvider.notifier).topUp(amount);
-    } catch (error) {
-      if (!context.mounted) return;
-      showApiError(context, error);
-      return;
-    }
-
-    if (!context.mounted || scope.revision != epoch) return;
-    if (result.isPending) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Yükleme işlemi onay bekliyor. Bakiye onaylandığında güncellenecek.',
-          ),
-        ),
-      );
-      return;
-    }
-    // Kampanya bonusu sunucuda (mock'ta simülasyonla) hesaplanır.
-    final bonusDrinks = result.bonusDrinks;
-    if (bonusDrinks > 0 && AppConfig.useMocks) {
-      ref
-          .read(loyaltyStatusProvider.notifier)
-          .addFreeDrinks(
-            bonusDrinks,
-            'Yükleme kampanyası — $bonusDrinks ikram kazanıldı',
-          );
-    }
-
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.success,
-        content: Text(
-          bonusDrinks > 0
-              ? '${formatTl(amount)} yüklendi · $bonusDrinks ikram kahve hediye! 🎉'
-              : '${formatTl(amount)} yüklendi',
-        ),
-      ),
-    );
-  } finally {
-    flow.set(false);
-  }
-}
-
-class _TopUpView extends ConsumerStatefulWidget {
-  const _TopUpView();
-
-  @override
-  ConsumerState<_TopUpView> createState() => _TopUpViewState();
-}
-
-class _TopUpViewState extends ConsumerState<_TopUpView> {
-  static const _amounts = [100.0, 250.0, 500.0, 1000.0];
-  double? _selected = 250;
-  final _customController = TextEditingController();
-
-  double? get _amount {
-    final custom = double.tryParse(_customController.text.replaceAll(',', '.'));
-    if (custom != null && custom > 0) return custom;
-    return _selected;
-  }
-
-  @override
-  void dispose() {
-    _customController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final wallet = ref.watch(walletProvider);
-    final amount = _amount;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Mevcut bakiye', style: AppTypography.bodySecondary),
-              const SizedBox(height: 2),
-              wallet.when(
-                loading: () => Text('...', style: AppTypography.title),
-                error: (e, _) => Text('—', style: AppTypography.title),
-                data: (w) => Text(
-                  formatTl(w.balance),
-                  style: AppTypography.title.copyWith(fontSize: 22),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: AppColors.gold,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.card_giftcard,
-                size: 18,
-                color: AppColors.onGold,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  '${ref.watch(campaignRulesProvider).topupFirstOnly ? 'İlk yüklemende ' : ''}${ref.watch(campaignRulesProvider).topupThreshold.toStringAsFixed(0)} ₺ ve üzeri yüklemeye ${ref.watch(campaignRulesProvider).topupBonusDrinks} ikram kahve hediye!',
-                  style: AppTypography.badge.copyWith(
-                    fontSize: 13,
-                    color: AppColors.onGold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        Text('TUTAR SEÇ', style: AppTypography.sectionLabel),
-        const SizedBox(height: AppSpacing.md),
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            for (final amount in _amounts)
-              GestureDetector(
-                onTap: () => setState(() {
-                  _selected = amount;
-                  _customController.clear();
-                }),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xl,
-                    vertical: AppSpacing.md,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _selected == amount && _customController.text.isEmpty
-                        ? AppColors.coffeeDark
-                        : AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                  ),
-                  child: Text(
-                    '${amount.toStringAsFixed(0)} ₺',
-                    style: AppTypography.body.copyWith(
-                      color:
-                          _selected == amount && _customController.text.isEmpty
-                          ? AppColors.textOnDark
-                          : AppColors.textPrimary,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        TextField(
-          controller: _customController,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[\d,\.]')),
-          ],
-          decoration: const InputDecoration(
-            hintText: 'Farklı tutar gir (₺)',
-            prefixIcon: Icon(
-              Icons.edit_outlined,
-              size: 20,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          onChanged: (_) => setState(() {}),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.credit_card, color: AppColors.primary),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(
-                  'Kayıtlı kart · Visa •${wallet.value?.cardLast4 ?? '····'}',
-                  style: AppTypography.body,
-                ),
-              ),
-              const Icon(
-                Icons.check_circle,
-                size: 20,
-                color: AppColors.success,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        FilledButton(
-          onPressed: ref.watch(topUpFlowProvider) || amount == null
-              ? null
-              : () => confirmTopUp(context, ref, amount),
-          child: Text(
-            amount == null ? 'Tutar seç' : 'Yükle · ${formatTl(amount)}',
-          ),
-        ),
-      ],
     );
   }
 }

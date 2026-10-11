@@ -1,3 +1,6 @@
+import type { z } from 'zod';
+import { apiErrorSchema, mutationResultSchema, refreshResponseSchema } from './schemas';
+
 /// Authenticated requests belong to the session that started them. A late
 /// response or refresh must never install data/tokens in a different account.
 const BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:3000';
@@ -78,7 +81,7 @@ async function refreshTokens(session: string, rejectedAccess: string | null): Pr
     assertSession(session);
     if (res.status === 401 || res.status === 403) return false;
     if (!res.ok) throw new ApiError('REFRESH_FAILED', res.status, 'Oturum yenilenemedi. Tekrar deneyin.');
-    const data = (await res.json()) as { token: string; refreshToken: string };
+    const data = await decodeResponse(res, refreshResponseSchema);
     assertSession(session);
     tokens.set(data.token, data.refreshToken);
     return true;
@@ -132,26 +135,40 @@ async function response(path: string, opts: ResponseOptions): Promise<{ res: Res
     if (res.status === 401) loseSession(session);
   }
   if (!res.ok) {
-    const payload = await res.json().catch(() => null) as { error?: ApiErrorShape } | null;
-    throw new ApiError(payload?.error?.code ?? 'INTERNAL', res.status,
-      payload?.error?.message ?? 'İşlem tamamlanamadı. Tekrar deneyin.');
+    const payload = apiErrorSchema.safeParse(await res.json().catch(() => null));
+    throw new ApiError(payload.success ? payload.data.error.code : 'INTERNAL', res.status,
+      payload.success ? payload.data.error.message : 'İşlem tamamlanamadı. Tekrar deneyin.');
   }
   return { res, session };
 }
-export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+async function decodeResponse<T>(res: Response, schema: z.ZodType<T>): Promise<T> {
+  const value: unknown = res.status === 204 ? {} : await res.json().catch(() => null);
+  const parsed = schema.safeParse(value);
+  if (!parsed.success) {
+    // Never echo the payload: it can contain customer details or credentials.
+    throw new ApiError('INVALID_RESPONSE', 502, 'Sunucudan beklenmeyen bir yanıt alındı. Sayfayı yenileyip tekrar deneyin.');
+  }
+  return parsed.data;
+}
+
+export async function readApi<T>(schema: z.ZodType<T>, path: string, opts: RequestOptions = {}): Promise<T> {
   const { res, session } = await response(path, opts);
-  const result = res.status === 204 ? undefined : await res.json();
+  const result = await decodeResponse(res, schema);
   if (!opts.anonymous) assertSession(session);
-  return result as T;
+  return result;
+}
+
+export function api(path: string, opts: RequestOptions = {}): Promise<Record<string, unknown>> {
+  return readApi(mutationResultSchema, path, opts);
 }
 
 // Uploads use the same timeout, refresh and session fence as JSON requests.
 // A Blob remains reusable if the first attempt needs an access-token refresh.
-export async function upload<T>(path: string, file: Blob, signal?: AbortSignal): Promise<T> {
+export async function upload<T>(schema: z.ZodType<T>, path: string, file: Blob, signal?: AbortSignal): Promise<T> {
   const { res, session } = await response(path, { method: 'POST', rawBody: file, signal });
-  const result = await res.json();
+  const result = await decodeResponse(res, schema);
   assertSession(session);
-  return result as T;
+  return result;
 }
 
 export function mediaUrl(value: string): string {

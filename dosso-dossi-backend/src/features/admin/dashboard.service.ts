@@ -1,18 +1,11 @@
 import { toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
+import { addBusinessDays, businessDayKey, businessHour, startOfBusinessDay } from '../../lib/business-time.js';
 
-/// Gün sınırı sunucunun yerel saatine göre; rapor "bugün" derken
-/// operasyonun günü kastediliyor (UTC değil).
-function startOfDay(d = new Date()): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
+const startOfDay = startOfBusinessDay;
 
 function daysAgo(n: number): Date {
-  const x = startOfDay();
-  x.setDate(x.getDate() - n);
-  return x;
+  return addBusinessDays(startOfDay(), -n);
 }
 
 export interface DashboardSummary {
@@ -28,8 +21,6 @@ export interface DashboardSummary {
 }
 
 /// Bugünün KPI'ları. branchId verilirse yalnız o şube (şube müdürü kapsamı).
-/// QR tahsilatları şubeye bağlı değil (PosCharge'da branch yok), bu yüzden
-/// şube filtresi verildiğinde QR cirosu 0 döner ve panelde gizlenir.
 export async function summary(branchId?: string): Promise<DashboardSummary> {
   const since = startOfDay();
   const scoped = branchId ? { branchId } : {};
@@ -40,13 +31,11 @@ export async function summary(branchId?: string): Promise<DashboardSummary> {
       _sum: { total: true },
       _count: true,
     }),
-    branchId
-      ? null
-      : prisma.posCharge.aggregate({
-          // VOIDED tahsilat ciroya sayılmaz
-          where: { createdAt: { gte: since }, status: 'APPROVED' },
-          _sum: { amount: true },
-        }),
+    prisma.posCharge.aggregate({
+      // VOIDED tahsilat ciroya sayılmaz; şube kapsamı siparişlerle aynıdır.
+      where: { createdAt: { gte: since }, status: 'APPROVED', ...scoped },
+      _sum: { amount: true },
+    }),
     branchId
       ? null
       : prisma.paymentIntent.aggregate({
@@ -98,19 +87,21 @@ export async function timeseries(
   branchId?: string,
 ): Promise<TimeseriesPoint[]> {
   const since = daysAgo(days - 1);
-  const rows = await prisma.order.findMany({
-    where: {
-      createdAt: { gte: since },
-      status: { not: 'CANCELLED' },
-      ...(branchId ? { branchId } : {}),
-    },
-    select: { createdAt: true, total: true },
-  });
+  const scoped = branchId ? { branchId } : {};
+  const [rows, charges] = await Promise.all([
+    prisma.order.findMany({
+      where: { createdAt: { gte: since }, status: { not: 'CANCELLED' }, ...scoped },
+      select: { createdAt: true, total: true },
+    }),
+    prisma.posCharge.findMany({
+      where: { createdAt: { gte: since }, status: 'APPROVED', ...scoped },
+      select: { createdAt: true, amount: true },
+    }),
+  ]);
 
   const buckets = new Map<string, { revenue: number; orders: number }>();
   for (let i = 0; i < days; i++) {
-    const d = new Date(since);
-    d.setDate(d.getDate() + i);
+    const d = addBusinessDays(since, i);
     buckets.set(isoDate(d), { revenue: 0, orders: 0 });
   }
   for (const row of rows) {
@@ -119,6 +110,10 @@ export async function timeseries(
     if (!b) continue;
     b.revenue += toMoney(row.total);
     b.orders += 1;
+  }
+  for (const charge of charges) {
+    const b = buckets.get(isoDate(charge.createdAt));
+    if (b) b.revenue += toMoney(charge.amount);
   }
   return [...buckets.entries()].map(([date, b]) => ({
     date,
@@ -142,17 +137,22 @@ export async function branchStats(branchId?: string): Promise<BranchStat[]> {
     where: branchId ? { id: branchId } : {},
     orderBy: { name: 'asc' },
   });
-  const grouped = await prisma.order.groupBy({
-    by: ['branchId'],
-    where: {
-      createdAt: { gte: since },
-      status: { not: 'CANCELLED' },
-      ...(branchId ? { branchId } : {}),
-    },
-    _sum: { total: true },
-    _count: true,
-  });
+  const scoped = branchId ? { branchId } : {};
+  const [grouped, charges] = await Promise.all([
+    prisma.order.groupBy({
+      by: ['branchId'],
+      where: { createdAt: { gte: since }, status: { not: 'CANCELLED' }, ...scoped },
+      _sum: { total: true },
+      _count: true,
+    }),
+    prisma.posCharge.groupBy({
+      by: ['branchId'],
+      where: { createdAt: { gte: since }, status: 'APPROVED', ...scoped },
+      _sum: { amount: true },
+    }),
+  ]);
   const byId = new Map(grouped.map((g) => [g.branchId, g]));
+  const chargesById = new Map(charges.map((g) => [g.branchId, toMoney(g._sum.amount ?? 0)]));
 
   return branches.map((b) => {
     const g = byId.get(b.id);
@@ -160,7 +160,7 @@ export async function branchStats(branchId?: string): Promise<BranchStat[]> {
       branchId: b.id,
       name: b.name,
       isOpen: b.isOpen,
-      revenue: toMoney(g?._sum.total ?? 0),
+      revenue: Number((toMoney(g?._sum.total ?? 0) + (chargesById.get(b.id) ?? 0)).toFixed(2)),
       orders: g?._count ?? 0,
     };
   });
@@ -183,7 +183,7 @@ export async function hourly(branchId?: string): Promise<HourlyPoint[]> {
   });
   const counts: number[] = new Array<number>(24).fill(0);
   for (const r of rows) {
-    const h = r.createdAt.getHours();
+    const h = businessHour(r.createdAt);
     counts[h] = (counts[h] ?? 0) + 1;
   }
   return counts.map((orders, hour) => ({ hour, orders }));
@@ -219,9 +219,4 @@ export async function alerts(branchId?: string): Promise<Alerts> {
   };
 }
 
-function isoDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
+const isoDate = businessDayKey;

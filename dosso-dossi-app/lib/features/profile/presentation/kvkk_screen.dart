@@ -1,59 +1,70 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/scrollable_page_scaffold.dart';
 
-/// KVKK aydınlatma metni — TASLAK. Yayın öncesi hukuk ekibinin onayladığı
-/// nihai metinle değiştirilmeli.
-class KvkkScreen extends StatelessWidget {
+/// Yalnızca işletmenin yayımladığı onaylı metne yönlendirilir.
+final privacyPolicyUriProvider = Provider<Uri?>((ref) {
+  return privacyPolicyUri(const String.fromEnvironment('PRIVACY_POLICY_URL'));
+});
+
+Uri? privacyPolicyUri(String value) {
+  final uri = Uri.tryParse(value.trim());
+  return uri != null &&
+          uri.scheme == 'https' &&
+          uri.host.isNotEmpty &&
+          uri.userInfo.isEmpty
+      ? uri
+      : null;
+}
+
+class KvkkScreen extends ConsumerWidget {
   const KvkkScreen({super.key});
 
-  static const _sections = [
-    (
-      title: 'Veri Sorumlusu',
-      body:
-          'Kişisel verileriniz, 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") '
-          'uyarınca veri sorumlusu sıfatıyla Dosso Dossi Coffee tarafından işlenmektedir.',
-    ),
-    (
-      title: 'İşlenen Veriler',
-      body:
-          'Üyelik ve sipariş süreçlerinde ad-soyad, telefon numarası, e-posta adresi, '
-          'sipariş ve ödeme geçmişi ile sadakat programı (damga/ikram) verileriniz işlenir.',
-    ),
-    (
-      title: 'İşleme Amaçları',
-      body:
-          'Verileriniz; siparişlerin alınması ve teslimi, Dosso Kart bakiye işlemleri, '
-          'sadakat kampanyalarının yürütülmesi, yasal yükümlülüklerin yerine getirilmesi '
-          've onay vermeniz hâlinde kampanya bildirimlerinin iletilmesi amacıyla işlenir.',
-    ),
-    (
-      title: 'Haklarınız',
-      body:
-          'KVKK m.11 kapsamında; verilerinize erişme, düzeltilmesini veya silinmesini isteme, '
-          'işlenmesine itiraz etme haklarına sahipsiniz. Başvurularınızı şubelerimiz veya '
-          'müşteri hizmetleri üzerinden iletebilirsiniz.',
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final policyUri = ref.watch(privacyPolicyUriProvider);
     return ScrollablePageScaffold(
       title: 'KVKK ve Gizlilik',
       children: [
         Text(
-          'Bu metin taslaktır; yayın öncesi hukuki onaydan geçmelidir.',
-          style: AppTypography.bodySecondary.copyWith(fontSize: 12),
+          policyUri == null
+              ? 'Gizlilik metnine şu anda erişilemiyor.'
+              : 'Kişisel verilerinle ilgili aydınlatma ve gizlilik metnini inceleyebilirsin.',
+          style: AppTypography.body,
         ),
         const SizedBox(height: AppSpacing.lg),
-        for (final section in _sections) ...[
-          Text(section.title, style: AppTypography.title),
-          const SizedBox(height: AppSpacing.sm),
-          Text(section.body, style: AppTypography.bodySecondary),
-          const SizedBox(height: AppSpacing.xl),
-        ],
+        if (policyUri == null)
+          Text(
+            'Bilgi almak için şubelerimizle iletişime geçebilirsin.',
+            style: AppTypography.bodySecondary,
+          )
+        else
+          FilledButton.icon(
+            icon: const Icon(Icons.open_in_new),
+            label: const Text('Gizlilik metnini aç'),
+            onPressed: () async {
+              var opened = false;
+              try {
+                opened = await launchUrl(
+                  policyUri,
+                  mode: LaunchMode.externalApplication,
+                );
+              } catch (_) {}
+              if (!opened && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Gizlilik metni açılamadı. Lütfen tekrar dene.',
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
       ],
     );
   }

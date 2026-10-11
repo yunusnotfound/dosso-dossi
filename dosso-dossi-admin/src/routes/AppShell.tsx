@@ -1,117 +1,84 @@
 import { useState } from 'react';
-import { api } from '../api/client';
-import { Drawer, Field, Input } from '../components/form';
-import { Button } from '../components/ui';
-import { NavLink, Outlet } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Coffee, Files, LayoutDashboard, LogOut, Megaphone, Menu, RadioTower, ReceiptText, Settings2, ShieldCheck, Store, Users, Wallet, X, type LucideIcon } from 'lucide-react';
 import { ROLE_LABELS, type AdminRole } from '../api/types';
+import { useAuth } from '../auth/auth-state';
+import { ChangePassword } from '../features/auth/ChangePassword';
 
 interface NavItem {
   to: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
+  group: 'Operasyon' | 'Müşteri & Finans' | 'Sistem';
   /// Menüyü görebilen roller. Boşsa herkes görür.
   roles?: AdminRole[];
 }
 
 const NAV: NavItem[] = [
-  { to: '/', label: 'Panel', icon: '◧' },
-  { to: '/siparisler', label: 'Siparişler', icon: '☕' },
-  { to: '/menu', label: 'Menü', icon: '≡' },
-  { to: '/subeler', label: 'Şubeler', icon: '⌂' },
-  { to: '/kampanyalar', label: 'Kampanyalar', icon: '◈' },
-  { to: '/musteriler', label: 'Müşteriler', icon: '☺', roles: ['SUPER_ADMIN', 'MANAGER', 'VIEWER'] },
-  { to: '/finans', label: 'Finans', icon: '₺', roles: ['SUPER_ADMIN', 'MANAGER', 'VIEWER'] },
-  { to: '/pos', label: 'POS İzleme', icon: '⇄', roles: ['SUPER_ADMIN', 'MANAGER', 'VIEWER'] },
+  { to: '/', label: 'Genel bakış', icon: LayoutDashboard, group: 'Operasyon' },
+  { to: '/siparisler', label: 'Siparişler', icon: ReceiptText, group: 'Operasyon' },
+  { to: '/menu', label: 'Menü', icon: Coffee, group: 'Operasyon' },
+  { to: '/subeler', label: 'Şubeler', icon: Store, group: 'Operasyon' },
+  { to: '/kampanyalar', label: 'Kampanyalar', icon: Megaphone, group: 'Operasyon' },
+  { to: '/musteriler', label: 'Müşteriler', icon: Users, group: 'Müşteri & Finans', roles: ['SUPER_ADMIN', 'MANAGER', 'VIEWER'] },
+  { to: '/hesap-talepleri', label: 'Hesap Talepleri', icon: Files, group: 'Müşteri & Finans', roles: ['SUPER_ADMIN', 'MANAGER', 'VIEWER'] },
+  { to: '/finans', label: 'Finans', icon: Wallet, group: 'Müşteri & Finans', roles: ['SUPER_ADMIN', 'MANAGER', 'VIEWER'] },
+  { to: '/pos', label: 'POS İzleme', icon: RadioTower, group: 'Sistem', roles: ['SUPER_ADMIN', 'MANAGER', 'VIEWER'] },
   // Yönetim yalnız süper yöneticide; audit ayrıca MANAGER'a da açık ama
   // sayfanın tamamı yönetici işlemleri içerdiği için burada kısıtlı.
-  { to: '/yonetim', label: 'Yönetim', icon: '⚙', roles: ['SUPER_ADMIN'] },
+  { to: '/yonetim', label: 'Yönetim', icon: Settings2, group: 'Sistem', roles: ['SUPER_ADMIN'] },
 ];
 
 export function AppShell() {
   const { admin, logout } = useAuth();
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
   const items = NAV.filter(
     (i) => !i.roles || (admin && i.roles.includes(admin.role)),
   );
 
+  const currentPage = items.find((item) => item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to))?.label ?? 'Yönetim paneli';
+  const initials = (admin?.email?.split('@')[0] || 'DD').slice(0, 2).toLocaleUpperCase('tr-TR');
   return (
-    <div className="flex min-h-screen bg-canvas">
-      <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col bg-coffee p-4">
-        <div className="px-2 py-3">
-          <p className="font-[family-name:--font-display] text-lg font-extrabold text-on-dark">
-            Dosso Dossi
-          </p>
-          <p className="text-xs text-on-dark-muted">Yönetim Paneli</p>
-        </div>
-
-        <nav className="mt-4 flex flex-1 flex-col gap-1 overflow-y-auto">
-          {items.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-[--radius-pill] px-3 py-2 text-sm font-medium transition ${
-                  isActive
-                    ? 'bg-brand text-white'
-                    : 'text-on-dark-muted hover:bg-white/10 hover:text-on-dark'
-                }`
-              }
-            >
-              <span aria-hidden="true" className="w-4 text-center">{item.icon}</span>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="rounded-[--radius-card] bg-white/5 p-3">
-          <p className="truncate text-sm font-semibold text-on-dark">{admin?.email}</p>
-          <p className="text-xs text-on-dark-muted">
-            {admin ? ROLE_LABELS[admin.role] : ''}
-          </p>
-          <button onClick={() => setPasswordOpen(true)} className="mt-2 block text-xs font-semibold text-on-dark-muted hover:underline">Şifremi değiştir</button>
-          <button
-            onClick={() => void logout()}
-            className="mt-2 text-xs font-semibold text-brand-light hover:underline"
-          >
-            Çıkış yap
+    <div className="min-h-screen bg-canvas md:flex">
+      <a href="#admin-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-chip focus:bg-surface focus:p-3">İçeriğe geç</a>
+      <aside className="admin-sidebar">
+        <div className="flex items-center justify-between gap-3 px-1">
+          <div className="flex items-center gap-3">
+            <img src="/brand/dosso-dossi-logo.png" alt="Dosso Dossi Coffee" className="size-11 rounded-full bg-surface object-contain" />
+            <div><p className="font-display text-[15px] font-extrabold tracking-tight">Dosso Dossi</p><p className="mt-1 text-[10px] tracking-[0.18em] text-on-dark-muted">COFFEE · ADMIN</p></div>
+          </div>
+          <button type="button" className="rounded-chip p-2 text-on-dark md:hidden" aria-expanded={mobileMenuOpen} aria-controls="admin-sidebar-content" aria-label={mobileMenuOpen ? 'Menüyü kapat' : 'Menüyü aç'} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
+        <div id="admin-sidebar-content" className={`${mobileMenuOpen ? 'flex' : 'hidden'} mt-8 min-h-0 flex-1 flex-col md:flex`}>
+          <nav aria-label="Ana menü" className="min-h-0 flex-1 space-y-6 overflow-y-auto pb-6">
+            {(['Operasyon', 'Müşteri & Finans', 'Sistem'] as const).map((group) => {
+              const groupItems = items.filter((item) => item.group === group);
+              return groupItems.length ? <div key={group}>
+                <p className="admin-section-label mb-2">{group}</p>
+                <div className="space-y-1">{groupItems.map(({ icon: Icon, ...item }) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className="admin-navigation-link" onClick={() => setMobileMenuOpen(false)}>
+                  <Icon size={18} strokeWidth={1.65} aria-hidden="true" />{item.label}
+                </NavLink>)}</div>
+              </div> : null;
+            })}
+          </nav>
+          <div className="border-t border-coffee-line px-2 pt-5">
+            <div className="flex items-center gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-full border border-coffee-line bg-coffee-raised text-xs font-semibold">{initials}</span><div className="min-w-0"><p className="truncate text-xs font-semibold">{admin?.email}</p><p className="mt-1 text-[11px] text-on-dark-muted">{admin ? ROLE_LABELS[admin.role] : ''}</p></div></div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><button onClick={() => setPasswordOpen(true)} className="text-[11px] text-on-dark-muted hover:text-on-dark">Şifremi değiştir</button><button onClick={() => void logout()} className="flex items-center gap-1.5 text-[11px] font-medium text-brand-light hover:text-on-dark"><LogOut size={13} aria-hidden="true" />Çıkış yap</button></div>
+          </div>
+        </div>
       </aside>
-
-      <main className="min-w-0 flex-1 p-8">
-        <Outlet />
-      </main>
+      <div className="min-w-0 flex-1">
+        <header className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-line bg-surface px-5 py-4 sm:px-7 xl:px-8">
+          <p className="flex items-center gap-3 text-xs text-ink-muted"><span>Yönetim paneli</span><span aria-hidden="true">/</span><span className="font-medium text-ink">{currentPage}</span></p>
+          <span className="hidden items-center gap-1.5 text-xs text-ink-muted sm:flex"><ShieldCheck size={15} aria-hidden="true" />{admin ? ROLE_LABELS[admin.role] : ''}</span>
+        </header>
+        <main id="admin-content" className="admin-page-content"><Outlet /></main>
+      </div>
       {passwordOpen ? <ChangePassword onClose={() => setPasswordOpen(false)} /> : null}
     </div>
   );
-}
-
-function ChangePassword({ onClose }: { onClose: () => void }) {
-  const { logout } = useAuth();
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmation, setConfirmation] = useState('');
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  return <Drawer open title="Şifremi değiştir" onClose={onClose}>
-    <form className="flex flex-col gap-4" onSubmit={async (e) => {
-      e.preventDefault();
-      if (newPassword !== confirmation) { setError('Yeni şifreler eşleşmiyor.'); return; }
-      setBusy(true); setError('');
-      try {
-        await api('/admin/auth/password', { method: 'POST', body: { currentPassword, newPassword } });
-        await logout('Şifreniz değiştirildi ve mevcut oturumlarınız kapatıldı. Yeni şifrenizle giriş yapın.');
-      } catch (err) { setError(err instanceof Error ? err.message : 'Şifre değiştirilemedi'); }
-      finally { setBusy(false); }
-    }}>
-      <p className="text-sm text-ink-muted">Değişiklik kaydedilince açık oturumlarınız kapatılır. Yeni şifrenizle yeniden giriş yapın.</p>
-      <Field label="Mevcut şifre"><Input type="password" autoComplete="current-password" required maxLength={200} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} /></Field>
-      <Field label="Yeni şifre" hint="En az 12 karakter."><Input type="password" autoComplete="new-password" required minLength={12} maxLength={200} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></Field>
-      <Field label="Yeni şifre (tekrar)"><Input type="password" autoComplete="new-password" required minLength={12} maxLength={200} value={confirmation} onChange={(e) => setConfirmation(e.target.value)} /></Field>
-      {error ? <p role="alert" className="text-sm text-bad">{error}</p> : null}
-      <Button type="submit" disabled={busy}>{busy ? 'Kaydediliyor…' : 'Şifreyi değiştir ve çıkış yap'}</Button>
-    </form>
-  </Drawer>;
 }

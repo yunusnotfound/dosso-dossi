@@ -2,12 +2,15 @@ import 'package:dio/dio.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/financial_receipt.dart';
+import '../../../core/network/history_page.dart';
+import '../../../core/diagnostics/app_telemetry.dart';
 import '../../branches/domain/branch.dart';
 import '../domain/cart.dart';
 import '../domain/order_record.dart';
 import 'order_repository.dart';
 
-class ApiOrderRepository implements OrderRepository {
+class ApiOrderRepository implements OrderRepository, PagedOrderRepository {
   ApiOrderRepository(this._dio);
 
   final Dio _dio;
@@ -18,30 +21,35 @@ class ApiOrderRepository implements OrderRepository {
     required String pickupLabel,
     required CartState cart,
   }) {
-    return apiCall(() async {
-      final res = await _dio.post<Map<String, dynamic>>(
-        ApiEndpoints.orders,
-        data: {
-          'branchId': branch.id,
-          'expectedTotal': double.parse(cart.total.toStringAsFixed(2)),
-          'pickupSlot': pickupLabel,
-          'items': [
-            for (final item in cart.items)
-              {
-                'productId': item.product.id,
-                'quantity': item.quantity,
-                'size': '',
-                'milk': item.product.hasOptions ? item.milk.name : '',
-                'shot': item.product.hasOptions ? item.shot.name : '',
-              },
-          ],
-          if (cart.promoCode != null) 'promoCode': cart.promoCode,
-          'useFreeDrink': cart.useFreeDrink,
-          'payment': {'method': 'dosso_card'},
-        },
-      );
-      return _orderFromJson(res.data!);
-    });
+    return postFinancialReceipt(
+      dio: _dio,
+      path: ApiEndpoints.orders,
+      operation: TelemetryOperation.orderReceipt,
+      decode: _orderFromJson,
+      unconfirmed: const ApiException(
+        code: 'ORDER_RESPONSE_UNCONFIRMED',
+        message:
+            'Sipariş sonucu doğrulanamadı. Aynı siparişin sonucunu tekrar kontrol et.',
+      ),
+      data: {
+        'branchId': branch.id,
+        'expectedTotal': double.parse(cart.total.toStringAsFixed(2)),
+        'pickupSlot': pickupLabel,
+        'items': [
+          for (final item in cart.items)
+            {
+              'productId': item.product.id,
+              'quantity': item.quantity,
+              'size': '',
+              'milk': item.product.hasOptions ? item.milk.name : '',
+              'shot': item.product.hasOptions ? item.shot.name : '',
+            },
+        ],
+        if (cart.promoCode != null) 'promoCode': cart.promoCode,
+        'useFreeDrink': cart.useFreeDrink,
+        'payment': {'method': 'dosso_card'},
+      },
+    );
   }
 
   @override
@@ -54,6 +62,23 @@ class ApiOrderRepository implements OrderRepository {
       ];
     });
   }
+
+  @override
+  Future<HistoryPage<OrderRecord>> getOrdersPage({String? cursor}) =>
+      apiCall(() async {
+        final response = await _dio.get<Map<String, dynamic>>(
+          ApiEndpoints.orders,
+          queryParameters: {'paginated': true, 'limit': 20, 'cursor': ?cursor},
+        );
+        final data = response.data!;
+        return HistoryPage(
+          items: [
+            for (final item in data['items'] as List)
+              _orderFromJson(item as Map<String, dynamic>),
+          ],
+          nextCursor: data['nextCursor'] as String?,
+        );
+      });
 
   @override
   Future<OrderRecord> getOrder(String id) {

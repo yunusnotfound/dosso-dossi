@@ -1,16 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { api, ApiError, SESSION_KEY, setSessionLostHandler, tokens } from '../api/client';
-import type { AdminProfile, LoginResponse } from '../api/types';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { api, ApiError, readApi, SESSION_KEY, setSessionLostHandler, tokens } from '../api/client';
+import { adminProfileSchema, loginResponseSchema } from '../api/schemas';
+import type { AdminProfile } from '../api/types';
+import { AuthContext } from './auth-state';
 
-interface AuthState {
-  admin: AdminProfile | null;
-  loading: boolean;
-  sessionKey: string;
-  notice: string;
-  login: (email: string, password: string) => Promise<void>;
-  logout: (message?: string) => Promise<void>;
-}
-const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       try {
         if (!tokens.access) return;
-        const me = await api<AdminProfile>('/admin/auth/me');
+        const me = await readApi(adminProfileSchema, '/admin/auth/me');
         if (!cancelled && current === attempt.current) setAdmin(me);
       } catch (error) {
         if (!cancelled && current === attempt.current) {
@@ -63,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const current = ++attempt.current;
-    const res = await api<LoginResponse>('/admin/auth/login', {
+    const res = await readApi(loginResponseSchema, '/admin/auth/login', {
       method: 'POST', anonymous: true,
       body: { email, password, deviceInfo: navigator.userAgent.slice(0, 120) },
     });
@@ -90,9 +83,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [drop]);
   const value = useMemo(() => ({ admin, loading, sessionKey, notice, login, logout }), [admin, loading, sessionKey, notice, login, logout]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-export function useAuth(): AuthState {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth, AuthProvider içinde kullanılmalı');
-  return ctx;
 }

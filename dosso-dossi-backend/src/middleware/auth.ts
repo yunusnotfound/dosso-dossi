@@ -7,11 +7,13 @@ import { AppError } from '../lib/errors.js';
 declare module 'express-serve-static-core' {
   interface Request {
     userId: string;
+    userTokenVersion: number;
+    userSessionFamily?: string;
   }
 }
 
-export function signToken(userId: string, tokenVersion = 0): string {
-  return jwt.sign({ sub: userId, v: tokenVersion }, env.JWT_SECRET, {
+export function signToken(userId: string, tokenVersion = 0, familyId?: string): string {
+  return jwt.sign({ sub: userId, v: tokenVersion, ...(familyId ? { sid: familyId } : {}) }, env.JWT_SECRET, {
     expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
   });
 }
@@ -23,21 +25,27 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
   try {
     const parsed = jwt.verify(header.slice(7), env.JWT_SECRET, { algorithms: ['HS256'] });
     if (typeof parsed === 'string' || typeof parsed.sub !== 'string' ||
-        (parsed.v !== undefined && !Number.isInteger(parsed.v))) {
+        (parsed.v !== undefined && !Number.isInteger(parsed.v)) ||
+        (parsed.sid !== undefined && typeof parsed.sid !== 'string')) {
       next(AppError.unauthorized()); return;
     }
     payload = parsed;
   } catch { next(AppError.unauthorized('Oturum süresi doldu, yeniden giriş yapın')); return; }
   try {
     const user = await prisma.user.findUnique({
-      where: { id: payload.sub! }, select: { id: true, tokenVersion: true, isBlocked: true },
+      where: { id: payload.sub! }, select: { id: true, tokenVersion: true, isBlocked: true, closedAt: true },
     });
     // Önceki sürümün token'ları version=0 hesaplarda geçerli kalır.
-    if (!user || user.tokenVersion !== (payload.v ?? 0)) { next(AppError.unauthorized()); return; }
+    if (!user || user.closedAt || user.tokenVersion !== (payload.v ?? 0)) { next(AppError.unauthorized()); return; }
+    if (payload.sid && !await prisma.refreshToken.findFirst({
+      where: { userId: user.id, familyId: payload.sid, familyRevokedAt: null, expiresAt: { gt: new Date() } }, select: { id: true },
+    })) { next(AppError.unauthorized()); return; }
     if (user.isBlocked && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
       next(AppError.accountBlocked()); return;
     }
     req.userId = user.id;
+    req.userTokenVersion = payload.v ?? 0;
+    req.userSessionFamily = payload.sid;
     next();
   } catch (error) { next(error); }
 }

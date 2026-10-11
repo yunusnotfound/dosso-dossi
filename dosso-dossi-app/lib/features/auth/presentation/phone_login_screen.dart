@@ -34,13 +34,13 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
   }
 
   Future<void> _sendCode() async {
+    if (_sending || !_isValid) return;
+    final phone = _phoneController.text;
     setState(() => _sending = true);
     try {
-      await ref
-          .read(authControllerProvider.notifier)
-          .sendOtp(_phoneController.text);
+      await ref.read(authControllerProvider.notifier).sendOtp(phone);
       if (!mounted) return;
-      context.go('${Routes.otp}?tel=${_phoneController.text}');
+      context.go('${Routes.otp}?tel=${Uri.encodeQueryComponent(phone)}');
     } catch (e) {
       if (mounted) showApiError(context, e);
     } finally {
@@ -67,6 +67,7 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
             const SizedBox(height: AppSpacing.xxl),
             TextField(
               controller: _phoneController,
+              enabled: !_sending,
               autofocus: true,
               keyboardType: TextInputType.phone,
               inputFormatters: [

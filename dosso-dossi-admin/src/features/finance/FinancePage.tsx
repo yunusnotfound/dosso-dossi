@@ -1,62 +1,15 @@
-import { useState } from 'react';
-import { useAuth } from '../../auth/AuthContext';
-import { addDateRange } from '../../api/filters';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiError, api } from '../../api/client';
+import { useState } from 'react';
+import { ApiError, readApi } from '../../api/client';
+import { addDateRange } from '../../api/filters';
+import { fmtNum, fmtTL } from '../../api/format';
+import type { Charge, LedgerEntry, Payment, ReconRow } from '../../api/schemas';
+import { chargeSchema, chargeVoidResultSchema, ledgerSchema, paymentSchema, reconRowSchema } from '../../api/schemas';
+import { useAuth } from '../../auth/auth-state';
+import { DownloadMenu } from '../../components/DownloadMenu';
 import { Input, ReasonDialog, Select, Tabs } from '../../components/form';
 import { DataTable, PageHeader, Pager, type Column } from '../../components/table';
-import { Badge, fmtNum, fmtTL } from '../../components/ui';
-import { DownloadMenu } from '../../components/DownloadMenu';
-
-interface LedgerEntry {
-  id: string;
-  type: string;
-  amount: number;
-  balanceAfter: number;
-  note: string;
-  customerName: string;
-  customerPhone: string;
-  createdAt: string;
-}
-
-interface Ledger {
-  page: number;
-  pageSize: number;
-  total: number;
-  totalsByType: { type: string; count: number; amount: number }[];
-  entries: LedgerEntry[];
-}
-
-interface Payment {
-  id: string;
-  amount: number;
-  status: string;
-  provider: string;
-  providerRef: string | null;
-  bonusDrinks: number;
-  customerName: string;
-  customerPhone: string;
-  createdAt: string;
-  confirmedAt: string | null;
-}
-
-interface Charge {
-  id: string;
-  amount: number;
-  status: string;
-  saleRef: string | null;
-  customerName: string;
-  customerPhone: string;
-  createdAt: string;
-}
-
-interface ReconRow {
-  date: string;
-  ourCount: number;
-  ourAmount: number;
-  posMatched: number;
-  missingSaleRef: number;
-}
+import { Badge, } from '../../components/ui';
 
 const TX_LABEL: Record<string, string> = {
   TOPUP: 'Yükleme',
@@ -65,10 +18,11 @@ const TX_LABEL: Record<string, string> = {
   GIFT_RECEIVED: 'Hediye alımı',
   QR_PAYMENT: 'QR ödemesi',
   REFUND: 'İade',
+  ADJUSTMENT: 'Bakiye düzeltmesi',
 };
 
 const fmtDate = (iso: string) =>
-  new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(
+  new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', dateStyle: 'short', timeStyle: 'short' }).format(
     new Date(iso),
   );
 
@@ -110,12 +64,12 @@ function LedgerTab() {
   const q = useQuery({
     queryKey: ['ledger', { type, page, search, from, to }],
     enabled: validDates,
-    queryFn: () => {
+    queryFn: ({ signal }) => {
       const p = new URLSearchParams({ page: String(page), pageSize: '50' });
       if (type) p.set('type', type);
       if (search) p.set('q', search);
       addDateRange(p, from, to);
-      return api<Ledger>(`/admin/finance/ledger?${p}`);
+      return readApi(ledgerSchema, `/admin/finance/ledger?${p}`, { signal });
     },
   });
 
@@ -191,17 +145,16 @@ function LedgerTab() {
         </div>
       </div>
       {!validDates ? <p role="alert" className="text-sm text-bad">Bitiş tarihi başlangıçtan önce olamaz.</p> : null}
-      {q.error ? <p role="alert" className="text-sm text-bad">Hareketler yüklenemedi. <button onClick={() => void q.refetch()}>Yeniden dene</button></p> : null}
       <DataTable
         columns={columns}
         rows={q.data?.entries}
         rowKey={(e) => e.id}
-        loading={q.isLoading}
+        loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()}
       />
       <Pager
         page={q.data?.page ?? 1}
         pageSize={q.data?.pageSize ?? 50}
-        total={q.data?.total ?? 0}
+        total={q.data?.total}
         onPage={setPage}
       />
     </>
@@ -211,7 +164,7 @@ function LedgerTab() {
 function PaymentsTab() {
   const q = useQuery({
     queryKey: ['payments'],
-    queryFn: () => api<Payment[]>('/admin/finance/payments'),
+    queryFn: ({ signal }) => readApi(paymentSchema.array(), '/admin/finance/payments', { signal }),
   });
 
   const tone = (s: string) =>
@@ -246,7 +199,7 @@ function PaymentsTab() {
   ];
 
   return (
-    <DataTable columns={columns} rows={q.data} rowKey={(p) => p.id} loading={q.isLoading} />
+    <DataTable columns={columns} rows={q.data} rowKey={(p) => p.id} loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()} />
   );
 }
 
@@ -259,12 +212,12 @@ function ChargesTab() {
 
   const q = useQuery({
     queryKey: ['charges'],
-    queryFn: () => api<Charge[]>('/admin/finance/charges'),
+    queryFn: ({ signal }) => readApi(chargeSchema.array(), '/admin/finance/charges', { signal }),
   });
 
   const doVoid = useMutation({
     mutationFn: (reason: string) =>
-      api(`/admin/finance/charges/${voidId}/void`, { method: 'POST', body: { reason } }),
+      readApi(chargeVoidResultSchema, `/admin/finance/charges/${voidId}/void`, { method: 'POST', body: { reason } }),
     onSuccess: () => {
       setVoidId(null);
       setError('');
@@ -320,7 +273,7 @@ function ChargesTab() {
         İptal penceresi 15 dakikadır; süresi geçmiş tahsilat sunucu tarafından
         reddedilir.
       </p>
-      <DataTable columns={columns} rows={q.data} rowKey={(c) => c.id} loading={q.isLoading} />
+      <DataTable columns={columns} rows={q.data} rowKey={(c) => c.id} loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()} />
       <ReasonDialog
         open={!!voidId}
         title="Tahsilatı iptal et"
@@ -339,7 +292,7 @@ function ReconTab() {
   const [days, setDays] = useState(7);
   const q = useQuery({
     queryKey: ['recon', days],
-    queryFn: () => api<ReconRow[]>(`/admin/finance/reconciliation?days=${days}`),
+    queryFn: ({ signal }) => readApi(reconRowSchema.array(), `/admin/finance/reconciliation?days=${days}`, { signal }),
   });
 
   const columns: Column<ReconRow>[] = [
@@ -377,7 +330,7 @@ function ReconTab() {
           Eşleşmeyen satırlar, POS tarafında karşılığı bulunamayan QR tahsilatlarıdır.
         </p>
       </div>
-      <DataTable columns={columns} rows={q.data} rowKey={(r) => r.date} loading={q.isLoading} />
+      <DataTable columns={columns} rows={q.data} rowKey={(r) => r.date} loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()} />
     </>
   );
 }

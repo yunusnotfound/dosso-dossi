@@ -6,6 +6,7 @@ import '../storage/local_storage.dart';
 import 'api_endpoints.dart';
 import 'mutation_intents.dart';
 import 'session_scope.dart';
+import '../diagnostics/app_telemetry.dart';
 
 final onUnauthorizedProvider = Provider<void Function()?>((ref) => null);
 
@@ -166,10 +167,12 @@ class AuthInterceptor extends Interceptor {
       );
       return saved ? _RefreshResult.renewed : _RefreshResult.superseded;
     } on DioException catch (error) {
+      appTelemetry.report(TelemetryOperation.authenticationRefresh, error);
       return {400, 401, 403}.contains(error.response?.statusCode)
           ? _RefreshResult.rejected
           : _RefreshResult.unavailable;
-    } catch (_) {
+    } catch (error) {
+      appTelemetry.report(TelemetryOperation.authenticationRefresh, error);
       return _RefreshResult.unavailable;
     }
   }

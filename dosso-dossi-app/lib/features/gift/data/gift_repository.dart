@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/network/history_page.dart';
 import '../domain/gift_record.dart';
 import 'api_gift_repository.dart';
 
@@ -17,6 +18,16 @@ abstract interface class GiftRepository {
   });
 
   Future<List<GiftRecord>> getGifts();
+}
+
+/// API capability for reconciling gifts addressed to the signed-in account.
+/// Kept separate from outgoing history so local repositories remain read-only.
+abstract interface class GiftClaimRepository {
+  Future<int> claimReceivedGifts();
+}
+
+abstract interface class PagedGiftRepository {
+  Future<HistoryPage<GiftRecord>> getGiftsPage({String? cursor});
 }
 
 final giftRepositoryProvider = Provider<GiftRepository>((ref) {

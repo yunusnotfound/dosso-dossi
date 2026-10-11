@@ -9,10 +9,11 @@ const stateSchema = z.object({
 export type LoyaltyState = z.infer<typeof stateSchema>;
 const base = { version: z.literal(1), before: stateSchema };
 const journalSchema = z.discriminatedUnion('kind', [
-  z.object({ ...base, kind: z.literal('purchase'), stampsEarned: z.number().int().nonnegative(), consumeFreeDrink: z.boolean(), nextTarget: z.number().int().positive() }),
+  z.object({ ...base, kind: z.literal('purchase'), stampsEarned: z.number().int().nonnegative(), consumeFreeDrink: z.boolean(), nextTarget: z.number().int().positive(), chargeId: z.string().optional() }),
   z.object({ ...base, kind: z.literal('grant'), freeDrinks: z.number().int().positive() }),
   z.object({ ...base, kind: z.literal('set'), target: z.number().int().positive(), stamps: z.number().int().nonnegative().optional(), freeDrinks: z.number().int().nonnegative().optional() }),
   z.object({ ...base, kind: z.literal('cancel'), orderId: z.string(), after: stateSchema.optional() }),
+  z.object({ ...base, kind: z.literal('void'), chargeId: z.string(), purchaseEventIds: z.array(z.string()), after: stateSchema }),
   z.object({ ...base, kind: z.literal('checkpoint'), after: stateSchema, reason: z.string() }),
 ]);
 type Journal = z.infer<typeof journalSchema>;
@@ -46,15 +47,79 @@ export async function reverseOrderLoyalty(
   account: LoyaltyAccount,
   order: { id: string; stampsEarned: number; usedFreeDrink: boolean },
 ): Promise<{ state: LoyaltyState; mode: ReversalMode }> {
-  if (order.stampsEarned === 0 && !order.usedFreeDrink) return { state: loyaltyState(account), mode: 'journal' };
+  return reversePurchases(tx, account, { ...order, orderId: order.id });
+}
+
+/** Legacy QR purchases can be identified by the committed sale event and exact display title. */
+export async function chargePurchases(
+  tx: Prisma.TransactionClient,
+  accountId: string,
+  charge: { id: string; qrCode: string },
+) {
+  const sales = await tx.posEvent.findMany({
+    where: {
+      source: 'kerzz', eventType: 'sale', status: 'PROCESSED',
+      OR: [
+        { payload: { path: ['customer', 'chargeId'], equals: charge.id } },
+        { payload: { path: ['customer', 'qrCode'], equals: charge.qrCode } },
+      ],
+    },
+  });
+  const titles = sales.flatMap((sale) => {
+    const response = sale.response as { stampsEarned?: unknown } | null;
+    return typeof response?.stampsEarned === 'number'
+      ? [`${response.stampsEarned} damga — Kasadan satış ${sale.externalId}`] : [];
+  });
+  return tx.loyaltyEvent.findMany({
+    where: {
+      accountId, type: 'STAMPS_EARNED',
+      OR: [
+        { metadata: { path: ['chargeId'], equals: charge.id } },
+        { title: { in: titles } },
+      ],
+    },
+  });
+}
+
+export async function reverseChargeLoyalty(
+  tx: Prisma.TransactionClient,
+  account: LoyaltyAccount,
+  charge: { id: string; qrCode: string },
+) {
+  const purchases = await chargePurchases(tx, account.id, charge);
+  let stampsEarned = 0;
+  for (const event of purchases) {
+    const parsed = journalSchema.safeParse(event.metadata);
+    if (parsed.success && parsed.data.kind === 'purchase') {
+      stampsEarned += parsed.data.stampsEarned;
+    } else {
+      // The old display row is associated through a committed POS response.
+      stampsEarned += Number(/^(\d+) damga — /.exec(event.title)?.[1] ?? 0);
+    }
+  }
+  const purchaseEventIds = purchases.map((event) => event.id);
+  const reversal = await reversePurchases(tx, account, {
+    eventIds: purchaseEventIds, stampsEarned, usedFreeDrink: false,
+  });
+  return { ...reversal, purchaseEventIds, stampsReverted: stampsEarned };
+}
+
+async function reversePurchases(
+  tx: Prisma.TransactionClient,
+  account: LoyaltyAccount,
+  purchase: { orderId?: string; eventIds?: string[]; stampsEarned: number; usedFreeDrink: boolean },
+): Promise<{ state: LoyaltyState; mode: ReversalMode }> {
+  if (purchase.stampsEarned === 0 && !purchase.usedFreeDrink) return { state: loyaltyState(account), mode: 'journal' };
   const events = await tx.loyaltyEvent.findMany({
     where: { accountId: account.id }, orderBy: { sequence: 'asc' },
   });
   const parsed = events.map((event) => ({ event, parsed: journalSchema.safeParse(event.metadata) }));
-  const targetIndex = parsed.findIndex(({ event, parsed: entry }) => event.orderId === order.id && entry.success && entry.data.kind === 'purchase');
+  const targetIds = new Set(purchase.eventIds ?? []);
+  const targetIndex = parsed.findIndex(({ event, parsed: entry }) =>
+    (targetIds.has(event.id) || (purchase.orderId && event.orderId === purchase.orderId)) && entry.success && entry.data.kind === 'purchase');
   const fallback = (mode: ReversalMode) => {
     const total = Math.max(0, account.stamps + account.freeDrinks * account.target
-      - order.stampsEarned + (order.usedFreeDrink ? account.target : 0));
+      - purchase.stampsEarned + (purchase.usedFreeDrink ? account.target : 0));
     return { state: { stamps: total % account.target, target: account.target, freeDrinks: Math.floor(total / account.target) }, mode };
   };
   if (targetIndex < 0) return fallback('legacy');
@@ -93,7 +158,7 @@ export async function reverseOrderLoyalty(
         stamps: Math.min(mutation.stamps ?? recorded.stamps, mutation.target - 1),
         freeDrinks: mutation.freeDrinks ?? recorded.freeDrinks,
       };
-    } else if (mutation.kind === 'cancel' && mutation.after) {
+    } else if ((mutation.kind === 'cancel' || mutation.kind === 'void') && mutation.after) {
       recorded = mutation.after;
     } else {
       return fallback('mixed_history');
@@ -106,7 +171,12 @@ export async function reverseOrderLoyalty(
   const cancelled = new Set((await tx.order.findMany({
     where: { id: { in: purchaseIds }, status: 'CANCELLED' }, select: { id: true },
   })).map((row) => row.id));
-  cancelled.add(order.id);
+  if (purchase.orderId) cancelled.add(purchase.orderId);
+  for (const { parsed: entry } of parsed.slice(startIndex)) {
+    if (entry.success && entry.data.kind === 'void') {
+      for (const id of entry.data.purchaseEventIds) targetIds.add(id);
+    }
+  }
   for (const { event, parsed: entry } of parsed.slice(startIndex)) {
     if (!entry.success) {
       // These are display rows for a structured purchase, not separate account mutations.
@@ -115,8 +185,9 @@ export async function reverseOrderLoyalty(
     }
     const mutation = entry.data;
     if (mutation.kind === 'checkpoint') return fallback('mixed_history');
-    if (mutation.kind === 'cancel') continue; // Cancelled purchases are excluded above.
+    if (mutation.kind === 'cancel' || mutation.kind === 'void') continue;
     if (mutation.kind === 'purchase') {
+      if (targetIds.has(event.id)) continue;
       if (event.orderId && cancelled.has(event.orderId)) continue;
       state = purchaseState(state, mutation.stampsEarned, mutation.consumeFreeDrink, mutation.nextTarget).state;
     } else if (mutation.kind === 'grant') {

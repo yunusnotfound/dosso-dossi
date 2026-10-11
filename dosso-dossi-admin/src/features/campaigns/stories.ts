@@ -1,18 +1,5 @@
-export type StoryAction = 'none' | 'kahve-ictikce' | 'yukle-kazan' | 'online-magaza' | 'siparis';
-export interface CampaignStory {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  action: StoryAction;
-  actionLabel: string;
-  sortOrder: number;
-  isActive: boolean;
-  startsAt: string | null;
-  endsAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { CampaignStory, StoryAction } from '../../api/schemas';
+
 export type StoryInput = Omit<CampaignStory, 'id' | 'createdAt' | 'updatedAt'> & { id?: string };
 export const STORY_ACTIONS: Record<StoryAction, string> = {
   none: 'Yalnız hikâyeyi göster',
@@ -67,3 +54,5 @@ export function localDateTime(value: string | null): string {
 export function isoDateTime(value: string): string | null {
   return value && Number.isFinite(new Date(value).getTime()) ? new Date(value).toISOString() : null;
 }
+
+export type { CampaignStory, StoryAction } from '../../api/schemas';

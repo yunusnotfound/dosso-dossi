@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, tokens, upload } from '../../api/client';
+import { storyImageSchema } from '../../api/schemas';
 import { Checkbox, Drawer, Field, Input, Select, Textarea } from '../../components/form';
 import { Badge, Button } from '../../components/ui';
 import { StoryThumbnail } from './StoryThumbnail';
@@ -43,7 +44,7 @@ export function StoryDrawer({ initial, onClose, onSaved }: { initial: StoryInput
     inFlight.current.add(controller);
     setUploading(true); setError('');
     try {
-      const result = await upload<{ imageUrl: string }>('/admin/campaign-stories/image', file, controller.signal);
+      const result = await upload(storyImageSchema, '/admin/campaign-stories/image', file, controller.signal);
       if (current() && uploadRequest.current === controller) setForm((previous) => ({ ...previous, imageUrl: result.imageUrl }));
     } catch (err) {
       if (current() && uploadRequest.current === controller && !controller.signal.aborted) setError(err instanceof Error ? err.message : 'Görsel yüklenemedi.');
@@ -72,12 +73,12 @@ export function StoryDrawer({ initial, onClose, onSaved }: { initial: StoryInput
   };
   return <Drawer open title={initial.id ? 'Hikâyeyi düzenle' : 'Yeni hikâye'} onClose={close} footer={<div className="flex justify-end gap-2"><Button variant="ghost" onClick={close}>Vazgeç</Button><Button onClick={() => void save()} disabled={saving || uploading}>{saving ? 'Kaydediliyor…' : 'Hikâyeyi kaydet'}</Button></div>}>
     <div className="flex flex-col gap-5">
-      <div className="flex items-center gap-4 rounded-[--radius-card] bg-surface p-4"><StoryThumbnail {...form} /><div><Badge tone="gold">Ana sayfa önizlemesi</Badge><p className="mt-2 font-semibold text-ink">{form.title || 'Hikâye başlığı'}</p><p className="mt-1 text-xs text-ink-muted">Misafirler ve üyeler görebilir.</p></div></div>
+      <div className="flex items-center gap-4 rounded-card bg-surface p-4"><StoryThumbnail {...form} /><div><Badge tone="gold">Ana sayfa önizlemesi</Badge><p className="mt-2 font-semibold text-ink">{form.title || 'Hikâye başlığı'}</p><p className="mt-1 text-xs text-ink-muted">Misafirler ve üyeler görebilir.</p></div></div>
       <Field label="Hikâye başlığı" hint="Dairenin altında görünür. En fazla 60 karakter."><Input autoFocus maxLength={60} value={form.title} disabled={saving} onChange={(e) => set('title', e.target.value)} /></Field>
       <Field label="Hikâye açıklaması" hint="Hikâye açıldığında gösterilir. En fazla 400 karakter."><Textarea rows={3} maxLength={400} value={form.description} disabled={saving} onChange={(e) => set('description', e.target.value)} /></Field>
       <Field label="Bağlantı hedefi"><Select value={form.action} disabled={saving} onChange={(e) => set('action', e.target.value as StoryAction)}>{Object.entries(STORY_ACTIONS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field>
       {form.action !== 'none' ? <Field label="Düğme metni"><Input maxLength={40} value={form.actionLabel} disabled={saving} onChange={(e) => set('actionLabel', e.target.value)} /></Field> : null}
-      <div className="flex flex-col gap-3 rounded-[--radius-card] bg-surface p-4">
+      <div className="flex flex-col gap-3 rounded-card bg-surface p-4">
         <Field label="Görsel yükle" hint="PNG, JPEG veya WebP · En fazla 10 MB. Dairede kırpılır; hikâye açıldığında görselin tamamı gösterilir."><Input aria-label="Görsel yükle" type="file" accept="image/png,image/jpeg,image/webp" disabled={saving} onChange={(e) => { void uploadImage(e.target.files?.[0]); e.target.value = ''; }} /></Field>
         {uploading ? <p role="status" className="text-sm text-brand">Görsel yükleniyor…</p> : null}
         <Field label="Görsel adresi" hint={hasBuiltInArtwork(form.action) ? 'Boş bırakılırsa mevcut kampanyanın uygulamadaki tasarımı kullanılır.' : 'Görsel yükleyin veya bir HTTPS görsel adresi girin.'}><Input type="url" maxLength={2048} value={form.imageUrl} disabled={saving || uploading} placeholder="https://… veya yüklenen görsel" onChange={(e) => set('imageUrl', e.target.value)} /></Field>
@@ -87,7 +88,7 @@ export function StoryDrawer({ initial, onClose, onSaved }: { initial: StoryInput
       <div className="grid gap-4 sm:grid-cols-2"><Field label="Yayın başlangıcı"><Input type="datetime-local" value={localDateTime(form.startsAt)} disabled={saving} onChange={(e) => set('startsAt', isoDateTime(e.target.value))} /></Field><Field label="Yayın bitişi"><Input type="datetime-local" value={localDateTime(form.endsAt)} disabled={saving} onChange={(e) => set('endsAt', isoDateTime(e.target.value))} /></Field></div>
       <p className="-mt-3 text-xs text-ink-muted">Tarihler cihazınızın yerel saatine göredir. Bitiş boşsa hikâye süresiz kalır; 24 saatte otomatik silinmez.</p>
       <Checkbox label="Uygulamada yayınla" checked={form.isActive} disabled={saving} onChange={(value) => set('isActive', value)} />
-      {error ? <p role="alert" className="rounded-[--radius-chip] bg-bad-soft px-3 py-2 text-sm text-bad">{error}</p> : null}
+      {error ? <p role="alert" className="rounded-chip bg-bad-soft px-3 py-2 text-sm text-bad">{error}</p> : null}
     </div>
   </Drawer>;
 }

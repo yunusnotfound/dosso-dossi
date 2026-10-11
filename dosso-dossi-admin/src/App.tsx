@@ -1,19 +1,22 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { AuthProvider, useAuth } from './auth/AuthContext';
+import { AuthProvider } from './auth/AuthContext';
+import { useAuth } from './auth/auth-state';
+import { Spinner } from './components/ui';
+import { ChangePassword } from './features/auth/ChangePassword';
 import { LoginPage } from './features/auth/LoginPage';
+import { AppShell } from './routes/AppShell';
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const OrdersPage = lazy(() => import('./features/orders/OrdersPage').then((m) => ({ default: m.OrdersPage })));
 const MenuPage = lazy(() => import('./features/menu/MenuPage').then((m) => ({ default: m.MenuPage })));
 const BranchesPage = lazy(() => import('./features/branches/BranchesPage').then((m) => ({ default: m.BranchesPage })));
 const CampaignsPage = lazy(() => import('./features/campaigns/CampaignsPage').then((m) => ({ default: m.CampaignsPage })));
 const CustomersPage = lazy(() => import('./features/customers/CustomersPage').then((m) => ({ default: m.CustomersPage })));
+const AccountRequestsPage = lazy(() => import('./features/account-requests/AccountRequestsPage').then((m) => ({ default: m.AccountRequestsPage })));
 const FinancePage = lazy(() => import('./features/finance/FinancePage').then((m) => ({ default: m.FinancePage })));
 const PosPage = lazy(() => import('./features/pos/PosPage').then((m) => ({ default: m.PosPage })));
 const AdminsPage = lazy(() => import('./features/admins/AdminsPage').then((m) => ({ default: m.AdminsPage })));
-import { AppShell } from './routes/AppShell';
-import { Spinner } from './components/ui';
 
 const createQueryClient = () => new QueryClient({
   defaultOptions: {
@@ -55,9 +58,10 @@ function SuperOnly({ children }: { children: ReactNode }) {
 /// Oturum yoksa login; varsa panel kabuğu. İlk açılışta saklı token
 /// doğrulanana kadar hiçbir yere yönlendirme yapılmaz (yanıp sönmesin).
 function Gate() {
-  const { admin, loading } = useAuth();
+  const { admin, loading, logout } = useAuth();
   if (loading) return <Spinner />;
   if (!admin) return <LoginPage />;
+  if (admin.mustChangePassword) return <ChangePassword required onClose={() => void logout()} />;
 
   return (
     <Routes>
@@ -68,6 +72,7 @@ function Gate() {
         <Route path="/subeler" element={<BranchesPage />} />
         <Route path="/kampanyalar" element={<CampaignsPage />} />
         <Route path="/musteriler" element={<CentralOnly><CustomersPage /></CentralOnly>} />
+        <Route path="/hesap-talepleri" element={<CentralOnly><AccountRequestsPage /></CentralOnly>} />
         <Route path="/finans" element={<CentralOnly><FinancePage /></CentralOnly>} />
         <Route path="/pos" element={<CentralOnly><PosPage /></CentralOnly>} />
         <Route path="/yonetim" element={<SuperOnly><AdminsPage /></SuperOnly>} />

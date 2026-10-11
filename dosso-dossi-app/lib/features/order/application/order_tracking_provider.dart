@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../../core/network/runtime_mode.dart';
 import '../../../core/network/session_scope.dart';
+import '../../../core/diagnostics/app_telemetry.dart';
 import '../data/order_repository.dart';
 import '../domain/order_record.dart';
 import 'order_providers.dart';
@@ -26,37 +28,66 @@ class OrderTrackingController extends AsyncNotifier<OrderRecord> {
 
   final String orderId;
   Timer? _timer;
-  bool _polling = false;
+  int _generation = 0;
+  int? _pollingGeneration;
 
   @override
   Future<OrderRecord> build() async {
+    final generation = ++_generation;
     final scope = ref.read(sessionScopeProvider);
     final epoch = scope.revision;
     ref.onDispose(() => _timer?.cancel());
-    final record = await _fetch(orderId);
-    if (ref.mounted && scope.revision == epoch && !_isTerminal(record.status)) {
+    final OrderRecord record;
+    try {
+      record = await _fetch(orderId);
+    } catch (error) {
+      if (ref.mounted && scope.revision == epoch && generation == _generation) {
+        ref
+            .read(telemetryProvider)
+            .report(TelemetryOperation.orderTracking, error);
+      }
+      // Keep Riverpod's bounded automatic retry. The screen additionally offers
+      // an explicit retry and refreshes on foreground after retries run out.
+      rethrow;
+    }
+    if (ref.mounted &&
+        scope.revision == epoch &&
+        generation == _generation &&
+        !_isTerminal(record.status)) {
       _timer = Timer.periodic(_pollInterval, (_) => _poll(orderId));
     }
     return record;
   }
 
   Future<void> _poll(String orderId) async {
-    if (!ref.mounted || _polling) return;
+    if (!ref.mounted || _pollingGeneration == _generation) return;
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    if (lifecycle != null && lifecycle != AppLifecycleState.resumed) return;
     final scope = ref.read(sessionScopeProvider);
     final epoch = scope.revision;
-    _polling = true;
+    final generation = _generation;
+    _pollingGeneration = generation;
     try {
       final record = await _fetch(orderId);
-      if (!ref.mounted || scope.revision != epoch) return;
+      if (!ref.mounted ||
+          scope.revision != epoch ||
+          generation != _generation) {
+        return;
+      }
       state = AsyncData(record);
       if (_isTerminal(record.status)) {
         _timer?.cancel();
         ref.invalidate(ordersProvider); // geçmiş listesi güncel durumu görsün
       }
-    } catch (_) {
+    } catch (error) {
       // Ağ hatasında eski durum ekranda kalır; sonraki tur tekrar dener
+      if (ref.mounted && scope.revision == epoch && generation == _generation) {
+        ref
+            .read(telemetryProvider)
+            .report(TelemetryOperation.orderTracking, error);
+      }
     } finally {
-      _polling = false;
+      if (_pollingGeneration == generation) _pollingGeneration = null;
     }
   }
 

@@ -30,6 +30,7 @@ export function createApp(): express.Express {
   // Güvenlik başlıkları. CORS bilerek YOK: istemci yalnızca mobil
   // uygulama (tarayıcı değil); web istemcisi eklenirse allowlist ile açılır.
   app.use(helmet());
+  app.use(requestLogger);
   app.use(
     express.json({
       limit: '100kb',
@@ -39,7 +40,6 @@ export function createApp(): express.Express {
       },
     }),
   );
-  app.use(requestLogger);
 
   // Derin health: DB erişilemiyorsa 503 (load balancer trafiği keser)
   app.get('/health', async (_req, res) => {
