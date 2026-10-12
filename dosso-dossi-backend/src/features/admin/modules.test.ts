@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { createApp } from '../../app.js';
 import { prisma } from '../../lib/prisma.js';
@@ -98,6 +99,7 @@ describe('A3 menü yönetimi', () => {
         percent: 10,
         roundTo: 5,
         reason: 'Yıllık fiyat güncellemesi',
+        idempotencyKey: randomUUID(),
       });
 
     expect(res.status).toBe(200);
@@ -267,13 +269,13 @@ describe('A6 müşteriler', () => {
     const noReason = await request(app)
       .post(`/admin/customers/${userId}/balance`)
       .set(...auth(t))
-      .send({ amount: 100 });
+      .send({ amount: 100, idempotencyKey: randomUUID() });
     expect(noReason.status).toBe(400);
 
     const ok = await request(app)
       .post(`/admin/customers/${userId}/balance`)
       .set(...auth(t))
-      .send({ amount: 100, reason: 'Kasada yaşanan hata telafisi' });
+      .send({ amount: 100, reason: 'Kasada yaşanan hata telafisi', idempotencyKey: randomUUID() });
     expect(ok.status).toBe(200);
     expect(ok.body.balance).toBe(100);
 
@@ -290,7 +292,7 @@ describe('A6 müşteriler', () => {
     const res = await request(app)
       .post(`/admin/customers/${userId}/balance`)
       .set(...auth(t))
-      .send({ amount: -50, reason: 'Hatalı yükleme geri alımı' });
+      .send({ amount: -50, reason: 'Hatalı yükleme geri alımı', idempotencyKey: randomUUID() });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('INSUFFICIENT_BALANCE');
   });
