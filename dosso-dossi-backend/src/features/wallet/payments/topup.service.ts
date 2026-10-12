@@ -6,7 +6,7 @@ import { prisma } from '../../../lib/prisma.js';
 import { assertActiveUser } from '../../../lib/active-user.js';
 import { lockUsers } from '../../../lib/financial-locks.js';
 import { lockFinancialRequest, saveFinancialResult } from '../../../lib/idempotency.js';
-import { paymentProvider } from './dev-payment-provider.js';
+import { assertPaymentAvailable, paymentProvider } from './dev-payment-provider.js';
 import { getSetting } from '../../settings/settings.service.js';
 import { journalMetadata, loyaltyState } from '../../loyalty/loyalty-journal.js';
 
@@ -33,6 +33,8 @@ export async function startTopUp(
   idempotencyKey?: string,
   savedCardId?: string,
 ): Promise<TopUpResult> {
+  // Kapalı hizmette kalıcı PENDING intent/idempotency kaydı oluşturulmaz.
+  assertPaymentAvailable();
   const money = dec(amount);
   const prepared = await prisma.$transaction(async (tx) => {
     await lockUsers(tx, [userId]);

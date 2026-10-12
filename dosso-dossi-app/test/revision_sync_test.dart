@@ -28,11 +28,14 @@ void main() {
     sync.start();
     await tester.pump();
     expect([menus, branches], [1, 1]);
-    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(seconds: 15));
     expect(requests, 2);
     expect([menus, branches], [1, 1]);
     menuRevision = 'two';
-    await tester.pump(const Duration(seconds: 3));
+    // An unchanged manifest doubles the next polling interval.
+    await tester.pump(const Duration(seconds: 29));
+    expect([menus, branches], [1, 1]);
+    await tester.pump(const Duration(seconds: 1));
     expect([menus, branches], [2, 1]);
     sync.stop();
     await tester.pump(const Duration(seconds: 30));
@@ -67,14 +70,17 @@ void main() {
     sync.start();
     await tester.pump();
     expect(successes, 0);
-    await tester.pump(const Duration(seconds: 3));
+    // A failed content refresh backs off to 30 seconds without acknowledging it.
+    await tester.pump(const Duration(seconds: 29));
+    expect([attempts, successes, stable], [1, 0, 1]);
+    await tester.pump(const Duration(seconds: 1));
     expect([attempts, successes, stable], [2, 1, 1]);
-    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(seconds: 15));
     expect(attempts, 2);
     sync.dispose();
   });
 
-  testWidgets('manifest outages retry at the interval without a busy loop', (
+  testWidgets('manifest outages back off without a busy loop', (
     tester,
   ) async {
     var requests = 0;
@@ -94,11 +100,13 @@ void main() {
     sync.start();
     await tester.pump();
     expect(requests, 1);
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 29));
     expect(requests, 1);
     await tester.pump(const Duration(seconds: 1));
     expect(requests, 2);
-    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(seconds: 59));
+    expect(requests, 2);
+    await tester.pump(const Duration(seconds: 1));
     expect(applied, 1);
     sync.dispose();
   });

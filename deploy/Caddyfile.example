@@ -1,0 +1,15 @@
+# Append this isolated site block to the existing shared Caddyfile.
+# Replace the hostname; do not replace existing site blocks or global settings.
+# Requires compose.ingress.yml to connect the admin gateway to Caddy's network.
+admin.example.com {
+    encode gzip
+    reverse_proxy dosso-dossi-admin:8080 {
+        # Replace client-supplied forwarding chains with Caddy's resolved client.
+        header_up X-Forwarded-For {client_ip}
+    }
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+}

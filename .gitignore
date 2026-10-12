@@ -16,3 +16,8 @@ dist/
 video-production/management-intro/tooling/python/
 __pycache__/
 *.pyc
+
+# VPS state and portable backups contain credentials and customer data.
+/shared/
+/backups/
+/deploy/compose.ingress.yml

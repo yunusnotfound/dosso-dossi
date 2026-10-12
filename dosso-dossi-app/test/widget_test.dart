@@ -102,6 +102,11 @@ void main() {
     // Sipariş sekmesine geç, ürünü aç
     await tester.tap(find.text('Sipariş'));
     await tester.pumpAndSettle();
+    // Keep checkout independent of the real clock: this fixture is open 24/7.
+    await tester.tap(find.textContaining('Gel-Al ·'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Beylikdüzü Son Durak'));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Caramel Macchiato'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Caramel Macchiato'));
