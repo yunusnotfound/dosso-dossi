@@ -1,0 +1,15 @@
+# Optional: copy to compose.ingress.yml ONLY after checking the existing proxy
+# network on this host. Deployment scripts include that local file automatically.
+# This joins ONLY the admin gateway to the existing Caddy network.
+services:
+  admin:
+    networks:
+      web:
+      edge:
+        aliases:
+          - dosso-dossi-admin
+
+networks:
+  edge:
+    external: true
+    name: edge

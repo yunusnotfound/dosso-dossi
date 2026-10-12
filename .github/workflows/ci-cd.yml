@@ -25,6 +25,32 @@ defaults:
     shell: bash
 
 jobs:
+  infrastructure:
+    name: Deployment scripts and Compose configuration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      # Synthetic validation values only; this job never starts a container.
+      POSTGRES_PASSWORD: '11111111111111111111111111111111'
+      JWT_SECRET: ci-only-jwt-secret-never-use-in-production
+      ADMIN_JWT_SECRET: ci-only-admin-secret-never-use-in-production
+      POS_WEBHOOK_SECRET: ci-only-pos-secret-never-use-in-production
+      PAYMENT_WEBHOOK_SECRET: ci-only-payment-secret-never-use-in-production
+      ADMIN_ORIGINS: https://admin.example.invalid
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: Check deployment shell syntax
+        run: |
+          for script in deploy/scripts/*.sh .github/scripts/*.sh; do
+            bash -n "$script"
+          done
+      - name: Validate the standalone Compose configuration
+        run: docker compose --env-file /dev/null --project-name dosso-dossi-ci --file deploy/compose.production.yml config --quiet
+      - name: Validate the optional existing-proxy network merge
+        run: docker compose --env-file /dev/null --project-name dosso-dossi-ci --file deploy/compose.production.yml --file deploy/compose.ingress.yml.example config --quiet
+
   backend:
     name: API build and database tests
     runs-on: ubuntu-24.04
@@ -124,7 +150,7 @@ jobs:
 
   publish:
     name: Publish ${{ matrix.component }} image
-    needs: [backend, admin, mobile]
+    needs: [infrastructure, backend, admin, mobile]
     if: >-
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'push' ||
