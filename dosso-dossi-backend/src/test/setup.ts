@@ -1,5 +1,4 @@
-import { beforeEach, afterAll, vi } from 'vitest';
-import * as businessTime from '../lib/business-time.js';
+import { beforeEach, afterAll } from 'vitest';
 import { prisma } from '../lib/prisma.js';
 import { testDatabaseUrl } from './database.js';
 import { invalidateSettingsCache } from '../features/settings/settings.service.js';
@@ -7,8 +6,6 @@ import { invalidateSettingsCache } from '../features/settings/settings.service.j
 if (process.env.DATABASE_URL !== testDatabaseUrl()) throw new Error('Test DB seçimi uyuşmuyor');
 
 const TABLES = [
-  'SyncRevision',
-  'AdminMutationRequest',
   'FinancialRequest',
   'AuditLog',
   'AdminRefreshToken',
@@ -40,9 +37,6 @@ const TABLES = [
 ];
 
 beforeEach(async () => {
-  // Sipariş testlerindeki 12:30/asap slotları CI'ın çalıştığı saate bağlı değildir.
-  // Token/OTP süreleri gerçek saati kullanmaya devam eder.
-  vi.spyOn(businessTime, 'businessNow').mockImplementation(() => new Date('2026-10-13T09:00:00Z'));
   await prisma.$executeRawUnsafe(
     `CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1042`,
   );

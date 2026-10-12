@@ -1,7 +1,6 @@
 import path from 'node:path';
 import express from 'express';
 import helmet from 'helmet';
-import { env } from './config/env.js';
 import { AppError, ErrorCodes } from './lib/errors.js';
 import { prisma } from './lib/prisma.js';
 import { errorHandler } from './middleware/error-handler.js';
@@ -28,7 +27,6 @@ import { adminRouter } from './features/admin/admin.routes.js';
 
 export function createApp(): express.Express {
   const app = express();
-  if (env.TRUST_PROXY.length > 0) app.set('trust proxy', env.TRUST_PROXY);
   // Güvenlik başlıkları. CORS bilerek YOK: istemci yalnızca mobil
   // uygulama (tarayıcı değil); web istemcisi eklenirse allowlist ile açılır.
   app.use(helmet());

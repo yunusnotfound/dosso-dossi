@@ -9,12 +9,11 @@ import { prisma } from '../../lib/prisma.js';
 import { assertActiveUser } from '../../lib/active-user.js';
 import { lockUsers } from '../../lib/financial-locks.js';
 import { lockFinancialRequest, saveFinancialResult } from '../../lib/idempotency.js';
-import { assertSmsAvailable, smsProvider } from '../../lib/sms/dev-sms-provider.js';
+import { smsProvider } from '../../lib/sms/dev-sms-provider.js';
 import { claimGiftForUser, claimPendingGiftsForUser } from './gift-claim.js';
 import type { SendGiftInput } from './gifts.schemas.js';
 
 export async function sendGift(senderId: string, input: SendGiftInput) {
-  assertSmsAvailable();
   const recipientPhone = normalizePhone(input.recipientPhone);
 
   const result = await prisma.$transaction(async (tx) => {

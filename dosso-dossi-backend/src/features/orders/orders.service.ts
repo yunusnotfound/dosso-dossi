@@ -10,14 +10,13 @@ import { lockFinancialRequest, saveFinancialResult } from '../../lib/idempotency
 import { applyLoyalty } from '../loyalty/loyalty-apply.js';
 import { loadOrderOptions } from '../menu/options.service.js';
 import { parseOrderNumber } from './order-status.service.js';
-import { assertPosAvailable, kerzzPosClient } from './pos-client.js';
+import { kerzzPosClient } from './pos-client.js';
 import { validatePickupSlot } from './pickup-policy.js';
 import { businessNow } from '../../lib/business-time.js';
 import { notifyOrderStatus } from '../notifications/notifications.service.js';
 import type { PlaceOrderInput } from './orders.schemas.js';
 
 export async function placeOrder(userId: string, input: PlaceOrderInput) {
-  assertPosAvailable();
   const result = await prisma.$transaction(async (tx) => {
     await lockUsers(tx, [userId]);
     await assertActiveUser(tx, userId);

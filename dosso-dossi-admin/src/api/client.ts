@@ -1,6 +1,5 @@
 import type { z } from 'zod';
 import { apiErrorSchema, mutationResultSchema, refreshResponseSchema } from './schemas';
-import { clearRotation, readRotation, rememberRotation } from './refresh-rotation';
 
 /// Authenticated requests belong to the session that started them. A late
 /// response or refresh must never install data/tokens in a different account.
@@ -33,13 +32,11 @@ export const tokens = {
   replace(access: string, refresh: string): void {
     this.set(access, refresh);
     localStorage.setItem(SESSION_KEY, crypto.randomUUID());
-    clearRotation();
   },
   clear(): void {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(SESSION_KEY);
-    clearRotation();
   },
 };
 
@@ -75,15 +72,6 @@ async function refreshTokens(session: string, rejectedAccess: string | null): Pr
     assertSession(session);
     // Another tab/request may have completed the rotation while this one waited.
     if (tokens.access && tokens.access !== rejectedAccess) return true;
-    if (navigator.locks) {
-      const previous = await readRotation();
-      assertSession(session);
-      if (tokens.access && tokens.access !== rejectedAccess) return true;
-      if (previous?.session === session && previous.rejectedAccess === rejectedAccess) {
-        tokens.set(previous.token, previous.refreshToken);
-        return true;
-      }
-    }
     const refreshToken = tokens.refresh;
     if (!refreshToken) return false;
     const res = await timedFetch(`${BASE}/admin/auth/refresh`, {
@@ -96,10 +84,6 @@ async function refreshTokens(session: string, rejectedAccess: string | null): Pr
     const data = await decodeResponse(res, refreshResponseSchema);
     assertSession(session);
     tokens.set(data.token, data.refreshToken);
-    if (navigator.locks) {
-      await rememberRotation({ session, rejectedAccess, ...data });
-      assertSession(session);
-    }
     return true;
   };
   // Same-origin tabs share a refresh token. Serialize rotation across tabs where

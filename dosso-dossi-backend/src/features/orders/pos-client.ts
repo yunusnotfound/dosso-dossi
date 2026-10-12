@@ -1,5 +1,4 @@
 import { env } from '../../config/env.js';
-import { AppError, ErrorCodes } from '../../lib/errors.js';
 import { logger } from '../../lib/logger.js';
 import { prisma } from '../../lib/prisma.js';
 import { advanceOrderStatus } from './order-status.service.js';
@@ -24,7 +23,6 @@ const READY_DELAY_MS = 20_000;
 
 class DevKerzzPosClient implements KerzzPosClient {
   async forwardOrder(order: ForwardedOrder): Promise<void> {
-    assertPosAvailable();
     logger.info(
       `[Kerzz dev] Sipariş DD-${order.number} → ${order.branchId} POS'una iletildi (simülasyon)`,
     );
@@ -50,21 +48,7 @@ class DevKerzzPosClient implements KerzzPosClient {
   }
 }
 
-export function assertPosAvailable(): void {
-  if (env.POS_PROVIDER === 'disabled' || env.NODE_ENV === 'production') {
-    throw new AppError(ErrorCodes.INTERNAL, 503, 'Sipariş hizmeti henüz kullanıma açılmadı.');
-  }
-}
-
-class DisabledKerzzPosClient implements KerzzPosClient {
-  async forwardOrder(): Promise<void> {
-    throw new AppError(ErrorCodes.INTERNAL, 503, 'Sipariş hizmeti henüz kullanıma açılmadı.');
-  }
-}
-
-export const kerzzPosClient: KerzzPosClient = env.POS_PROVIDER === 'dev'
-  ? new DevKerzzPosClient()
-  : new DisabledKerzzPosClient();
+export const kerzzPosClient: KerzzPosClient = new DevKerzzPosClient();
 
 const SWEEP_INTERVAL_MS = 60_000;
 
@@ -72,7 +56,7 @@ const SWEEP_INTERVAL_MS = 60_000;
 /// siparişleri periyodik yeniden dener. İletim "at ve unut" olsa bile
 /// sipariş kalıcı olarak kaybolamaz. Açılışta bir kez + 60 sn'de bir.
 export function startForwardSweep(): void {
-  if (env.NODE_ENV === 'test' || env.POS_PROVIDER === 'disabled') return;
+  if (env.NODE_ENV === 'test') return;
 
   const sweep = async () => {
     try {

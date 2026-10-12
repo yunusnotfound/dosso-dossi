@@ -2,7 +2,7 @@ import { createHash, randomInt } from 'node:crypto';
 import { env } from '../../config/env.js';
 import { AppError } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
-import { assertSmsAvailable, smsProvider } from '../../lib/sms/dev-sms-provider.js';
+import { smsProvider } from '../../lib/sms/dev-sms-provider.js';
 
 const OTP_TTL_MS = 3 * 60 * 1000;
 const SEND_LIMIT = 3; // 10 dakikada en fazla 3 kod
@@ -15,7 +15,6 @@ function hash(code: string): string {
 }
 
 export async function sendOtp(phone: string): Promise<void> {
-  assertSmsAvailable();
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
   await prisma.$transaction(async (tx) => {
     // Telefon kotası aynı anda gelen isteklerde de tek kontrol/yazım olsun.
