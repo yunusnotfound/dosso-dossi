@@ -1,0 +1,119 @@
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 23px;
+  align-items: start;
+}
+.toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 18px;
+  margin-bottom: 26px;
+}
+.toggle strong {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 7px;
+}
+.toggle span {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.7;
+  display: block;
+}
+.toggle input {
+  accent-color: var(--accent);
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+}
+.feeSection {
+  margin: 26px 0;
+}
+.threshold {
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+}
+.threshold > label {
+  white-space: normal;
+  line-height: 1.7;
+}
+.threshold > label > input[type="checkbox"] {
+  flex: 0 0 auto;
+}
+.threshold > p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+  margin: 12px 0 22px;
+}
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.summary h2 {
+  font: 500 32px/1.1 var(--font-heading);
+  margin: 15px 0 26px;
+}
+.summary dl {
+  margin: 0 0 25px;
+}
+.summary dl > div {
+  border-top: 1px solid var(--line);
+  padding: 16px 0;
+}
+.summary dt {
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 9px;
+}
+.summary dd {
+  margin: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.summary small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+.warning {
+  padding: 20px;
+  background: #f6eddf;
+  border: 1px solid #e5d4b9;
+  border-radius: 7px;
+  color: #84613a;
+}
+.warning strong {
+  font-size: 12px;
+}
+.warning p {
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 10px 0 0;
+}
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .aside {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+@media (max-width: 620px) {
+  .aside {
+    grid-template-columns: 1fr;
+  }
+  .toggle {
+    padding: 14px;
+    gap: 12px;
+  }
+}

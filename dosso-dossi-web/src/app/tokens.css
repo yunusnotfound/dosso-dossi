@@ -1,0 +1,9 @@
+:root {
+  --paper: #faf8f5;
+  --ink: #28231f;
+  --muted: #716a63;
+  --line: #e8e2db;
+  --accent: #b65b35;
+  --font-heading: "Barlow Condensed", sans-serif;
+  --font-body: "DM Sans", sans-serif;
+}

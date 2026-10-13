@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { isIP } from 'node:net';
 import { z } from 'zod';
+import { readWebConfiguration } from './web.js';
 
 // tsx/node .env dosyasını kendiliğinden yüklemez
 if (fs.existsSync('.env')) {
@@ -116,5 +117,6 @@ const envSchema = z
 const parsed = envSchema.parse(process.env);
 export const env = {
   ...parsed,
+  ...readWebConfiguration(process.env),
   HOST: parsed.HOST ?? (parsed.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1'),
 };

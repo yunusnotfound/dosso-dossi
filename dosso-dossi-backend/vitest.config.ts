@@ -7,10 +7,12 @@ export default defineConfig({
     pool: 'forks',
     fileParallelism: false,
     include: ['src/**/*.test.ts'],
+    exclude: ['src/web-test/**'],
     globalSetup: ['src/test/global-setup.ts'],
     setupFiles: ['src/test/setup.ts'],
     env: {
       NODE_ENV: 'test',
+      WEB_ENABLED: 'false',
       DATABASE_URL: testDatabaseUrl(),
       JWT_SECRET: 'test-gizli-anahtar',
       ADMIN_JWT_SECRET: 'test-admin-gizli-anahtar',

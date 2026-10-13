@@ -5,3 +5,9 @@
 
 node_modules/
 dist/
+
+# Web uploads are runtime data; seed recreates development catalogue media.
+/uploads/web-catalog/
+
+# Development email previews contain single-use account tokens.
+/.local/

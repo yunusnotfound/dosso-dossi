@@ -3,6 +3,13 @@
 Güncelleme: 7 Ekim 2026. Bu belge uygulanan özelliklerle henüz dış bilgi veya
 sağlayıcı bekleyen işleri ayırır. API ayrıntıları: [API_CONTRACT.md](API_CONTRACT.md).
 
+Yeni Next.js kurumsal site ve online mağazanın kapsamı,
+ortak backend ve ayrı web PostgreSQL veritabanı kararıyla birlikte
+[WEB_PLATFORM_PLAN.md](WEB_PLATFORM_PLAN.md) içinde planlanmıştır. İlk web/DB
+altyapısı kurulmuştur; çalışma ve test durumu [WEB_DEVELOPMENT.md](WEB_DEVELOPMENT.md)
+belgesindedir. Aşağıdaki
+uygulanmış özellikler mobil platforma aittir.
+
 ## Mevcut yapı
 
 - **Mobil:** Flutter, Riverpod ve GoRouter. Normal geliştirme çalıştırması gerçek

@@ -6,6 +6,7 @@ Kahve zinciri için sadakat + sipariş platformu (monorepo).
 ├── dosso-dossi-app/       # Flutter mobil uygulaması (iOS + Android)
 ├── dosso-dossi-backend/   # Node.js + Express + Prisma + PostgreSQL REST API
 ├── dosso-dossi-admin/     # React + Vite yönetim paneli (backend'in /admin ağacı)
+├── dosso-dossi-web/       # Next.js kurumsal site ve mağaza başlangıcı (localhost:4000)
 ├── docs/                  # Ortak dokümanlar (API sözleşmesi, Kerzz POS notları, yol haritası)
 └── docker-compose.yml     # Geliştirme veritabanı (PostgreSQL 17)
 ```
@@ -35,7 +36,7 @@ Geliştirme SMS adaptörü kodu konsola yazar. `111111` yalnız `OTP_DEV_MODE=tr
 API geliştirmede yalnız `127.0.0.1` üzerinden dinler. Fiziksel cihazdan test
 gerektiğinde `HOST` açıkça ayarlanabilir; production varsayılanı `0.0.0.0`'dır.
 
-Var olan verileri koruyarak kurulum güncellemek için `npx prisma migrate deploy && npx prisma generate` kullanın. `npm run build && npm start` derlenmiş sunucuyu başlatır.
+Var olan verileri koruyarak mobil kurulumunu güncellemek için `npx prisma migrate deploy && npm run prisma:generate` kullanın. Son komut mobil ve web client’larını ayrı üretir; web migration uygulamaz. `npm run build && npm start` derlenmiş sunucuyu başlatır.
 
 ### Yönetim paneli
 
@@ -89,6 +90,9 @@ flutter build ios --dart-define-from-file=dart_defines.json
 - [docs/API_CONTRACT.md](docs/API_CONTRACT.md) — REST API sözleşmesi
 - [docs/KERZZ_POS_ENTEGRASYON.md](docs/KERZZ_POS_ENTEGRASYON.md) — POS entegrasyon planı
 - [docs/ROADMAP.md](docs/ROADMAP.md) — yol haritası
+- [docs/WEB_PLATFORM_PLAN.md](docs/WEB_PLATFORM_PLAN.md) — Next.js kurumsal site ve mağaza planı; ortak backend, ayrı web PostgreSQL veritabanı
+- [docs/WEB_DEVELOPMENT.md](docs/WEB_DEVELOPMENT.md) — yerel web/DB kurulumu, çalıştırma ve testler
+- [docs/WEB_API_CONTRACT.md](docs/WEB_API_CONTRACT.md) — web sağlık, mağaza/katalog, yönetim ve müşteri üyeliği uçları
 
 - [docs/RELIABILITY_WORK.md](docs/RELIABILITY_WORK.md) — bağımsız düzeltmeler, test izolasyonu, veri geçişi ve bakım kararları
 - [docs/PROFESSIONAL_REVIEW_2026_10.md](docs/PROFESSIONAL_REVIEW_2026_10.md) — son kod iyileştirmeleri, doğrulamalar ve hazır olması gereken dış ayarlar

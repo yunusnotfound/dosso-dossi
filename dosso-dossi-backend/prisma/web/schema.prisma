@@ -1,0 +1,407 @@
+// Independent output avoids replacing the existing mobile @prisma/client package.
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@dosso-dossi/web-prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("WEB_DATABASE_URL")
+}
+
+model WebStoreSettings {
+  id                         String   @id @default("store")
+  name                       String   @default("Dosso Dossi Coffee")
+  defaultLocale              String   @default("tr")
+  locales                    String[] @default(["tr", "en"])
+  currency                   String   @default("TRY")
+  shippingCountry            String   @default("TR")
+  shippingFeeMinor           Int?
+  freeShippingThresholdMinor Int?
+  shippingVersion            Int      @default(1)
+  shippingEnabled            Boolean  @default(true)
+}
+
+enum WebCustomerTokenPurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+// Customer identities belong only to this web database; mobile users and web
+// administrators cannot become customers by sharing an email or a session.
+model WebCustomer {
+  id                      String               @id @default(cuid())
+  email                   String               @unique
+  name                    String
+  locale                  String               @default("tr")
+  passwordHash            String
+  active                  Boolean              @default(true)
+  emailVerifiedAt         DateTime?
+  verificationRequestedAt DateTime?
+  resetRequestedAt        DateTime?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  sessions                WebCustomerSession[]
+  tokens                  WebCustomerToken[]
+  cart                    WebCart?
+  addresses               WebDeliveryAddress[]
+  orders                  WebOrder[]
+}
+
+// Cart selections retain opaque catalogue identifiers rather than restrictive
+// foreign keys. A deleted or disabled selection is shown as unavailable on read.
+model WebCart {
+  id                String        @id @default(cuid())
+  customerId        String        @unique
+  customer          WebCustomer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  version           Int           @default(0)
+  deliveryAddressId String?
+  updatedAt         DateTime      @updatedAt
+  items             WebCartItem[]
+}
+
+model WebCartItem {
+  id             String   @id @default(cuid())
+  cartId         String
+  cart           WebCart  @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId      String
+  variantId      String
+  grindId        String   @default("")
+  quantity       Int
+  nameTr         String
+  nameEn         String
+  variantLabelTr String   @default("")
+  variantLabelEn String   @default("")
+  grindNameTr    String?
+  grindNameEn    String?
+  createdAt      DateTime @default(now())
+
+  @@unique([cartId, variantId, grindId])
+  @@index([cartId])
+}
+
+model WebDeliveryAddress {
+  id            String      @id @default(cuid())
+  customerId    String
+  customer      WebCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  title         String
+  recipientName String
+  phone         String
+  country       String      @default("TR")
+  provinceCode  String
+  district      String
+  neighborhood  String
+  addressLine   String
+  postalCode    String
+  isDefault     Boolean     @default(false)
+  version       Int         @default(1)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([customerId, createdAt])
+}
+
+model WebShippingAudit {
+  id        String   @id @default(cuid())
+  adminId   String?
+  before    Json
+  after     Json
+  createdAt DateTime @default(now())
+}
+
+model WebCustomerSession {
+  id         String      @id @default(cuid())
+  tokenHash  String      @unique
+  customerId String
+  customer   WebCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime    @default(now())
+  expiresAt  DateTime
+
+  @@index([customerId])
+  @@index([expiresAt])
+}
+
+model WebCustomerToken {
+  id         String                  @id @default(cuid())
+  tokenHash  String                  @unique
+  purpose    WebCustomerTokenPurpose
+  customerId String
+  customer   WebCustomer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime                @default(now())
+  expiresAt  DateTime
+  consumedAt DateTime?
+
+  @@index([customerId, purpose])
+  @@index([expiresAt])
+}
+
+enum WebAdminRole {
+  ADMIN
+  EDITOR
+}
+
+enum WebProductType {
+  COFFEE
+  THERMOS
+}
+
+enum WebProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model WebAdmin {
+  id           String               @id @default(cuid())
+  email        String               @unique
+  name         String
+  role         WebAdminRole         @default(ADMIN)
+  passwordHash String
+  active       Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  sessions     WebAdminSession[]
+  audits       WebCatalogAudit[]
+  adjustments  WebStockAdjustment[]
+}
+
+model WebAdminSession {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  adminId   String
+  admin     WebAdmin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+model WebMedia {
+  id           String            @id @default(cuid())
+  filename     String            @unique
+  originalName String
+  mimeType     String            @default("image/webp")
+  bytes        Int
+  width        Int
+  height       Int
+  createdAt    DateTime          @default(now())
+  images       WebProductImage[]
+}
+
+model WebProduct {
+  id            String               @id @default(cuid())
+  slug          String               @unique
+  type          WebProductType
+  status        WebProductStatus     @default(DRAFT)
+  nameTr        String
+  nameEn        String
+  descriptionTr String               @default("")
+  descriptionEn String               @default("")
+  sortOrder     Int                  @default(0)
+  version       Int                  @default(1)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  images        WebProductImage[]
+  variants      WebProductVariant[]
+  grindOptions  WebGrindOption[]
+  audits        WebCatalogAudit[]
+  adjustments   WebStockAdjustment[]
+
+  @@index([status, sortOrder])
+}
+
+model WebProductImage {
+  id        String     @id @default(cuid())
+  productId String
+  product   WebProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     WebMedia   @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+  altTr     String     @default("")
+  altEn     String     @default("")
+  sortOrder Int        @default(0)
+
+  @@unique([productId, mediaId])
+}
+
+model WebProductVariant {
+  id          String     @id @default(cuid())
+  productId   String
+  product     WebProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku         String     @unique
+  labelTr     String     @default("")
+  labelEn     String     @default("")
+  colorNameTr String?
+  colorNameEn String?
+  colorHex    String?
+  weightGrams Int?
+  volumeMl    Int?
+  priceMinor  Int
+  stock       Int        @default(0)
+  active      Boolean    @default(true)
+  // Points to a media ID in the parent product gallery, validated on each write.
+  imageId     String?
+
+  @@index([productId])
+}
+
+model WebGrindOption {
+  id              String     @id @default(cuid())
+  productId       String
+  product         WebProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  code            String
+  nameTr          String
+  nameEn          String
+  priceDeltaMinor Int        @default(0)
+  sortOrder       Int        @default(0)
+  active          Boolean    @default(true)
+
+  @@unique([productId, code])
+}
+
+model WebCatalogAudit {
+  id        String     @id @default(cuid())
+  productId String
+  product   WebProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+  adminId   String?
+  admin     WebAdmin?  @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  action    String
+  before    Json?
+  after     Json
+  createdAt DateTime   @default(now())
+
+  @@index([productId, createdAt])
+}
+
+model WebStockAdjustment {
+  id        String     @id @default(cuid())
+  productId String
+  product   WebProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variantId String
+  sku       String
+  adminId   String?
+  admin     WebAdmin?  @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  previous  Int
+  current   Int
+  reason    String
+  createdAt DateTime   @default(now())
+
+  @@index([productId, createdAt])
+}
+
+
+enum WebOrderStatus {
+  OPEN
+  CANCELLED
+  EXPIRED
+  COMPLETED
+}
+enum WebPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REVIEW
+}
+enum WebFulfillmentStatus {
+  UNFULFILLED
+  PREPARING
+  SHIPPED
+  DELIVERED
+}
+enum WebPaymentAttemptStatus {
+  INITIALIZING
+  READY
+  SUCCEEDED
+  FAILED
+  REVIEW
+}
+
+// Immutable checkout snapshots are independent of later catalogue/address edits.
+model WebOrder {
+  id                    String               @id @default(cuid())
+  number                String               @unique
+  customerId            String
+  customer              WebCustomer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  idempotencyKey        String
+  requestHash           String
+  locale                String               @default("tr")
+  version               Int                  @default(1)
+  status                WebOrderStatus       @default(OPEN)
+  paymentStatus         WebPaymentStatus     @default(PENDING)
+  fulfillmentStatus     WebFulfillmentStatus @default(UNFULFILLED)
+  currency              String               @default("TRY")
+  subtotalMinor         Int
+  shippingFeeMinor      Int
+  totalMinor            Int
+  customerSnapshot      Json
+  addressSnapshot       Json
+  shippingSnapshot      Json
+  reservationExpiresAt  DateTime
+  stockReleasedAt       DateTime?
+  paidAt                DateTime?
+  cancelledAt           DateTime?
+  shippedAt             DateTime?
+  deliveredAt           DateTime?
+  carrier               String?
+  trackingNumber        String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  items                 WebOrderItem[]
+  attempts              WebPaymentAttempt[]
+  audits                WebOrderAudit[]
+
+  @@unique([customerId, idempotencyKey])
+  @@index([customerId, createdAt])
+  @@index([status, paymentStatus, reservationExpiresAt])
+  @@index([createdAt])
+}
+model WebOrderItem {
+  id                    String @id @default(cuid())
+  orderId               String
+  order                 WebOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId             String
+  variantId             String
+  grindId               String?
+  sku                   String
+  nameTr                String
+  nameEn                String
+  variantLabelTr        String
+  variantLabelEn        String
+  grindNameTr           String?
+  grindNameEn           String?
+  imageUrl              String?
+  quantity              Int
+  unitPriceMinor        Int
+  lineTotalMinor        Int
+  sortOrder             Int
+
+  @@index([orderId])
+}
+model WebPaymentAttempt {
+  id                    String @id @default(cuid())
+  orderId               String
+  order                 WebOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  conversationId        String @unique
+  status                WebPaymentAttemptStatus @default(INITIALIZING)
+  token                 String? @unique
+  paymentPageUrl        String?
+  providerPaymentId     String? @unique
+  failureCode           String?
+  verifiedDetails       Json?
+  expiresAt             DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([orderId, createdAt])
+}
+model WebOrderAudit {
+  id                    String @id @default(cuid())
+  orderId               String
+  order                 WebOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  adminId               String?
+  action                String
+  note                  String @default("")
+  before                Json?
+  after                 Json
+  createdAt             DateTime @default(now())
+
+  @@index([orderId, createdAt])
+}

@@ -1,0 +1,109 @@
+{
+  "source_domain": "https://dossodossicoffee.com/",
+  "reviewed_on": "2026-10-13",
+  "timezone": "Europe/Istanbul",
+  "purpose": "Mevcut dosso-dossi-backend'i ayrı bir web PostgreSQL veritabanıyla kullanacak yeni Next.js kurumsal site ve online mağaza için içerik hazırlığı. Bu dosya kaynak özeti ve editoryal notlardır; tamamlanmış sayfa metinleri değildir.",
+  "project_plan": "../../../WEB_PLATFORM_PLAN.md",
+  "design_direction": "Espressolab referansına yakın sayfa düzeni; Dosso Dossi marka kimliği.",
+  "policy_source_file": "policy-sources.json",
+  "image_policy": {
+    "existing_website": "Yalnızca CEO fotoğrafı kullanılabilir. Eski sitenin logo dosyası, bannerları ve diğer görselleri kullanılmayacak.",
+    "retained_asset": "assets/ceo.jpg",
+    "project_product_photos": "Daha önce proje klasöründe bulunan ürün fotoğrafları ayrı kaynak olarak kullanılabilir.",
+    "new_art_direction": "Yeni site için görseller ayrıca hazırlanacak; eski sitenin tasarımı aktarılmayacak."
+  },
+  "language_review": {
+    "available_source_language": "tr",
+    "english_found": false,
+    "evidence": "İncelenen kurumsal sayfalarda HTML dili Türkçe; alternatif dil bağlantıları yalnız tr ve x-default. İngilizce kurumsal içerik bağlantısı bulunamadı.",
+    "next_step": "Düzenlenen Türkçe metinlerin İngilizce çevirileri hazırlanacak."
+  },
+  "pages": [
+    {
+      "key": "brand_story",
+      "source_url": "https://dossodossicoffee.com/ceo-dan-mesaj",
+      "source_title": "CEO'dan Mesaj",
+      "attribution_on_source": "Hikmet Eraslan",
+      "planned_uses": ["Hakkımızda anlatısı", "Ana sayfa marka tanıtımı", "CEO mesajı bölümü"],
+      "editorial_brief_tr": "Marka anlatısı, kahvenin insanları bir araya getirmesi üzerine kuruluyor. Sanat, müzik ve lezzet aynı mekân deneyiminin parçaları olarak sunuluyor. Tasarımda özen, yaratıcılık ve kalite vurgulanıyor; misafirlerin vakit geçirmekten keyif alacağı alanlar hedefleniyor. Yeni hakkımızda metni bu yaklaşımı şirket anlatımıyla ifade edebilir. CEO adına yayımlanacak kişisel mesaj, ayrı ve açıkça imzalı bir içerik olarak ele alınmalı.",
+      "editorial_notes": [
+        "Kaynak metindeki tekrar, yazım ve noktalama hataları düzeltilmeli.",
+        "Bu sayfadan kuruluş tarihi, tarihçe veya güncel şube sayısı çıkarılamıyor; bu bilgiler uydurulmayacak."
+      ],
+      "image": "assets/ceo.jpg"
+    },
+    {
+      "key": "franchising",
+      "source_url": "https://dossodossicoffee.com/franchise-basvuru",
+      "planned_uses": ["Franchising tanıtımı", "Başvuru formu"],
+      "editorial_brief_tr": "Franchise anlatısında marka tanınırlığı, mağaza deneyimi ve işletmecilere sunulan destekler öne çıkıyor. Eğitim, ürün tedariki, operasyon, dijital yönetim ve tanıtım desteği ayrı başlıklar halinde düzenlenebilir. Başvuranın düşündüğü lokasyonu ve projesini anlatması isteniyor. Kaynakta yatırım tutarı, alan gereksinimi, sözleşme süresi veya ücret tablosu bulunmuyor. Kaynaktaki kazanç vurguları kesin getiri vaadine dönüştürülmeyecek.",
+      "observed_form_fields": ["Ad soyad", "Telefon", "E-posta", "Yatırım yapılacak il", "Yatırım yapılacak ilçe", "Mesaj"],
+      "observed_form_controls": ["Doğrulama kodu", "Gizlilik kabulü"],
+      "implementation_notes": [
+        "Başvurular bağımsız web yönetim panelinde listelenecek.",
+        "Başvuru bildirimlerinin alıcı e-posta adresi henüz belirlenmedi.",
+        "Eski form gönderim adresi yeni sistemde kullanılmayacak."
+      ]
+    },
+    {
+      "key": "contact",
+      "source_url": "https://dossodossicoffee.com/iletisim",
+      "planned_uses": ["İletişim sayfası", "Alt bilgi", "Konum bağlantıları"],
+      "phone_as_published": "(0212) 242 21 21",
+      "hours_as_published": "Her gün 08.30–23.30",
+      "addresses_as_published": [
+        {
+          "section": "Mağaza Adresi",
+          "address": "Molla Gürani, Dr. Ahmetpaşa Sk. No:7 Kat:2, 34130 Fatih/İstanbul"
+        },
+        {
+          "section": "Konum Bilgilerimiz",
+          "address": "Vadi Loca Sitesi, Adnan Kahveci, Sayaca Cd. No:13 D:1 A Blok, 34528 Beylikdüzü/İstanbul"
+        }
+      ],
+      "observed_form_fields": ["Ad soyad", "Telefon", "E-posta", "Mesaj"],
+      "verification_needed": [
+        "İki adresin genel merkez/şube rolleri ve hangisinin ana iletişim adresi olacağı netleştirilmeli.",
+        "Çalışma saatleri tüm şubelere otomatik uygulanmayacak.",
+        "İletişim başvurularının alıcı e-posta adresi belirlenmeli."
+      ]
+    },
+    {
+      "key": "social_links",
+      "source_url": "https://dossodossicoffee.com/",
+      "links": {
+        "instagram": "https://www.instagram.com/dossodossicoffee",
+        "facebook": "https://www.facebook.com/dossodossicoffee"
+      },
+      "verification_status": "Bağlantılar kaynak sitenin alt bilgisinden alındı; sosyal hesap içerikleri bu incelemede değerlendirilmedi."
+    }
+  ],
+  "gaps": [
+    "İncelenen gezinme bağlantılarında ve arama sonuçlarında kapsamlı şube listesi veya kafe menüsü bulunamadı.",
+    "Projede bulunan şube ve menü verileri ayrı kaynak olarak gözden geçirilebilir; web ve mobil arasında canlı veri bağı kurulmayacak.",
+    "Yeni site için şube fotoğrafları ve diğer kurumsal görseller ayrıca temin edilecek veya uygun kapsamda hazırlanacak."
+  ],
+  "excluded_source_sections": [
+    {
+      "url": "https://dossodossicoffee.com/blog",
+      "reason": "Tema örneği niteliğindeki, markayla ilgisiz yazılar içeriyor. İlk sürümde blog zaten kapsam dışı."
+    },
+    {
+      "url": "https://dossodossicoffee.com/",
+      "reason": "Yakında gelecek ürün yer tutucuları ve eski mağaza fiyatları yeni ürün kataloğuna kaynak yapılmayacak."
+    }
+  ],
+  "scope_reminder": {
+    "current_phase": "Geliştirme başladı; Next.js başlangıç projesi ve ayrı PostgreSQL ile backend altyapısı kuruldu. İçerik ve mağaza işlevleri sonraki aşamalarda uygulanacak.",
+    "local_only": true,
+    "languages": ["tr", "en"],
+    "shared_backend": "dosso-dossi-backend",
+    "database_engine": "PostgreSQL",
+    "separate_web_database": true,
+    "data_and_accounts_independent_from_mobile": true,
+    "delivery": "Türkiye içi kargo",
+    "currency": "TRY",
+    "membership": "Satın alma için üyelik; e-posta/şifre ve Resend doğrulaması. SMS girişi sonraki aşama.",
+    "payments": "iyzico bilgileri bekleniyor."
+  }
+}

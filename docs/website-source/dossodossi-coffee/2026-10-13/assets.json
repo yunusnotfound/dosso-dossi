@@ -1,0 +1,20 @@
+{
+  "source_domain": "https://dossodossicoffee.com/",
+  "collected_on": "2026-10-13",
+  "timezone": "Europe/Istanbul",
+  "assets": [
+    {
+      "file": "assets/ceo.jpg",
+      "source_url": "https://dossodossicoffee.com/image/catalog/banner/ceo.jpg",
+      "role": "ceo_message",
+      "width": 1453,
+      "height": 1044,
+      "format": "JPEG",
+      "bytes": 941357,
+      "sha256": "07af547acbe32bc1026b52769f884ee6dc9d6fca723af90b1df6dd6683a3d354",
+      "content_type": "image/jpeg",
+      "review_status": "reviewed: usable CEO portrait; original 1453x1044 retained"
+    }
+  ],
+  "user_constraint": "Mevcut web sitesinden sadece CEO fotoğrafı kullanılabilir. Diğer web sitesi görselleri kullanılmayacak; indirilen diğer görseller kaldırıldı. Mevcut proje ürün fotoğrafları ayrı kaynaktır."
+}

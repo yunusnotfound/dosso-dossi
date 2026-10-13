@@ -16,3 +16,9 @@ dist/
 video-production/management-intro/tooling/python/
 __pycache__/
 *.pyc
+
+# Private local development credentials and scratch configuration
+.local/
+
+# Generated local PDF review images and temporary verification logs
+/tmp/

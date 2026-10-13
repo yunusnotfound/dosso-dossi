@@ -1,0 +1,496 @@
+.announcement {
+  background: #392b24;
+  color: #fff;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  padding: 10px 20px;
+}
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #fff;
+  border-bottom: 1px solid #eee9e3;
+}
+.headerInner {
+  max-width: 1600px;
+  min-height: 102px;
+  padding: 15px 4.5%;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  gap: 38px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.brand img {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+}
+.brand > span {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.brand small {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 5px;
+  margin-top: 8px;
+}
+.mainNav {
+  display: flex;
+  align-items: center;
+  gap: 29px;
+  margin: auto;
+  font-size: 13px;
+  font-weight: 500;
+}
+.mainNav a {
+  padding: 12px 0;
+}
+.mainNav a:hover,
+.footerColumn a:hover {
+  color: var(--accent);
+}
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 27px;
+  margin-left: auto;
+}
+.shopButton {
+  display: flex;
+  gap: 21px;
+  align-items: center;
+  background: var(--accent);
+  color: white;
+  padding: 15px 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.shopButton:hover {
+  background: #924426;
+}
+.languages {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.languages a {
+  padding: 14px 3px;
+  color: #77716b;
+}
+.languages a[aria-current] {
+  font-weight: 700;
+  color: var(--ink);
+}
+.languages span {
+  color: #b9b2ac;
+}
+.search {
+  display: flex;
+  background: #f6f4f1;
+  border: 1px solid #ebe6e0;
+  margin: auto;
+  max-width: 460px;
+  flex: 1;
+}
+.search input {
+  min-width: 0;
+  flex: 1;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 13px 18px;
+  outline-offset: -3px;
+  font-size: 12px;
+}
+.search button {
+  border: 0;
+  background: none;
+  width: 48px;
+  display: grid;
+  place-items: center;
+}
+.corporateLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.cartLink {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  font-size: 12px;
+}
+.accountLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.accountLink:hover,
+.accountLink[aria-current] {
+  color: var(--accent);
+}
+.menuButton {
+  display: none;
+  border: 0;
+  background: none;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+}
+.mobileDialog {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: min(90vw, 420px);
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 24px;
+  border: 0;
+  background: var(--paper);
+}
+.mobileTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40px;
+}
+.mobileTop button {
+  background: none;
+  border: 0;
+  font-size: 36px;
+  width: 44px;
+  height: 44px;
+}
+.mobileDialog > nav:not(.languages) {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 30px;
+}
+.mobileDialog > nav:not(.languages) > a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-heading);
+  font-size: 32px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.footer {
+  background: #f3f0eb;
+  padding: 65px 4.5% 0;
+}
+.footerMain {
+  max-width: 1440px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: 1.45fr 0.8fr 0.8fr 1fr;
+  gap: 60px;
+  padding-bottom: 65px;
+}
+.footerBrand > p {
+  font-family: var(--font-heading);
+  font-size: 35px;
+  line-height: 1.1;
+  white-space: pre-line;
+  margin: 25px 0;
+}
+.social {
+  display: flex;
+  gap: 18px;
+  font-size: 11px;
+  color: #625a53;
+}
+.footerColumn {
+  padding-top: 16px;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 17px;
+  font-size: 12px;
+}
+.footerColumn h2 {
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  margin: 0 0 10px;
+}
+.footerColumn p {
+  line-height: 1.9;
+  color: #716a63;
+  max-width: 235px;
+  margin: 0;
+}
+.footerColumn .phone {
+  font-size: 17px;
+  letter-spacing: -0.4px;
+}
+.footerLocation {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  border-bottom: 1px solid #b8aca1;
+  padding-bottom: 9px;
+  margin-top: 5px;
+}
+.footerBottom {
+  max-width: 1440px;
+  margin: auto;
+  padding: 25px 0;
+  border-top: 1px solid #ddd6cd;
+  display: flex;
+  justify-content: space-between;
+  gap: 25px;
+  font-size: 10px;
+  color: #7c7369;
+}
+.footerBottom > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+.footerBottom button {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 10px;
+  color: inherit;
+  text-align: left;
+}
+.policyDialog {
+  border: 0;
+  padding: 44px;
+  max-width: 520px;
+  width: calc(100% - 32px);
+  background: var(--paper);
+}
+.closeDialog {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  font-size: 32px;
+  border: 0;
+  background: none;
+  width: 44px;
+  height: 44px;
+}
+.policyLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent);
+  padding-right: 20px;
+}
+.policyDialog h2 {
+  font-family: var(--font-heading);
+  font-size: 38px;
+  line-height: 1.1;
+}
+.policyDialog > p:last-of-type {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--muted);
+}
+.policyDone {
+  border: 0;
+  padding: 13px 25px;
+  background: var(--ink);
+  color: #fff;
+  margin-top: 10px;
+}
+@media (min-width: 1600px) {
+  .headerInner {
+    gap: 65px;
+  }
+}
+@media (max-width: 1180px) {
+  .accountLink span {
+    display: none;
+  }
+  .headerInner {
+    gap: 20px;
+  }
+  .mainNav {
+    gap: 18px;
+    font-size: 12px;
+  }
+  .brand > span {
+    font-size: 21px;
+  }
+  .headerActions {
+    gap: 16px;
+  }
+  .shopButton {
+    padding: 14px;
+    gap: 14px;
+  }
+  .footerMain {
+    gap: 32px;
+  }
+  .search {
+    max-width: 360px;
+  }
+  .corporateLink {
+    font-size: 11px;
+  }
+}
+@media (max-width: 960px) {
+  .headerInner {
+    min-height: 90px;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+    padding: 12px 4%;
+  }
+  .menuButton {
+    display: grid;
+    place-items: center;
+    margin-left: -8px;
+  }
+  .mainNav {
+    display: none;
+  }
+  .search {
+    order: 5;
+    max-width: none;
+    flex-basis: 100%;
+    margin: 0 0 3px;
+  }
+  .corporateLink {
+    display: none;
+  }
+  .footerMain {
+    grid-template-columns: 1.2fr 1fr;
+    gap: 35px 50px;
+  }
+  .footerBrand {
+    grid-row: span 2;
+  }
+  .footerBottom {
+    flex-direction: column;
+  }
+  .brand img {
+    width: 61px;
+    height: 61px;
+  }
+}
+@media (max-width: 540px) {
+  .announcement {
+    font-size: 9px;
+    padding: 9px 15px;
+    letter-spacing: 1.5px;
+  }
+  .headerInner {
+    min-height: 80px;
+    padding: 10px 5%;
+    gap: 10px;
+  }
+  .brand img {
+    width: 53px;
+    height: 53px;
+  }
+  .brand {
+    gap: 7px;
+  }
+  .brand > span {
+    font-size: 19px;
+  }
+  .brand small {
+    font-size: 7px;
+    letter-spacing: 3.5px;
+    margin-top: 6px;
+  }
+  .headerActions {
+    gap: 10px;
+  }
+  .shopButton {
+    display: none;
+  }
+  .languages {
+    font-size: 10px;
+    gap: 5px;
+  }
+  .cartLink span {
+    display: none;
+  }
+  .cartLink svg {
+    width: 20px;
+  }
+  .accountLink svg {
+    width: 20px;
+  }
+  .menuButton {
+    width: 32px;
+    padding: 4px;
+  }
+  .footer {
+    padding: 45px 6% 0;
+  }
+  .footerMain {
+    grid-template-columns: 1fr 1fr;
+    gap: 35px 24px;
+    padding-bottom: 38px;
+  }
+  .footerBrand {
+    grid-column: 1/-1;
+    grid-row: auto;
+  }
+  .footerBrand > p {
+    font-size: 33px;
+  }
+  .footerColumn:last-child {
+    grid-column: 1/-1;
+  }
+  .footerColumn {
+    gap: 14px;
+    padding-top: 0;
+  }
+  .footerBottom {
+    line-height: 1.8;
+    padding: 22px 0;
+    gap: 18px;
+  }
+  .footerBottom > div {
+    gap: 12px 20px;
+  }
+  .policyDialog {
+    padding: 35px 25px;
+  }
+}
+@media (max-width: 380px) {
+  .headerInner {
+    column-gap: 8px;
+  }
+  .brand img {
+    width: 46px;
+    height: 46px;
+  }
+  .brand > span {
+    font-size: 16px;
+  }
+  .brand small {
+    font-size: 6px;
+    letter-spacing: 3px;
+  }
+  .headerActions {
+    gap: 8px;
+  }
+}

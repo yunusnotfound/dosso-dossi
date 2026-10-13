@@ -1,0 +1,95 @@
+{
+  "reviewed_on": "2026-10-13",
+  "timezone": "Europe/Istanbul",
+  "purpose": "Kullanıcının belirttiği dört politika sayfasının kaynak özeti ve yeni web projesiyle eşleştirme notları. Tam metin arşivi veya yayıma hazır hukuki metin değildir.",
+  "status": "awaiting_company_revision",
+  "source_review_complete": true,
+  "revision_owner": "Firma",
+  "project_plan": "../../../WEB_PLATFORM_PLAN.md",
+  "images_downloaded": false,
+  "locales_planned": ["tr", "en"],
+  "placement_planned": "Yeni sitenin alt bilgisinden erişilen ayrı sayfalar; gerekli satın alma ve üyelik adımlarından ilgili metinlere bağlantı.",
+  "sources": [
+    {
+      "key": "distance_sales",
+      "title": "Mesafeli Satış Sözleşmesi",
+      "source_url": "https://dossodossicoffee.com/mesafeli-satis-sozlesmesi",
+      "planned_tr_path": "/mesafeli-satis-sozlesmesi",
+      "source_language": "tr",
+      "content_present": true,
+      "summary_tr": "Satıcı ve alıcı bilgileri, siparişin kapsamı, bedel, sevkiyat, ödeme, iptal ve iade konularını düzenleyen bölümler bulunuyor. Ayrıca kişisel bilgi işleme, uyuşmazlık ve sözleşmenin kabulü konuları ele alınıyor. Satıcı iletişiminde Fatih adresi, telefon ve iletisim e-posta hesabı belirtilmiş.",
+      "observed_contact": {
+        "seller_label": "Dosso Dossi Coffee",
+        "address": "Molla Gürani, Dr. Ahmetpaşa Sk. No:7 Kat:2, 34130 Fatih/İstanbul",
+        "phone": "0212 242 21 21",
+        "email": "iletisim@dossodossicoffee.com"
+      },
+      "adaptation_notes": [
+        "Sipariş, alıcı, ürün ve toplam bilgileri yeni satın alma akışıyla eşleştirilmeli.",
+        "İade süreleri ve kargo masrafı ifadeleri diğer kaynak sayfayla birlikte değerlendirilmeli; bu inceleme yeni bir süre veya koşul belirlemiyor.",
+        "Veri paylaşımının kargo firmasıyla sınırlandığı kaynak beyanı, planlanan Resend ve iyzico hizmetlerinin gerçek veri akışlarıyla birlikte ele alınmalı.",
+        "Kaynak ifadeler otomatik olarak yeni mağazanın iş kuralı kabul edilmeyecek."
+      ]
+    },
+    {
+      "key": "privacy",
+      "title": "Gizlilik İlkeleri",
+      "source_title": "Gizlilik Sözleşmesi",
+      "source_url": "https://dossodossicoffee.com/gizlilik-sozlesmesi",
+      "planned_tr_path": "/gizlilik-sozlesmesi",
+      "source_language": "tr",
+      "content_present": true,
+      "summary_tr": "Şirket kimliği, toplanan bilgiler, paylaşım, erişim, politika değişiklikleri ve güvenlik konularını içeriyor. Ödeme altyapısı eski sağlayıcı Sipay üzerinden tarif edilmiş. İletişim için Fatih adresi ve çağrı numarası verilmiş.",
+      "company_name_as_published": "DOSSO DOSSİ GIDA VE YİYECEK İÇECEK SANAYİ TİCARET ANONİM ŞİRKETİ",
+      "adaptation_notes": [
+        "Sipay anlatımı yeni iyzico planıyla uyuşmuyor; yalnız sağlayıcı adını değiştirmek yeterli kabul edilmeyecek, gerçek entegrasyon akışı esas alınacak.",
+        "Resend doğrulama e-postaları, hesap ve sipariş verilerinin işlenmesi yeni sistem bağlamında açıklanmalı.",
+        "Kaynak kart güvenlik numarasını veri listesinde sayıyor; yeni uygulamanın bu bilgiyi saklayacağı varsayılmayacak.",
+        "Eski altyapıya ilişkin SSL, güvenlik duvarı ve özel şifreleme beyanları doğrulanmış yeni sistem özellikleri olarak aktarılmayacak.",
+        "İletişim e-posta metnindeki biçimsel tekrar temizlenmeli."
+      ]
+    },
+    {
+      "key": "cookies",
+      "title": "Çerez Politikası",
+      "source_url": "https://dossodossicoffee.com/cerez-politikasi",
+      "planned_tr_path": "/cerez-politikasi",
+      "source_language": "tr",
+      "content_present": true,
+      "summary_tr": "Çerezlerin amacı, türleri, tarayıcı üzerinden kontrolü ve üçüncü taraf hizmetlerine ilişkin genel açıklamalar içeriyor. Web ile mobil uygulamayı birlikte kapsıyor. Kişisel veri başvuruları için şirket adresi ve elektronik iletişim kanalları belirtilmiş.",
+      "observed_contact": {
+        "kep_as_published": "dossi@hs03.kep.tr",
+        "email_as_published": "musterihizmetleri@dossodsosicoffee.com",
+        "email_verified": false
+      },
+      "adaptation_notes": [
+        "Kaynak e-posta adresindeki alan adı site adresinden farklı; doğru adres firma tarafından netleştirilmeli.",
+        "Google Analytics, reklam ağları, Hotjar, OneSignal ve başka servislerin adları geçiyor. Listelenmeleri bu servislerin çalıştığını veya yeni sitede kullanılacağını kanıtlamıyor.",
+        "Politika yeni web sitesinde gerçekten kullanılan çerez adları, amaçları, süreleri ve tercih kontrolleriyle eşleştirilecek.",
+        "Flash, Internet Explorer ve parolanın çerezde saklanması ifadeleri yeni uygulama tasarımı için gereksinim sayılmayacak.",
+        "Harici Acrobat aydınlatma bağlantılarının içerikleri bu kaynak incelemesinde okunmadı."
+      ]
+    },
+    {
+      "key": "returns",
+      "title": "İade Şartları ve Koşulları",
+      "source_url": "https://dossodossicoffee.com/iade-sartlar-kosullar",
+      "planned_tr_path": "/iade-sartlar-kosullar",
+      "source_language": "tr",
+      "content_present": true,
+      "summary_tr": "Teslimat sorunları, ödeme iptali, cayma bildirimi, iade işlemleri ve istisnalar anlatılıyor. Kaynakta banka transferi ve taksitli kart ödemesi ifadeleri de bulunuyor; bunlar yeni mağaza için verilmiş kararlar değil.",
+      "adaptation_notes": [
+        "Cayma bildiriminin gönderileceği şirket adı, adres, e-posta, telefon ve faks alanları boş bırakılmış.",
+        "Havale/EFT kısmındaki banka bilgileri noktalı yer tutuculardan oluşuyor.",
+        "Ürün istisnaları arasında yeni kahve/termos kataloğuyla ilgisiz kategoriler var.",
+        "Siparişe göre öğütülen kahvelere ilişkin koşul bu incelemede belirlenmedi.",
+        "Kargo firması, iade adresi, masraf ve süre ifadeleri kesinleşen operasyonla ve diğer sözleşme sayfasıyla eşleştirilmeli."
+      ]
+    }
+  ],
+  "remaining_work": [
+    "Firmanın revize ettiği nihai Türkçe metinleri ve İngilizce karşılıklarını temin etmek.",
+    "İşletme bilgileri ile gerçek ödeme, e-posta ve kargo akışlarını metinlerle eşleştirmek.",
+    "WEB_PLATFORM_PLAN.md içinde planlanan metin sürümleme ve satın alma kabul kaydını geliştirme aşamasında uygulamak."
+  ]
+}

@@ -1,0 +1,488 @@
+.page {
+  background: var(--paper);
+  padding: 26px 6% 85px;
+  min-height: 62vh;
+}
+.container {
+  max-width: 1200px;
+  margin: auto;
+}
+.breadcrumb {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0 0 45px;
+}
+.breadcrumb a:hover,
+.back:hover {
+  color: var(--accent);
+}
+.heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 30px;
+  margin-bottom: 37px;
+}
+.eyebrow {
+  font-size: 9px;
+  letter-spacing: 1.8px;
+  color: var(--accent);
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+.heading h1 {
+  font: 500 clamp(42px, 4.4vw, 64px) / 1 var(--font-heading);
+  margin: 0 0 18px;
+  letter-spacing: -0.65px;
+}
+.heading div > p:last-child {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.8;
+  margin: 0;
+  max-width: 600px;
+}
+.back {
+  font-size: 11px;
+  white-space: nowrap;
+  display: flex;
+  gap: 25px;
+  align-items: center;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--line);
+}
+.back span {
+  font-size: 20px;
+}
+.addressGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.addressCard {
+  min-width: 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+}
+.defaultCard {
+  border-top: 2px solid var(--accent);
+  padding-top: 27px;
+}
+.addressTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 25px;
+  color: var(--accent);
+}
+.addressTop > span {
+  color: var(--muted);
+  font-size: 9px;
+}
+.defaultCard .addressTop > span {
+  color: #77533a;
+  background: #f7eee4;
+  padding: 6px 8px;
+}
+.addressCard h2 {
+  font: 500 32px/1.1 var(--font-heading);
+  margin: 0 0 18px;
+  overflow-wrap: anywhere;
+}
+.addressCard > strong {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  margin: 0 0 10px;
+}
+.addressCard address {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.phone {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 16px 0 24px;
+}
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  margin-top: auto;
+}
+.cardActions button {
+  background: none;
+  border: 0;
+  padding: 3px 0;
+  font-size: 10px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cardActions button:first-child,
+.cardActions button:last-child:not(:nth-child(2)) {
+  color: var(--accent);
+}
+.cardActions button:last-child:not(:nth-child(2)) {
+  margin-left: auto;
+}
+.addCard {
+  display: flex;
+  min-height: 320px;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 18px;
+  border: 1px dashed #cfc1b2;
+  background: transparent;
+  color: var(--ink);
+  padding: 30px;
+}
+.addCard > span {
+  height: 48px;
+  width: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--accent);
+  font-size: 27px;
+  font-weight: 300;
+}
+.addCard strong {
+  font: 500 26px var(--font-heading);
+}
+.addCard small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.8;
+}
+.addCard:hover {
+  background: #fff8;
+  border-color: var(--accent);
+}
+.limit {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.8;
+  margin: 23px 0 0;
+}
+.empty {
+  min-height: 300px;
+  background: #fff;
+  padding: 48px 24px;
+  text-align: center;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.empty > svg {
+  color: var(--accent);
+  margin-bottom: 5px;
+}
+.empty h2 {
+  font: 500 38px/1.1 var(--font-heading);
+  color: var(--ink);
+  margin: 0;
+}
+.empty p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.9;
+  max-width: 430px;
+}
+.primary,
+.secondary {
+  min-height: 46px;
+  padding: 13px 20px;
+  font-size: 11px;
+  display: inline-flex;
+  gap: 30px;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid var(--accent);
+  text-align: center;
+  line-height: 1.6;
+}
+.primary {
+  background: var(--accent);
+  color: #fff;
+}
+.primary:hover:not(:disabled) {
+  background: #8f4325;
+}
+.secondary {
+  background: #fff;
+  border-color: #d8cdc2;
+  color: var(--ink);
+}
+.notice,
+.error {
+  padding: 15px 18px;
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0 0 23px;
+}
+.notice {
+  color: #46623a;
+  border: 1px solid #d4dfcd;
+  background: #eff4ec;
+}
+.error {
+  background: #fff0e9;
+  border: 1px solid #efd3c4;
+  color: #8e4027;
+}
+.error p {
+  margin: 0;
+}
+.error button {
+  border: 0;
+  background: transparent;
+  padding: 7px 0 0;
+  color: inherit;
+  text-decoration: underline;
+  font-size: 12px;
+}
+.formCard {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 36px 40px;
+  max-width: 900px;
+}
+.formHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 27px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 29px;
+}
+.formHeading h2 {
+  margin: 0 0 12px;
+  font: 500 37px/1.1 var(--font-heading);
+  scroll-margin-top: 25px;
+}
+.formHeading h2:focus {
+  outline: 0;
+}
+.formHeading p {
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 0;
+  color: var(--muted);
+}
+.formHeading > span {
+  color: var(--accent);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 23px 26px;
+}
+.field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.field > span {
+  font-size: 11px;
+  font-weight: 600;
+}
+.field em {
+  font-style: normal;
+  color: var(--accent);
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 12px 13px;
+  border: 1px solid #dcd4ca;
+  border-radius: 0;
+  background: #fff;
+  color: var(--ink);
+  font: 13px var(--font-body);
+}
+.field textarea {
+  resize: vertical;
+  line-height: 1.8;
+}
+.field input[readonly] {
+  background: #f5f3ef;
+  color: var(--muted);
+}
+.field small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+.fullWidth {
+  grid-column: 1 / -1;
+}
+.check {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+.formActions {
+  margin-top: 29px;
+  border-top: 1px solid var(--line);
+  padding-top: 25px;
+  display: flex;
+  justify-content: end;
+  align-items: center;
+  gap: 12px;
+}
+.formActions > span {
+  margin-right: auto;
+  font-size: 10px;
+  color: var(--muted);
+}
+.deleteConfirm {
+  border-top: 1px solid #d6b8a8;
+  padding-top: 15px;
+  margin-top: auto;
+  color: #8e4027;
+}
+.deleteConfirm strong {
+  font-size: 12px;
+}
+.deleteConfirm p {
+  font-size: 10px;
+  line-height: 1.8;
+  margin: 8px 0 13px;
+}
+.deleteConfirm > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+.deleteConfirm button {
+  background: transparent;
+  color: inherit;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  padding: 4px 0;
+  font-size: 11px;
+}
+.page :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.page button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.loadingDot {
+  height: 8px;
+  width: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+@media (max-width: 1050px) {
+  .addressGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .heading {
+    align-items: start;
+  }
+}
+@media (max-width: 650px) {
+  .page {
+    padding: 23px 5% 55px;
+  }
+  .breadcrumb {
+    margin-bottom: 30px;
+  }
+  .heading {
+    flex-direction: column;
+    gap: 23px;
+    margin-bottom: 28px;
+  }
+  .heading h1 {
+    font-size: 44px;
+  }
+  .heading div > p:last-child {
+    font-size: 11px;
+  }
+  .addressGrid {
+    grid-template-columns: 1fr;
+  }
+  .addressCard {
+    padding: 25px;
+  }
+  .addCard {
+    min-height: 200px;
+  }
+  .formCard {
+    padding: 25px 20px;
+  }
+  .formHeading h2 {
+    font-size: 32px;
+  }
+  .fields {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .field input,
+  .field select,
+  .field textarea {
+    font-size: 16px;
+  }
+  .formActions {
+    flex-wrap: wrap;
+  }
+  .formActions > span {
+    flex: 0 0 100%;
+  }
+  .formActions button {
+    flex: 1;
+    gap: 15px;
+  }
+  .empty h2 {
+    font-size: 32px;
+  }
+  .empty {
+    padding: 38px 22px;
+  }
+}

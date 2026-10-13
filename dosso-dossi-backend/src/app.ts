@@ -1,7 +1,6 @@
 import path from 'node:path';
 import express from 'express';
 import helmet from 'helmet';
-import { env } from './config/env.js';
 import { AppError, ErrorCodes } from './lib/errors.js';
 import { prisma } from './lib/prisma.js';
 import { errorHandler } from './middleware/error-handler.js';
@@ -26,15 +25,20 @@ import { iyzicoWebhooksRouter } from './features/webhooks/iyzico.routes.js';
 import { posAuth } from './middleware/pos-auth.js';
 import { adminCors } from './middleware/admin-cors.js';
 import { adminRouter } from './features/admin/admin.routes.js';
+import { env } from './config/env.js';
+import { getWebPrisma } from './lib/web-prisma.js';
+import { createWebRouter } from './features/web/web.routes.js';
 
 export function createApp(): express.Express {
   const app = express();
   // Only explicitly listed proxies may supply the buyer's forwarded IP.
   if (env.TRUST_PROXY.length) app.set('trust proxy', env.TRUST_PROXY);
-  // Güvenlik başlıkları. CORS bilerek YOK: istemci yalnızca mobil
-  // uygulama (tarayıcı değil); web istemcisi eklenirse allowlist ile açılır.
+  // Web's Next.js server accesses /web; browsers use the same-origin Next.js site.
+  // No broad CORS policy is needed for the new web module.
   app.use(helmet());
   app.use(requestLogger);
+  // Web parsers run before the mobile 100 KB parser: authenticated image uploads have their own bounded limit.
+  if (env.WEB_ENABLED) app.use('/web', createWebRouter(getWebPrisma));
   app.use(
     express.json({
       limit: '100kb',

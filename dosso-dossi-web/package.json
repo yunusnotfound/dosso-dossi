@@ -1,0 +1,35 @@
+{
+  "name": "dosso-dossi-web",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 4000",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1 --port 4000",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:admin-boundary": "node --test scripts/admin-boundary.test.mjs",
+    "test:catalog": "node --experimental-strip-types --test scripts/catalog.test.mjs",
+    "test:customer-boundary": "node --test scripts/customer-boundary.test.mjs",
+    "test:commerce-boundary": "node --test scripts/commerce-boundary.test.mjs",
+    "test:shipping": "node --experimental-strip-types --test scripts/shipping.test.mjs",
+    "test:orders-boundary": "node --test scripts/orders-boundary.test.mjs",
+    "test:orders": "node --test scripts/orders.test.mjs"
+  },
+  "dependencies": {
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource/dm-sans": "^5.3.0",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,2 @@
+# PDF deliverables must be diffed and merged as binary files.
+*.pdf binary
