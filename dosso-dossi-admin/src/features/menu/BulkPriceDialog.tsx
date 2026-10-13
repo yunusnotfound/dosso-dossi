@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { DurableIntentError, withDurableIntent } from '../../api/mutation-intents';
 import { useAuth } from '../../auth/auth-state';
 import { ApiError, readApi } from '../../api/client';
@@ -7,6 +7,7 @@ import type { Category } from '../../api/schemas';
 import { bulkPriceResultSchema } from '../../api/schemas';
 import {
 	Drawer,
+  MutationForm,
 	Field,
 	Input,
 	Select,
@@ -32,6 +33,7 @@ export function BulkPriceDialog({
   const [roundTo, setRoundTo] = useState(5);
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
+  const formId = useId();
 
   const run = useMutation({
     mutationFn: () => {
@@ -49,6 +51,7 @@ export function BulkPriceDialog({
     <Drawer
       open={open}
       title="Toplu fiyat güncelleme"
+      busy={run.isPending}
       onClose={() => { if (!run.isPending) onClose(); }}
       footer={
         <div className="flex justify-end gap-2">
@@ -56,7 +59,7 @@ export function BulkPriceDialog({
             Vazgeç
           </Button>
           <Button
-            onClick={() => run.mutate()}
+            type="submit" form={formId}
             disabled={reason.trim().length < 5 || run.isPending}
           >
             {run.isPending ? 'Uygulanıyor…' : 'Fiyatları güncelle'}
@@ -64,7 +67,7 @@ export function BulkPriceDialog({
         </div>
       }
     >
-      <div className="flex flex-col gap-4">
+      <MutationForm id={formId} busy={run.isPending} onSubmit={() => run.mutate()}>
           <Field label="Kapsam">
             <Select disabled={run.isPending} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
               <option value="">Tüm ürünler</option>
@@ -89,16 +92,18 @@ export function BulkPriceDialog({
             <Input
               disabled={run.isPending}
               type="number"
-              value={value}
-              onChange={(e) => setValue(Number(e.target.value))}
+              required min={mode === 'percent' ? -90 : -10000} max={mode === 'percent' ? 200 : 10000} step={mode === 'percent' ? 'any' : '0.01'}
+              value={Number.isFinite(value) ? value : ''}
+              onChange={(e) => setValue(e.target.valueAsNumber)}
             />
           </Field>
           <Field label="Yuvarlama" hint="5 ⇒ en yakın 5 ₺'ye. 0 = yuvarlama yok.">
             <Input
               disabled={run.isPending}
               type="number"
-              value={roundTo}
-              onChange={(e) => setRoundTo(Number(e.target.value))}
+              required min={0} max={100} step="0.01"
+              value={Number.isFinite(roundTo) ? roundTo : ''}
+              onChange={(e) => setRoundTo(e.target.valueAsNumber)}
             />
           </Field>
         <p className="rounded-chip bg-warn-soft px-3 py-2 text-sm text-warn">
@@ -108,7 +113,7 @@ export function BulkPriceDialog({
         <Field label="Gerekçe" hint="En az 5 karakter — kayda geçer.">
           <Textarea
             disabled={run.isPending}
-            rows={2}
+            rows={2} required minLength={5} maxLength={300}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
@@ -118,7 +123,7 @@ export function BulkPriceDialog({
             {error}
           </p>
         ) : null}
-      </div>
+      </MutationForm>
     </Drawer>
   );
 }

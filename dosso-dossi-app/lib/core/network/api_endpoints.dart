@@ -15,6 +15,10 @@ abstract final class ApiEndpoints {
   static const String loyalty = '/me/loyalty';
   static const String wallet = '/me/wallet';
   static const String walletTopUp = '/me/wallet/topup';
+  static const String walletPaymentConfig = '/me/wallet/payment-config';
+  static const String walletPendingPayment = '/me/wallet/payments/pending';
+  static String walletPayment(String id) =>
+      '/me/wallet/payments/${Uri.encodeComponent(id)}';
   static const String walletQrToken = '/me/wallet/qr-token';
 
   // Menü & şubeler & kampanyalar

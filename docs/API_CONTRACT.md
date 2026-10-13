@@ -72,13 +72,25 @@ Kurallar **sunucuda** uygulanır (kaynak: CEO kampanyaları):
 | Metot | Endpoint | Açıklama |
 |---|---|---|
 | GET | `/me/wallet` | `{ "balance": 425.50, "cardLast4": "7412" }` |
-| POST | `/me/wallet/topup` | `{ "amount": 1000, "savedCardId" }` → `{ "balance", "bonusDrinks", "paymentId", "status": "succeeded"\|"pending", "redirectUrl"? }` |
+| GET | `/me/wallet/payment-config` | `{ "provider": "iyzico"\|"dev", "enabled", "requiresBillingDetails" }`; anahtarlar hiçbir zaman istemciye dönmez |
+| POST | `/me/wallet/topup` | `{ "amount", "idempotencyKey", "buyer"? }` → aşağıdaki ödeme makbuzu |
+| GET | `/me/wallet/payments/pending` | `{ "payment": makbuz\|null }`; uygulama yeniden açıldığında devam eden yüklemeyi kurtarır |
+| GET | `/me/wallet/payments/:paymentId` | Yalnız ödeme sahibi için güncel makbuz; gerekiyorsa sunucu iyzico sonucunu tekrar sorgular |
 | POST | `/me/wallet/qr-token` | Tara & Öde için tek kullanımlık kod: `{ "code", "expiresAt" }` (60 sn). POS köprüsü `/pos/charge` ile tahsil eder |
 
-Yükleme iki fazlıdır: `PaymentIntent` PENDING açılır, sağlayıcı onayı
-(`/webhooks/payment/confirmation`) gelmeden bakiyeye yazılmaz. Dev
-sağlayıcı anında onaylar; iyzico'da `status: "pending"` + `redirectUrl`
-(3DS) dönecek.
+Ödeme makbuzu: `{ "paymentId", "amount", "balance", "bonusDrinks", "status": "pending"|"succeeded"|"failed"|"expired", "redirectUrl"?, "checkoutExpired", "idempotencyKeys": [] }`.
+`idempotencyKeys` yalnız oturum sahibinin bu ödemeye bağlı tekrar anahtarlarını içerir. Sonuç doğrulandığında başka bir yüklemenin tekrar kimliği yanlışlıkla temizlenmez.
+
+`buyer`: `{ name, surname, email, identityNumber, address, city, country, zipCode? }`.
+Bu bilgiler iyzico başlatma isteğine iletilir; backend/uygulama tekrar kaydında veya loglarda tutulmaz. Telefon oturum sahibinden, IP güvenilen bağlantıdan alınır. Kart numarası/CVV uygulamaya veya bu API'ye gönderilmez; kart bilgileri iyzico'nun HTTPS ödeme sayfasında girilir.
+
+Yükleme iki fazlıdır: kalıcı `PaymentIntent` ve tekrar anahtarı, dış çağrıdan önce oluşturulur. iyzico başlatma yalnız `pending` ve doğrulanmış ödeme adresi döndürür. Bakiyeye yazmak için sunucu imzalı sorgu yanıtını; ödeme/işlem kimliği, sepet, TRY tutarı, kalem ve dolandırıcılık onayıyla birlikte doğrular. Bakiye, ikram ve benzersiz defter kaydı aynı veritabanı işleminde yazılır.
+
+`POST /webhooks/iyzico/callback` form `token` alanını alır; tarayıcı dönüşü tek başına ödeme onayı sayılmaz. `POST /webhooks/iyzico/notification` iyzico HPP `X-IYZ-SIGNATURE-V3` imzasını doğrular ve sonucu yeniden sorgular. Eski `/webhooks/payment/confirmation` yalnız dev simülasyonları içindir ve iyzico ödemelerini onaylayamaz.
+
+Ödeme sayfasının süresi dolması banka tahsilatının başarısız olduğu anlamına gelmez. Bu yüzden `checkoutExpired=true` olan kayıt kontrol edilmeye devam eder; kullanıcı açıkça seçerse yeni işlem anahtarıyla başka yükleme açılabilir. Geç gelen doğrulanmış başarı da yalnız bir kez işlenir. Zaman aşımı, bağlantı kaybı ve fraud incelemesi bakiye/ikram oluşturmaz. API bilgileri eksikken iyzico yüklemeleri kontrollü olarak kapalıdır; dev moduna otomatik geçiş olmaz.
+
+Kurulum ve doğrulama: [IYZICO.md](IYZICO.md).
 
 ## 4. Menü — `features/order/data/menu_repository.dart`
 

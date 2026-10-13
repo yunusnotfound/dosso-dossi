@@ -6,6 +6,9 @@ import {
   markPaymentFailed,
 } from '../wallet/payments/topup.service.js';
 import { runPosEvent } from './pos-events.service.js';
+import { prisma } from '../../lib/prisma.js';
+import { AppError } from '../../lib/errors.js';
+import { env } from '../../config/env.js';
 
 const confirmationSchema = z.object({
   paymentId: z.string().min(1),
@@ -21,6 +24,8 @@ paymentWebhooksRouter.post(
   validate(confirmationSchema),
   async (req, res, next) => {
     try {
+      const intent = await prisma.paymentIntent.findUnique({ where: { id: req.body.paymentId }, select: { provider: true } });
+      if (env.NODE_ENV === 'production' || env.PAYMENT_PROVIDER !== 'dev' || intent?.provider !== 'dev') throw AppError.forbidden();
       const result = await runPosEvent(
         {
           source: 'payment',

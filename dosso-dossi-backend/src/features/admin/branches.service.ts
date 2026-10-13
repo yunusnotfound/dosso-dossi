@@ -3,7 +3,7 @@ import { AppError } from '../../lib/errors.js';
 import { toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
 import { audit } from './audit.js';
-import { parseOpeningHours } from '../orders/pickup-policy.js';
+import { isAcceptingOrders, parseOpeningHours } from '../orders/pickup-policy.js';
 import { startOfBusinessDay } from '../../lib/business-time.js';
 
 export async function listBranches(scope?: string) {
@@ -22,6 +22,7 @@ export async function listBranches(scope?: string) {
     lng: Number(b.lng),
     hours: b.hours,
     isOpen: b.isOpen,
+    isAcceptingOrders: isAcceptingOrders(b),
     prepMinutes: b.prepMinutes,
     orderCount: b._count.orders,
   }));
@@ -116,6 +117,7 @@ export async function branchDetail(id: string) {
 
   return {
     ...branch,
+    isAcceptingOrders: isAcceptingOrders(branch),
     lat: Number(branch.lat),
     lng: Number(branch.lng),
     todayOrders: today._count,

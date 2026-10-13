@@ -3,6 +3,7 @@ import { env } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { prisma } from './lib/prisma.js';
 import { startForwardSweep } from './features/orders/pos-client.js';
+import { startPaymentSweep } from './features/wallet/payments/topup.service.js';
 
 const app = createApp();
 const server = app.listen(env.PORT, env.HOST, () => {
@@ -10,6 +11,7 @@ const server = app.listen(env.PORT, env.HOST, () => {
 });
 
 startForwardSweep();
+const stopPaymentSweep = startPaymentSweep();
 
 /// Kapanışta yeni istek alınmaz, süren istekler bitirilir, DB bağlantıları
 /// kapatılır. 10 sn içinde bitmezse zorla çıkılır (deploy sırasında
@@ -18,6 +20,7 @@ let shuttingDown = false;
 async function shutdown(signal: string) {
   if (shuttingDown) return;
   shuttingDown = true;
+  stopPaymentSweep();
   logger.info(`${signal} alındı, sunucu kapatılıyor...`);
   const force = setTimeout(() => {
     logger.error('Kapanış 10 sn içinde bitmedi, zorla çıkılıyor');

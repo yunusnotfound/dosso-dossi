@@ -96,8 +96,13 @@ export async function advanceOrderStatus(
   return { ok: true, status: newStatus.toLowerCase() };
 }
 
+export const MAX_ORDER_NUMBER = 2_147_483_647; // PostgreSQL Int / Prisma Int
+
 export function parseOrderNumber(orderId: string): number {
   const match = /^DD-(\d+)$/.exec(orderId);
-  if (!match) throw AppError.notFound(`Geçersiz sipariş numarası: ${orderId}`);
-  return Number(match[1]);
+  const number = match ? Number(match[1]) : NaN;
+  if (!Number.isInteger(number) || number < 1 || number > MAX_ORDER_NUMBER) {
+    throw AppError.notFound(`Geçersiz sipariş numarası: ${orderId}`);
+  }
+  return number;
 }

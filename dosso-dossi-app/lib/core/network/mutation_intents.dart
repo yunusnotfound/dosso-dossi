@@ -55,8 +55,13 @@ class MutationIntents extends Interceptor {
         final account = raw == null
             ? 'anonymous'
             : (jsonDecode(raw) as Map)['phone'];
+        // Billing identity/address must never become a preferences key. A retry
+        // of the same amount keeps its identity even if the form was edited.
+        final identity = options.path == '/me/wallet/topup'
+            ? {'amount': body['amount']}
+            : body;
         final slot =
-            'pending_intent:${base64Url.encode(utf8.encode('$account|${options.path}|${jsonEncode(body)}'))}';
+            'pending_intent:${base64Url.encode(utf8.encode('$account|${options.path}|${jsonEncode(identity)}'))}';
         final stored = store.getString(slot);
         final key =
             _pendingKeys[slot] ??
@@ -109,6 +114,32 @@ class MutationIntents extends Interceptor {
 
   /// Repositories with structured receipts acknowledge after decoding them.
   Future<void> confirm(RequestOptions options) => _finish(options);
+
+  /// Only a server-authorized receipt for this request can end its retry key.
+  Future<void> confirmWalletAmount(
+    double amount,
+    List<String> receiptKeys,
+  ) async {
+    final raw = store.getString('auth_user');
+    if (raw == null) return;
+    final account = (jsonDecode(raw) as Map)['phone'];
+    final identity = jsonEncode({'amount': amount});
+    final slot =
+        'pending_intent:${base64Url.encode(utf8.encode('$account|/me/wallet/topup|$identity'))}';
+    final key = _pendingKeys[slot] ?? store.getString(slot);
+    if (key == null ||
+        key.startsWith(_completedPrefix) ||
+        !receiptKeys.contains(key)) {
+      return;
+    }
+    await _finish(
+      RequestOptions(
+        path: '/me/wallet/topup',
+        data: {'idempotencyKey': key},
+        extra: {_slot: slot},
+      ),
+    );
+  }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {

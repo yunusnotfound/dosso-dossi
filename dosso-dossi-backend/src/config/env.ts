@@ -1,10 +1,18 @@
 import fs from 'node:fs';
+import { isIP } from 'node:net';
 import { z } from 'zod';
 
 // tsx/node .env dosyasını kendiliğinden yüklemez
 if (fs.existsSync('.env')) {
   process.loadEnvFile('.env');
 }
+
+const trustedProxy = z.string().refine((value) => {
+  const [address, prefix, ...rest] = value.split('/');
+  const version = isIP(address ?? '');
+  if (!version || rest.length) return false;
+  return prefix === undefined || (/^\d+$/.test(prefix) && Number(prefix) >= 1 && Number(prefix) <= (version === 4 ? 32 : 128));
+}, 'TRUST_PROXY yalnız açık IP adresleri/CIDR ağları kabul eder; true, hop sayısı ve /0 kullanılamaz');
 
 const envSchema = z
   .object({
@@ -16,7 +24,13 @@ const envSchema = z
     // bu sırlar para hareket ettiren uçları koruyor.
     POS_WEBHOOK_SECRET: z.string().min(16),
     PAYMENT_WEBHOOK_SECRET: z.string().min(16),
-    PAYMENT_PROVIDER: z.string().default('dev'),
+    // A new installation never silently simulates successful payments.
+    PAYMENT_PROVIDER: z.enum(['dev', 'iyzico']).default('iyzico'),
+    IYZICO_ENVIRONMENT: z.enum(['sandbox', 'production']).default('sandbox'),
+    IYZICO_API_KEY: z.string().trim().default(''),
+    IYZICO_SECRET_KEY: z.string().trim().default(''),
+    IYZICO_CALLBACK_URL: z.string().trim().default(''),
+    IYZICO_TIMEOUT_MS: z.coerce.number().int().min(1000).max(30000).default(10000),
     // Yönetim paneli: müşteri JWT'sinden AYRI sır. Aynı sır kullanılırsa
     // müşteri token'ı panele geçerdi; bu yüzden ayrı ve zorunlu.
     ADMIN_JWT_SECRET: z.string().min(16),
@@ -40,6 +54,8 @@ const envSchema = z
     // Geliştirme API'si varsayılan olarak yalnız bu bilgisayardan erişilir.
     // Cihaz testi/container deployment için HOST açıkça verilebilir.
     HOST: z.string().trim().min(1).optional(),
+    // X-Forwarded-For is trusted only from explicitly listed ingress addresses.
+    TRUST_PROXY: z.string().default('').transform((value) => value.split(',').map((part) => part.trim()).filter(Boolean)).pipe(z.array(trustedProxy).max(50)),
     LOG_LEVEL: z.string().default('info'),
     OTP_DEV_MODE: z
       .string()
@@ -49,6 +65,12 @@ const envSchema = z
   })
   .superRefine((cfg, ctx) => {
     if (cfg.NODE_ENV !== 'production') return;
+    if (cfg.PAYMENT_PROVIDER === 'dev') {
+      ctx.addIssue({ code: 'custom', message: 'PAYMENT_PROVIDER üretimde dev olamaz (sahte bakiye yükleme)' });
+    }
+    if (cfg.PAYMENT_PROVIDER === 'iyzico' && cfg.IYZICO_ENVIRONMENT !== 'production') {
+      ctx.addIssue({ code: 'custom', message: 'IYZICO_ENVIRONMENT üretimde production olmalı' });
+    }
     // Üretimde dev kolaylıkları asla açık kalamaz
     if (cfg.OTP_DEV_MODE) {
       ctx.addIssue({

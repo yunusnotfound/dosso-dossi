@@ -135,6 +135,7 @@ function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => voi
 
   const run = useMutation({
     mutationFn: async (reason: string) => {
+      if (action === 'loyalty' && (!Number.isInteger(stamps) || stamps < 0 || !Number.isInteger(freeDrinks) || freeDrinks < 0)) throw new ApiError('INVALID_INPUT', 400, 'Damga ve ikram alanlarına geçerli bir sayı girin.');
       switch (action) {
         case 'balance': {
           const body = { amount: Number(amount), reason: reason.trim() };
@@ -175,6 +176,7 @@ function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => voi
         open={!!id}
         title={data ? data.name || data.phone : 'Müşteri'}
         onClose={onClose}
+        busy={run.isPending}
       >
         {detail.isLoading ? <Spinner /> : null}
         <QueryError error={detail.error} onRetry={() => void detail.refetch()} />
@@ -314,6 +316,7 @@ function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => voi
       <Drawer
         open={action === 'balance'}
         title="Bakiye düzeltmesi"
+        busy={run.isPending}
         onClose={() => { if (!run.isPending) setAction(null); }}
       >
         <Field
@@ -340,21 +343,24 @@ function CustomerDrawer({ id, onClose }: { id: string | null; onClose: () => voi
       <Drawer
         open={action === 'loyalty'}
         title="Damga / ikram düzeltmesi"
+        busy={run.isPending}
         onClose={() => { if (!run.isPending) setAction(null); }}
       >
         <div className="flex flex-col gap-4">
           <Field label="Damga" hint={`0 – ${(data?.loyalty.target ?? 5) - 1} arası`}>
             <Input
               type="number"
-              value={stamps}
-              onChange={(e) => setStamps(Number(e.target.value))}
+              disabled={run.isPending} min={0} step={1}
+              value={Number.isFinite(stamps) ? stamps : ''}
+              onChange={(e) => setStamps(e.target.valueAsNumber)}
             />
           </Field>
           <Field label="İkram hakkı">
             <Input
               type="number"
-              value={freeDrinks}
-              onChange={(e) => setFreeDrinks(Number(e.target.value))}
+              disabled={run.isPending} min={0} step={1}
+              value={Number.isFinite(freeDrinks) ? freeDrinks : ''}
+              onChange={(e) => setFreeDrinks(e.target.valueAsNumber)}
             />
           </Field>
           <ReasonInline

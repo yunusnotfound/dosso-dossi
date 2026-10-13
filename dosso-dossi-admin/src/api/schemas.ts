@@ -50,6 +50,7 @@ export const branchStatSchema = z.object({
   branchId: z.string(),
   name: z.string(),
   isOpen: z.boolean(),
+  isAcceptingOrders: z.boolean().optional(),
   revenue: z.number().finite(),
   orders: z.number().finite()
 });
@@ -364,6 +365,7 @@ export const branchSchema = z.object({
   lng: z.number().finite(),
   hours: z.string(),
   isOpen: z.boolean(),
+  isAcceptingOrders: z.boolean().optional(),
   prepMinutes: z.number().finite(),
   orderCount: z.number().finite()
 });

@@ -53,6 +53,13 @@ const fmtDateTime = (iso: string) =>
     new Date(iso),
   );
 
+// Compare calendar days in the business timezone, even when the panel runs abroad.
+const istanbulDay = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Istanbul', year: 'numeric', month: '2-digit', day: '2-digit',
+});
+const fmtBoardTime = (iso: string, now = new Date()) =>
+  istanbulDay.format(new Date(iso)) === istanbulDay.format(now) ? fmtTime(iso) : fmtDateTime(iso);
+
 export function OrdersPage() {
   const { admin } = useAuth();
   const canOperate = admin?.role !== 'VIEWER';
@@ -260,11 +267,11 @@ export function OrdersPage() {
                 ) : (
                   items.map((o) => (
                     <Card key={o.id} className="min-w-0 transition-shadow hover:shadow-sm">
-                      <button type="button" onClick={() => setOpenId(o.id)} aria-label={`${o.id} sipariş ayrıntılarını aç`} className="group block w-full rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-4 focus-visible:ring-offset-surface">
+                      <button type="button" onClick={() => setOpenId(o.id)} aria-label={`${o.id} · ${fmtDateTime(o.createdAt)} (İstanbul) · sipariş ayrıntılarını aç`} className="group block w-full rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-4 focus-visible:ring-offset-surface">
                         <div className="flex items-start justify-between gap-3">
                           <p className="tnum text-sm font-bold tracking-tight text-ink">{o.id}</p>
-                          <time dateTime={o.createdAt} className="tnum inline-flex shrink-0 items-center gap-1.5 text-xs text-ink-muted">
-                            <Clock3 aria-hidden="true" className="size-3" strokeWidth={1.7} /> {fmtTime(o.createdAt)}
+                          <time dateTime={o.createdAt} title={`${fmtDateTime(o.createdAt)} (İstanbul)`} aria-label={`${fmtDateTime(o.createdAt)} (İstanbul)`} className="tnum inline-flex shrink-0 items-center gap-1.5 text-xs text-ink-muted">
+                            <Clock3 aria-hidden="true" className="size-3" strokeWidth={1.7} /> {fmtBoardTime(o.createdAt)}
                           </time>
                         </div>
                         <div className="mt-4 space-y-2 border-y border-line py-3.5 text-xs leading-relaxed text-ink-muted">

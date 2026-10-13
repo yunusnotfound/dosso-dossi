@@ -1,6 +1,7 @@
 import { toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
 import { addBusinessDays, businessDayKey, businessHour, startOfBusinessDay } from '../../lib/business-time.js';
+import { isAcceptingOrders } from '../orders/pickup-policy.js';
 
 const startOfDay = startOfBusinessDay;
 
@@ -126,6 +127,7 @@ export interface BranchStat {
   branchId: string;
   name: string;
   isOpen: boolean;
+  isAcceptingOrders: boolean;
   revenue: number;
   orders: number;
 }
@@ -160,6 +162,7 @@ export async function branchStats(branchId?: string): Promise<BranchStat[]> {
       branchId: b.id,
       name: b.name,
       isOpen: b.isOpen,
+      isAcceptingOrders: isAcceptingOrders(b),
       revenue: Number((toMoney(g?._sum.total ?? 0) + (chargesById.get(b.id) ?? 0)).toFixed(2)),
       orders: g?._count ?? 0,
     };
@@ -200,21 +203,21 @@ export interface Alerts {
 export async function alerts(branchId?: string): Promise<Alerts> {
   const scoped = branchId ? { branchId } : {};
   const [unforwarded, failed, closed, pending] = await Promise.all([
-    // Mini-outbox: POS'a iletilememiş, iptal edilmemiş siparişler
+    // Match the forward sweep: progressed/completed orders are no longer queued.
     prisma.order.count({
-      where: { forwardedAt: null, status: { not: 'CANCELLED' }, ...scoped },
+      where: { forwardedAt: null, status: 'RECEIVED', ...scoped },
     }),
     branchId ? 0 : prisma.posEvent.count({ where: { status: 'FAILED' } }),
     prisma.branch.findMany({
-      where: { isOpen: false, ...(branchId ? { id: branchId } : {}) },
-      select: { name: true },
+      where: branchId ? { id: branchId } : {},
+      select: { name: true, isOpen: true, hours: true, prepMinutes: true },
     }),
     branchId ? 0 : prisma.paymentIntent.count({ where: { status: 'PENDING' } }),
   ]);
   return {
     unforwardedOrders: unforwarded,
     failedPosEvents: failed,
-    closedBranches: closed.map((b) => b.name),
+    closedBranches: closed.filter((b) => !isAcceptingOrders(b)).map((b) => b.name),
     pendingPayments: pending,
   };
 }

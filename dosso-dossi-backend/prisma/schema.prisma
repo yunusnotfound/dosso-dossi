@@ -309,10 +309,12 @@ model WalletTransaction {
   orderId      String?
   giftId       String?
   chargeId     String? // PosCharge referansı (düşüm VE iade aynı charge'ı gösterir)
+  paymentIntentId String? @unique // Bir yükleme, deftere en fazla bir kez yazılır.
   note         String       @default("")
   createdAt    DateTime     @default(now())
 
   wallet Wallet @relation(fields: [walletId], references: [id])
+  paymentIntent PaymentIntent? @relation(fields: [paymentIntentId], references: [id])
 
   @@unique([orderId, type])
   @@index([walletId, createdAt])
@@ -385,9 +387,13 @@ model PaymentIntent {
   userId      String
   amount      Decimal             @db.Decimal(10, 2)
   status      PaymentIntentStatus @default(PENDING)
-  provider    String // "dev" | ileride "iyzico"
+  provider    String // "dev" | "iyzico"
   providerRef String?             @unique
-  redirectUrl String? // 3DS yönlendirmesi için hazır alan
+  redirectUrl String? // Yalnız sağlayıcının doğrulanmış ödeme sayfası
+  providerPaymentId String? @unique // CF token'ından farklı gerçek iyzico ödeme kimliği
+  providerTransactions Json? // İade/destek için itemId, transactionId ve tutarlar; kart/kimlik verisi içermez
+  expiresAt DateTime?
+  lastCheckedAt DateTime?
   // Bu yüklemede verilen ikram kahve sayısı. Kampanya "ilk yüklemeye özel"
   // olduğu için sonradan yeniden hesaplanamaz; onay anında buraya yazılır ve
   // tekrarlanan webhook onayları aynı değeri döner.
@@ -396,8 +402,10 @@ model PaymentIntent {
   confirmedAt DateTime?
 
   user User @relation(fields: [userId], references: [id])
+  walletTransaction WalletTransaction?
 
   @@index([userId, createdAt])
+  @@index([provider, status, lastCheckedAt])
 }
 
 // ── Sadakat ─────────────────────────────────────────────────────────

@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { api, readApi } from '../../api/client';
 import { categorySchema } from '../../api/schemas';
 import { useAuth } from '../../auth/auth-state';
 import {
 	Field,
+  MutationForm,
 	Input
 } from '../../components/form';
 import { Button, Card, QueryError, Spinner, EmptyState, SectionTitle } from '../../components/ui';
@@ -14,6 +15,7 @@ export function CategoriesTab() {
   const { admin } = useAuth();
   const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
+  const formId = useId();
   const [form, setForm] = useState({ id: '', name: '', sortOrder: 0 });
   const list = useQuery({
     queryKey: ['categories'],
@@ -31,7 +33,7 @@ export function CategoriesTab() {
   });
   const remove = useMutation({
     mutationFn: (id: string) =>
-      api(`/admin/menu/categories/${id}`, { method: 'DELETE' }),
+      api(`/admin/menu/categories/${encodeURIComponent(id)}`, { method: 'DELETE' }),
     onSuccess: refresh,
   });
   const move = useMutation({
@@ -94,7 +96,7 @@ export function CategoriesTab() {
                 <td className="tnum px-5 py-3 text-right">{c.productCount}</td>
                 <td className="px-5 py-3 text-right">
                   <button
-                    onClick={() => remove.mutate(c.id)}
+                    onClick={() => { if (window.confirm(`“${c.name}” kategorisi silinsin mi? Bu işlem geri alınamaz.`)) remove.mutate(c.id); }}
                     disabled={!canEdit || remove.isPending || c.productCount > 0}
                     title={c.productCount > 0 ? 'Önce ürünleri taşıyın' : 'Sil'}
                     className="text-xs font-semibold text-bad disabled:opacity-30 hover:underline"
@@ -110,26 +112,26 @@ export function CategoriesTab() {
 
       {canEdit ? <Card>
         <SectionTitle>Kategori ekle / güncelle</SectionTitle>
-        <div className="flex flex-col gap-3">
+        <MutationForm id={formId} busy={save.isPending} onSubmit={() => save.mutate()} className="flex flex-col gap-3">
           <Field label="Kod (id)">
             <Input
-              value={form.id}
+              required maxLength={60} pattern=".*\S.*" value={form.id}
               onChange={(e) => setForm((f) => ({ ...f, id: e.target.value }))}
             />
           </Field>
           <Field label="Ad">
             <Input
-              value={form.name}
+              required maxLength={80} pattern=".*\S.*" value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             />
           </Field>
           <Button
-            onClick={() => save.mutate()}
+            type="submit"
             disabled={!canEdit || !form.id || !form.name || save.isPending}
           >
             Kaydet
           </Button>
-        </div>
+        </MutationForm>
       </Card> : null}
       {(save.error || remove.error || move.error) ? <p role="alert" className="text-sm text-bad">{(save.error || remove.error || move.error)?.message}</p> : null}
     </div>

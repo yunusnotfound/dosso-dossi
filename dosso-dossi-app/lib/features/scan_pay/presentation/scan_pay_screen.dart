@@ -22,6 +22,7 @@ import '../../wallet/application/wallet_providers.dart';
 import '../../wallet/data/wallet_repository.dart';
 import '../../wallet/domain/wallet.dart';
 import 'widgets/top_up_widgets.dart';
+import 'widgets/payment_checkout_sheet.dart';
 
 export 'widgets/top_up_confirmation.dart' show confirmTopUp;
 
@@ -197,6 +198,7 @@ class _ScanPayScreenState extends ConsumerState<ScanPayScreen>
               },
             ),
             const SizedBox(height: AppSpacing.lg),
+            const PendingPaymentBanner(),
             if (_tab == 0) ...[
               const _DossoCard(),
               const SizedBox(height: AppSpacing.lg),

@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { ApiError, api, readApi } from '../../api/client';
 import { promoExpiryPatch } from '../../api/promo-expiry';
 import { fmtNum, fmtTL } from '../../api/format';
 import type { Campaign, Promo } from '../../api/schemas';
 import { campaignSchema, promoSchema, settingsSchema } from '../../api/schemas';
 import { useAuth } from '../../auth/auth-state';
-import { Checkbox, Drawer, Field, Input, Select, Tabs, Textarea } from '../../components/form';
+import { Checkbox, Drawer, MutationForm, Field, Input, Select, Tabs, Textarea } from '../../components/form';
 import { DataTable, PageHeader, type Column } from '../../components/table';
 import { Badge, Button, Card, SectionTitle, } from '../../components/ui';
 import { StoriesTab } from './StoriesTab';
@@ -56,7 +56,7 @@ function CampaignsTab() {
   });
   const refresh = () => void qc.invalidateQueries({ queryKey: ['campaigns'] });
   const remove = useMutation({
-    mutationFn: (id: string) => api(`/admin/campaigns/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: string) => api(`/admin/campaigns/${encodeURIComponent(id)}`, { method: 'DELETE' }),
     onSuccess: refresh,
   });
 
@@ -92,7 +92,7 @@ function CampaignsTab() {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            remove.mutate(c.id);
+            if (window.confirm(`“${c.title}” kampanyası silinsin mi? Bu işlem geri alınamaz.`)) remove.mutate(c.id);
           }}
           disabled={!canEdit || remove.isPending}
           className="text-xs font-semibold text-bad hover:underline disabled:opacity-50"
@@ -139,6 +139,7 @@ function CampaignDrawer({
 }) {
   const [form, setForm] = useState<Campaign>(EMPTY);
   const [error, setError] = useState('');
+  const formId = useId();
   const [lastKey, setLastKey] = useState<string | null>(null);
 
   const key = campaign?.id ?? '';
@@ -167,34 +168,35 @@ function CampaignDrawer({
       open={!!campaign}
       title={campaign?.id ? campaign.title : 'Yeni kampanya'}
       onClose={onClose}
+      busy={save.isPending}
       footer={
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" disabled={save.isPending} onClick={onClose}>
             Vazgeç
           </Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>
+          <Button type="submit" form={formId} disabled={save.isPending}>
             Kaydet
           </Button>
         </div>
       }
     >
-      <div className="flex flex-col gap-4">
+      <MutationForm id={formId} busy={save.isPending} onSubmit={() => save.mutate()}>
         <Field label="Kod (id)">
           <Input
-            value={form.id}
+            required maxLength={60} pattern=".*\S.*" value={form.id}
             disabled={!!campaign?.id}
             onChange={(e) => set('id', e.target.value)}
           />
         </Field>
         <Field label="Başlık">
-          <Input value={form.title} onChange={(e) => set('title', e.target.value)} />
+          <Input required maxLength={120} pattern=".*\S.*" value={form.title} onChange={(e) => set('title', e.target.value)} />
         </Field>
         <Field label="Rozet" hint='Kart üstündeki kısa etiket: "5+1", "+5 ☕"'>
-          <Input value={form.badge} onChange={(e) => set('badge', e.target.value)} />
+          <Input maxLength={20} value={form.badge} onChange={(e) => set('badge', e.target.value)} />
         </Field>
         <Field label="Açıklama">
           <Textarea
-            rows={3}
+            rows={3} maxLength={400}
             value={form.description}
             onChange={(e) => set('description', e.target.value)}
           />
@@ -212,8 +214,8 @@ function CampaignDrawer({
           <Field label="Sıra">
             <Input
               type="number"
-              value={form.sortOrder}
-              onChange={(e) => set('sortOrder', Number(e.target.value))}
+              required min={0} max={999} step={1} value={Number.isFinite(form.sortOrder) ? form.sortOrder : ''}
+              onChange={(e) => set('sortOrder', e.target.valueAsNumber)}
             />
           </Field>
         </div>
@@ -227,7 +229,7 @@ function CampaignDrawer({
             {error}
           </p>
         ) : null}
-      </div>
+      </MutationForm>
     </Drawer>
   );
 }
@@ -236,6 +238,7 @@ function PromosTab() {
   const { admin } = useAuth();
   const canEdit = admin?.role === 'SUPER_ADMIN' || admin?.role === 'MANAGER';
   const qc = useQueryClient();
+  const formId = useId();
   const [form, setForm] = useState({ code: '', rate: 10, isActive: true });
   const [expiryAction, setExpiryAction] = useState<'keep' | 'set' | 'clear'>('keep');
   const [expiry, setExpiry] = useState('');
@@ -269,7 +272,7 @@ function PromosTab() {
     onError: (e) => setError(e instanceof ApiError ? e.message : 'Kaydedilemedi'),
   });
   const remove = useMutation({
-    mutationFn: (code: string) => api(`/admin/promos/${code}`, { method: 'DELETE' }),
+    mutationFn: (code: string) => api(`/admin/promos/${encodeURIComponent(code)}`, { method: 'DELETE' }),
     onSuccess: refresh,
   });
 
@@ -301,7 +304,7 @@ function PromosTab() {
       header: '',
       render: (p) => (
         <button
-          onClick={(event) => { event.stopPropagation(); remove.mutate(p.code); }}
+          onClick={(event) => { event.stopPropagation(); if (window.confirm(`“${p.code}” promosyon kodu silinsin mi? Bu işlem geri alınamaz.`)) remove.mutate(p.code); }}
           disabled={!canEdit || remove.isPending}
           className="text-xs font-semibold text-bad hover:underline disabled:opacity-50"
         >
@@ -318,24 +321,24 @@ function PromosTab() {
           columns={columns}
           rows={list.data}
           rowKey={(p) => p.code}
-          onRowClick={canEdit ? (promo) => { setForm({ code: promo.code, rate: promo.discountRate * 100, isActive: promo.isActive }); setExpiryAction('keep'); setExpiry(''); setError(''); } : undefined}
+          onRowClick={canEdit && !save.isPending ? (promo) => { setForm({ code: promo.code, rate: promo.discountRate * 100, isActive: promo.isActive }); setExpiryAction('keep'); setExpiry(''); setError(''); } : undefined}
           loading={list.isLoading} error={list.error} onRetry={() => void list.refetch()}
         />
       </div>
       {canEdit ? <Card>
         <SectionTitle>Kod ekle / düzenle</SectionTitle>
-        <div className="flex flex-col gap-3">
+        <MutationForm id={formId} busy={save.isPending} onSubmit={() => save.mutate()} className="flex flex-col gap-3">
           <Field label="Kod">
             <Input
-              value={form.code}
+              required minLength={2} maxLength={40} pattern=".*\S.*" value={form.code}
               onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
             />
           </Field>
           <Field label="İndirim (%)">
             <Input
               type="number"
-              value={form.rate}
-              onChange={(e) => setForm((f) => ({ ...f, rate: Number(e.target.value) }))}
+              required min={0.01} max={99.99} step={0.01} value={Number.isFinite(form.rate) ? form.rate : ''}
+              onChange={(e) => setForm((f) => ({ ...f, rate: e.target.valueAsNumber }))}
             />
           </Field>
           <Field label="Son kullanma tarihi" hint="Tüm tarihler İstanbul saatidir. Mevcut kodun tarihini kaldırmak için açıkça Süresiz yap seçin.">
@@ -345,17 +348,17 @@ function PromosTab() {
               <option value="clear">Süresiz yap</option>
             </Select>
           </Field>
-          {expiryAction === 'set' ? <Field label="Tarih ve saat (İstanbul)"><Input type="datetime-local" value={expiry} onChange={(event) => setExpiry(event.target.value)} /></Field> : null}
+          {expiryAction === 'set' ? <Field label="Tarih ve saat (İstanbul)"><Input type="datetime-local" required value={expiry} onChange={(event) => setExpiry(event.target.value)} /></Field> : null}
           <Checkbox
             label="Aktif"
             checked={form.isActive}
             onChange={(v) => setForm((f) => ({ ...f, isActive: v }))}
           />
           {error ? <p className="text-sm text-bad">{error}</p> : null}
-          <Button onClick={() => save.mutate()} disabled={!form.code.trim() || save.isPending || (expiryAction === 'set' && !expiry)}>
+          <Button type="submit" disabled={!form.code.trim() || save.isPending || (expiryAction === 'set' && !expiry)}>
             Kaydet
           </Button>
-        </div>
+        </MutationForm>
       </Card> : null}
       {remove.error ? <p role="alert" className="text-sm text-bad">{remove.error.message}</p> : null}
     </div>

@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { ApiError, api, readApi } from '../../api/client';
 import type { AdminRow, AuditRow, Branch } from '../../api/schemas';
 import { adminRowSchema, auditListSchema, branchSchema, tempPasswordSchema } from '../../api/schemas';
 import { ROLE_LABELS, type AdminRole } from '../../api/types';
 import { useAuth } from '../../auth/auth-state';
-import { Drawer, Field, Input, Select, Tabs } from '../../components/form';
+import { Drawer, MutationForm, Field, Input, Select, Tabs } from '../../components/form';
 import { DataTable, PageHeader, Pager, type Column } from '../../components/table';
 import { QueryError, Badge, Button, Card, SectionTitle } from '../../components/ui';
 
@@ -94,6 +94,7 @@ function AdminsTab() {
         <button
           onClick={(e) => {
             e.stopPropagation();
+            reset.reset();
             setResetTarget(a);
           }}
           disabled={a.id === currentAdmin?.id || reset.isPending}
@@ -112,7 +113,7 @@ function AdminsTab() {
         <Button onClick={() => setCreating(true)}>Yönetici ekle</Button>
       </div>
 
-      <Drawer open={!!resetTarget} title="Yönetici şifresini sıfırla" onClose={() => setResetTarget(null)}>
+      <Drawer open={!!resetTarget} title="Yönetici şifresini sıfırla" busy={reset.isPending} onClose={() => setResetTarget(null)}>
         <p className="mb-4 text-sm">{resetTarget?.email} hesabının açık oturumları kapatılır ve geçici bir şifre oluşturulur. Yeni şifreyi ilgili yöneticiyle güvenli şekilde paylaşın.</p>
         {reset.error ? <p role="alert" className="mb-3 text-sm text-bad">{reset.error.message}</p> : null}
         <Button disabled={reset.isPending} onClick={() => resetTarget && reset.mutate(resetTarget.id)}>{reset.isPending ? 'Sıfırlanıyor…' : 'Şifreyi sıfırla'}</Button>
@@ -177,6 +178,7 @@ function AdminForm({
   const [branchId, setBranchId] = useState<string>('');
   const [isActive, setIsActive] = useState(true);
   const [error, setError] = useState('');
+  const formId = useId();
   const [lastKey, setLastKey] = useState<string | null>(null);
 
   const key = admin?.id ?? (open ? 'new' : '');
@@ -215,28 +217,29 @@ function AdminForm({
       open={open}
       title={admin ? admin.email : 'Yönetici ekle'}
       onClose={onClose}
+      busy={save.isPending}
       footer={
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" disabled={save.isPending} onClick={onClose}>
             Vazgeç
           </Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>
+          <Button type="submit" form={formId} disabled={save.isPending}>
             Kaydet
           </Button>
         </div>
       }
     >
-      <div className="flex flex-col gap-4">
+      <MutationForm id={formId} busy={save.isPending} onSubmit={() => save.mutate()}>
         <Field label="E-posta">
           <Input
-            type="email"
+            type="email" required maxLength={200}
             value={email}
             disabled={!!admin}
             onChange={(e) => setEmail(e.target.value)}
           />
         </Field>
         <Field label="Ad Soyad">
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
+          <Input maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label="Rol">
           <Select value={role} onChange={(e) => setRole(e.target.value as AdminRole)}>
@@ -249,7 +252,7 @@ function AdminForm({
         </Field>
         {role === 'BRANCH_MANAGER' ? (
           <Field label="Şube" hint="Şube müdürü yalnızca bu şubenin verisini görür.">
-            <Select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+            <Select required value={branchId} onChange={(e) => setBranchId(e.target.value)}>
               <option value="">Seçiniz</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -279,7 +282,7 @@ function AdminForm({
             {error}
           </p>
         ) : null}
-      </div>
+      </MutationForm>
     </Drawer>
   );
 }

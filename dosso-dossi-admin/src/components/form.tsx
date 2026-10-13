@@ -116,31 +116,35 @@ export function Drawer({
   onClose,
   children,
   footer,
+  busy = false,
 }: {
   open: boolean;
   title: string;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  busy?: boolean;
 }) {
-  const dialogRef = useModalFocus(open, onClose);
+  const close = () => { if (!busy) onClose(); };
+  const dialogRef = useModalFocus(open, close);
 
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <div
         className="absolute inset-0 bg-coffee/35"
-        onClick={onClose}
+        onClick={close}
         aria-hidden
       />
-      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className="relative flex h-full w-full max-w-xl flex-col bg-surface shadow-2xl">
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-busy={busy} aria-label={title} className="relative flex h-full w-full max-w-xl flex-col bg-surface shadow-2xl">
         <header className="flex items-center justify-between border-b border-line bg-surface px-6 py-4">
           <h2 className="font-display text-xl font-bold tracking-tight text-ink">
             {title}
           </h2>
           <button
-            onClick={onClose}
+            onClick={close}
             aria-label="Kapat"
+            disabled={busy}
             className="rounded-chip border border-line p-2 text-ink-muted hover:bg-surface-sunken"
           >
             <X size={18} aria-hidden="true" />
@@ -153,6 +157,20 @@ export function Drawer({
       </div>
     </div>
   );
+}
+
+// Native form validation also applies to submit buttons in a drawer footer.
+// Disabling the fieldset freezes the submitted draft until the outcome is known.
+export function MutationForm({ id, busy, onSubmit, children, className = 'flex flex-col gap-4' }: {
+  id: string;
+  busy: boolean;
+  onSubmit: () => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  return <form id={id} onSubmit={(event) => { event.preventDefault(); if (!busy) onSubmit(); }}>
+    <fieldset disabled={busy} className={`min-w-0 ${className}`}>{children}</fieldset>
+  </form>;
 }
 
 /// Para/sadakat değiştiren işlemler gerekçesiz yapılamaz — sunucu da
