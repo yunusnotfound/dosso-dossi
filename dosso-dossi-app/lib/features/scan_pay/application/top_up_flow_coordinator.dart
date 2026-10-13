@@ -21,6 +21,7 @@ class TopUpFlowCoordinator {
     required double amount,
     required Future<bool?> Function() confirm,
     required bool Function() isActive,
+    PaymentBuyer? Function()? buyer,
   }) async {
     if (_ref.read(topUpFlowProvider)) return null;
     final flow = _ref.read(topUpFlowProvider.notifier);
@@ -33,11 +34,13 @@ class TopUpFlowCoordinator {
       final confirmed = await confirm();
       if (confirmed != true || !isCurrent()) return null;
 
-      final result = await _ref.read(walletProvider.notifier).topUp(amount);
+      final result = await _ref
+          .read(walletProvider.notifier)
+          .topUp(amount, buyer: buyer?.call());
       if (!isCurrent()) return null;
 
       // A pending payment grants no bonus; API payments already apply it server-side.
-      if (!result.isPending && result.bonusDrinks > 0 && AppConfig.useMocks) {
+      if (result.isSucceeded && result.bonusDrinks > 0 && AppConfig.useMocks) {
         _ref
             .read(loyaltyStatusProvider.notifier)
             .addFreeDrinks(

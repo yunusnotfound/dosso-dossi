@@ -101,7 +101,9 @@ export async function payments(opts: {
     amount: toMoney(p.amount),
     status: p.status,
     provider: p.provider,
-    providerRef: p.providerRef,
+    // Checkout tokens grant access to the hosted payment session; the panel only
+    // needs the settled provider payment reference for support/reconciliation.
+    providerRef: p.provider === 'iyzico' ? p.providerPaymentId : p.providerRef,
     bonusDrinks: p.bonusDrinks,
     customerName: p.user.name,
     customerPhone: p.user.phone,

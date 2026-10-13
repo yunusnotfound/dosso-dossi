@@ -19,7 +19,7 @@ export function RevenueChart({ data }: { data: TimeseriesPoint[] }) {
       <span className="rounded-chip bg-surface-sunken px-2.5 py-1.5 text-xs text-ink-muted">Son 30 gün</span>
     </div>
     <p className="tnum font-display text-3xl font-bold tracking-tight text-ink">{fmtTL(total)}</p>
-    <p className="mt-1 text-xs text-ink-muted">Sipariş ve QR tahsilatları</p>
+    <p className="mt-1 text-xs text-ink-muted">Uygulama siparişleri ve kayıtlı QR tahsilatları</p>
     {data.length === 0 ? <div className="mt-6"><EmptyState>Bu dönem için ciro kaydı bulunmuyor.</EmptyState></div> :
       <div className="mt-6 h-52 sm:h-56" role="group" aria-label="Son 30 günün günlük ciro grafiği">
         <ResponsiveContainer width="100%" height="100%">

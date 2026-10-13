@@ -5,8 +5,9 @@ import { toMoney } from '../../lib/money.js';
 import { prisma } from '../../lib/prisma.js';
 import { assertExportSize, csvCell, MAX_EXPORT_ROWS } from '../../lib/csv.js';
 import { cancelOrderInTransaction, type CancelResult } from '../orders/cancel-order.service.js';
-import { advanceOrderStatus } from '../orders/order-status.service.js';
+import { advanceOrderStatus, MAX_ORDER_NUMBER } from '../orders/order-status.service.js';
 import { audit } from './audit.js';
+import { lockUsers } from '../../lib/financial-locks.js';
 
 export interface OrderFilters {
   status?: OrderStatus;
@@ -32,8 +33,11 @@ export function whereFrom(f: OrderFilters): Prisma.OrderWhereInput {
   if (f.q) {
     const q = f.q.trim();
     const num = /^DD-?(\d+)$/i.exec(q)?.[1] ?? (/^\d+$/.test(q) ? q : null);
+    // Phone numbers also contain only digits, but cannot fit an Order Int32.
+    const number = num === null ? undefined : Number(num);
+    const hasOrderNumber = number !== undefined && Number.isInteger(number) && number > 0 && number <= MAX_ORDER_NUMBER;
     where.OR = [
-      ...(num ? [{ number: Number(num) }] : []),
+      ...(hasOrderNumber ? [{ number }] : []),
       ...(q.replace(/\D/g, '') ? [{ user: { phone: { contains: q.replace(/\D/g, '') } } }] : []),
       { user: { name: { contains: q, mode: 'insensitive' as const } } },
     ];
@@ -49,7 +53,7 @@ export async function listOrders(f: OrderFilters) {
   const [rows, total] = await Promise.all([
     prisma.order.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: {
@@ -161,14 +165,19 @@ export async function setStatus(
   }
 
   return prisma.$transaction(async (tx) => {
+    // Snapshot the actual predecessor under the same lock as the transition.
+    await lockUsers(tx, [order.userId]);
+    const before = await tx.order.findUniqueOrThrow({ where: { number } });
     const res = await advanceOrderStatus(tx, number, status, { strict: true });
-    await audit(tx, req, {
-      action: 'order.status',
-      entity: 'Order',
-      entityId: order.id,
-      before: { status: order.status },
-      after: { status },
-    });
+    if (!res.skipped) {
+      await audit(tx, req, {
+        action: 'order.status',
+        entity: 'Order',
+        entityId: order.id,
+        before: { status: before.status },
+        after: { status },
+      });
+    }
     return { status: res.status, skipped: res.skipped };
   });
 }
@@ -200,6 +209,9 @@ export async function retryForward(req: Request, number: number): Promise<void> 
   if (!order) throw AppError.notFound(`Sipariş bulunamadı: DD-${number}`);
   if (order.forwardedAt) {
     throw AppError.invalidStatusTransition('Sipariş zaten iletilmiş');
+  }
+  if (order.status !== 'RECEIVED') {
+    throw AppError.invalidStatusTransition('Yalnız alınan ve henüz işleme başlanmamış sipariş yeniden iletilebilir');
   }
   const { kerzzPosClient } = await import('../orders/pos-client.js');
   await kerzzPosClient.forwardOrder({

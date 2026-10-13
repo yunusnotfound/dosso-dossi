@@ -40,10 +40,10 @@ export function DashboardPage() {
       </span>
     </header>
     <section aria-label="Bugünün performansı" className={`grid gap-3 min-[480px]:grid-cols-2 ${central ? 'xl:grid-cols-[1.2fr_1fr_1fr_1fr]' : 'xl:grid-cols-3'}`}>
-      <Kpi emphasis label="Bugünkü ciro" value={fmtTL(summary.totalRevenue)} icon={<CircleDollarSign size={18} aria-hidden="true" />} hint={`Sipariş ${fmtTL(summary.orderRevenue)} · QR ${fmtTL(summary.qrRevenue)}`} />
+      <Kpi emphasis label="Bugünkü uygulama cirosu" value={fmtTL(summary.totalRevenue)} icon={<CircleDollarSign size={18} aria-hidden="true" />} hint={`Uygulama siparişi ${fmtTL(summary.orderRevenue)} · Kayıtlı QR ${fmtTL(summary.qrRevenue)}`} />
       <Kpi label="Sipariş" value={fmtNum(summary.orderCount)} icon={<ReceiptText size={18} aria-hidden="true" />} hint="Bugün verilen siparişler" />
       {central ? <Kpi label="Bakiye yükleme" value={fmtTL(summary.topUpTotal)} icon={<Wallet size={18} aria-hidden="true" />} hint={`${fmtNum(summary.newUsers)} yeni kullanıcı`} /> : null}
-      <Kpi label="Kazanılan damga" value={fmtNum(summary.stampsEarned)} icon={<Bean size={18} aria-hidden="true" />} hint={central ? `${fmtNum(summary.freeDrinksGranted)} ikram tanımlandı` : 'Şubenizdeki siparişlerden kazanıldı'} />
+      <Kpi label="Sipariş damgaları" value={fmtNum(summary.stampsEarned)} icon={<Bean size={18} aria-hidden="true" />} hint={central ? `Uygulama siparişlerinden · Toplam ${fmtNum(summary.freeDrinksGranted)} ikram tanımlandı` : 'Şubenizdeki uygulama siparişlerinden kazanıldı'} />
     </section>
     <section aria-label="Ciro ve operasyon" className="grid items-stretch gap-5 xl:grid-cols-5">
       <div className="min-w-0 xl:col-span-3"><RevenueChart data={timeseries} /></div>

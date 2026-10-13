@@ -48,7 +48,7 @@ export function ProductsTab() {
 
   const toggle = useMutation({
     mutationFn: (p: Product) =>
-      api(`/admin/menu/products/${p.id}/active`, {
+      api(`/admin/menu/products/${encodeURIComponent(p.id)}/active`, {
         method: 'POST',
         body: { isActive: !p.isActive },
       }),

@@ -1,10 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { ApiError, api } from '../../api/client';
 import type { Category, Product } from '../../api/schemas';
 import {
   Checkbox,
   Drawer,
+  MutationForm,
   Field,
   Input,
   Select,
@@ -28,6 +29,7 @@ export function ProductDrawer({
   const [form, setForm] = useState<Product>(EMPTY);
   const [sameImage, setSameImage] = useState(true);
   const [error, setError] = useState('');
+  const formId = useId();
 
   // Çekmece her açıldığında formu seçili ürünle doldur.
   const key = product?.id ?? '';
@@ -64,40 +66,43 @@ export function ProductDrawer({
       open={!!product}
       title={product?.id ? product.name : 'Yeni ürün'}
       onClose={onClose}
+      busy={save.isPending}
       footer={
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" disabled={save.isPending} onClick={onClose}>
             Vazgeç
           </Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>
+          <Button type="submit" form={formId} disabled={save.isPending}>
             {save.isPending ? 'Kaydediliyor…' : 'Kaydet'}
           </Button>
         </div>
       }
     >
-      <div className="flex flex-col gap-4">
+      <MutationForm id={formId} busy={save.isPending} onSubmit={() => save.mutate()}>
         <SectionTitle>Ürün bilgileri</SectionTitle>
         <Field label="Kod (id)" hint="Kaydedildikten sonra değiştirilmemeli.">
           <Input
+            required maxLength={80} pattern=".*\S.*"
             value={form.id}
             disabled={!!product?.id}
             onChange={(e) => set('id', e.target.value)}
           />
         </Field>
         <Field label="Ad">
-          <Input value={form.name} onChange={(e) => set('name', e.target.value)} />
+          <Input required maxLength={120} pattern=".*\S.*" value={form.name} onChange={(e) => set('name', e.target.value)} />
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Fiyat (₺)">
             <Input
               type="number"
-              step="0.01"
-              value={form.price}
-              onChange={(e) => set('price', Number(e.target.value))}
+              step="0.01" min={0} max={100000} required
+              value={Number.isFinite(form.price) ? form.price : ''}
+              onChange={(e) => set('price', e.target.valueAsNumber)}
             />
           </Field>
           <Field label="Kategori">
             <Select
+              required
               value={form.categoryId}
               onChange={(e) => set('categoryId', e.target.value)}
             >
@@ -113,21 +118,23 @@ export function ProductDrawer({
           <Field label="Hacim (ml)" hint="0 = belirtilmemiş">
             <Input
               type="number"
-              value={form.sizeMl}
-              onChange={(e) => set('sizeMl', Number(e.target.value))}
+              required min={0} max={5000} step={1}
+              value={Number.isFinite(form.sizeMl) ? form.sizeMl : ''}
+              onChange={(e) => set('sizeMl', e.target.valueAsNumber)}
             />
           </Field>
           <Field label="Damga çarpanı" hint="0 = damga kazandırmaz (merch)">
             <Input
               type="number"
-              value={form.stampMultiplier}
-              onChange={(e) => set('stampMultiplier', Number(e.target.value))}
+              required min={0} max={10} step={1}
+              value={Number.isFinite(form.stampMultiplier) ? form.stampMultiplier : ''}
+              onChange={(e) => set('stampMultiplier', e.target.valueAsNumber)}
             />
           </Field>
         </div>
         <Field label="Açıklama">
           <Textarea
-            rows={3}
+            rows={3} maxLength={500}
             value={form.description}
             onChange={(e) => set('description', e.target.value)}
           />
@@ -147,6 +154,7 @@ export function ProductDrawer({
         </div>
         <Field label="Detay görseli URL" hint="Yeni dosya için farklı veya sürümlü bir URL kullanın. Boşsa yer tutucu gösterilir.">
           <Input
+            maxLength={500}
             value={form.imageUrl ?? ''}
             onChange={(e) => set('imageUrl', e.target.value || null)}
           />
@@ -154,7 +162,7 @@ export function ProductDrawer({
         <Checkbox label="Liste ve detayda aynı görseli kullan" checked={sameImage} onChange={setSameImage} />
         {sameImage ? <p className="text-xs text-ink-muted">Eski liste görseli temizlenir; sipariş ve hediye listeleri detay görselini kullanır.</p> : (
           <Field label="Liste görseli URL" hint="Sipariş ve hediye listelerinde bu görsel kullanılır. Detay görselini değiştirirken bu alanı da kontrol edin. Boşsa detay görseline dönülür.">
-            <Input value={form.gridImageUrl ?? ''} onChange={(e) => set('gridImageUrl', e.target.value.trim() || null)} />
+            <Input maxLength={500} value={form.gridImageUrl ?? ''} onChange={(e) => set('gridImageUrl', e.target.value.trim() || null)} />
           </Field>
         )}
         <div className="mt-1 border-t border-line pt-5">
@@ -183,7 +191,7 @@ export function ProductDrawer({
             {error}
           </p>
         ) : null}
-      </div>
+      </MutationForm>
     </Drawer>
   );
 }

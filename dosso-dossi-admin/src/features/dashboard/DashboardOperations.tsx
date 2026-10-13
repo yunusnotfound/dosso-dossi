@@ -13,7 +13,7 @@ export function DashboardOperations({ alerts, central }: { alerts: Alerts; centr
     { label: 'İletim bekleyen sipariş', description: alerts.unforwardedOrders > 0 ? 'Şubeye iletilmesi bekleniyor' : 'İletim bekleyen sipariş yok', count: alerts.unforwardedOrders, icon: Send, to: '/siparisler', urgent: true },
     { label: 'Onay bekleyen ödeme', description: alerts.pendingPayments > 0 ? 'Ödeme sonucu bekleniyor' : 'Onay bekleyen ödeme yok', count: alerts.pendingPayments, icon: Clock3, to: central ? '/finans' : null },
     { label: 'Başarısız POS olayı', description: alerts.failedPosEvents > 0 ? 'İşlem kaydını kontrol edin' : 'Başarısız olay bulunmuyor', count: alerts.failedPosEvents, icon: Radio, to: central ? '/pos' : null, urgent: true },
-    { label: 'Kapalı şube', description: alerts.closedBranches.length ? alerts.closedBranches.join(', ') : 'Kapalı şube bulunmuyor', count: alerts.closedBranches.length, icon: Store, to: '/subeler' },
+    { label: 'Şu an sipariş almayan şube', description: alerts.closedBranches.length ? alerts.closedBranches.join(', ') : 'Tüm şubeler sipariş alıyor', count: alerts.closedBranches.length, icon: Store, to: '/subeler' },
   ];
   return <Card className="flex h-full flex-col">
     <div className="mb-2 flex items-center justify-between gap-3">

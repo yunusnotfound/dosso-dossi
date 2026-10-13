@@ -76,7 +76,7 @@ export async function health() {
 
   // Mini-outbox: iletilememiş siparişler
   const outbox = await prisma.order.findMany({
-    where: { forwardedAt: null, status: { not: 'CANCELLED' } },
+    where: { forwardedAt: null, status: 'RECEIVED' },
     orderBy: { createdAt: 'asc' },
     take: 100,
     include: { branch: { select: { name: true } } },

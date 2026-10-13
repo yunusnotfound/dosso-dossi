@@ -1,6 +1,7 @@
 import path from 'node:path';
 import express from 'express';
 import helmet from 'helmet';
+import { env } from './config/env.js';
 import { AppError, ErrorCodes } from './lib/errors.js';
 import { prisma } from './lib/prisma.js';
 import { errorHandler } from './middleware/error-handler.js';
@@ -21,12 +22,15 @@ import { posRouter } from './features/pos/pos.routes.js';
 import { walletRouter } from './features/wallet/wallet.routes.js';
 import { kerzzWebhooksRouter } from './features/webhooks/kerzz.routes.js';
 import { paymentWebhooksRouter } from './features/webhooks/payment.routes.js';
+import { iyzicoWebhooksRouter } from './features/webhooks/iyzico.routes.js';
 import { posAuth } from './middleware/pos-auth.js';
 import { adminCors } from './middleware/admin-cors.js';
 import { adminRouter } from './features/admin/admin.routes.js';
 
 export function createApp(): express.Express {
   const app = express();
+  // Only explicitly listed proxies may supply the buyer's forwarded IP.
+  if (env.TRUST_PROXY.length) app.set('trust proxy', env.TRUST_PROXY);
   // Güvenlik başlıkları. CORS bilerek YOK: istemci yalnızca mobil
   // uygulama (tarayıcı değil); web istemcisi eklenirse allowlist ile açılır.
   app.use(helmet());
@@ -83,6 +87,7 @@ export function createApp(): express.Express {
     try { res.json(await publicSettings()); } catch (err) { next(err); }
   });
   app.use('/webhooks/kerzz', posAuth('POS_WEBHOOK_SECRET'), kerzzWebhooksRouter);
+  app.use('/webhooks/iyzico', iyzicoWebhooksRouter);
   app.use(
     '/webhooks/payment',
     posAuth('PAYMENT_WEBHOOK_SECRET'),

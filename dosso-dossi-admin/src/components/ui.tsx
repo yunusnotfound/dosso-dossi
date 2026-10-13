@@ -65,6 +65,7 @@ export function Button({
   children,
   onClick,
   type = 'button',
+  form,
   variant = 'primary',
   disabled,
   className = '',
@@ -72,6 +73,7 @@ export function Button({
   children: ReactNode;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  form?: string;
   variant?: 'primary' | 'ghost' | 'outline';
   disabled?: boolean;
   className?: string;
@@ -87,6 +89,7 @@ export function Button({
   return (
     <button
       type={type}
+      form={form}
       onClick={onClick}
       disabled={disabled}
       className={`${base} ${styles} ${className}`}
@@ -137,8 +140,9 @@ export function EmptyState({ children }: { children: ReactNode }) {
 
 export function Spinner() {
   return (
-    <div className="flex items-center justify-center p-10">
-      <div className="size-8 animate-spin rounded-full border-3 border-line border-t-brand" />
+    <div role="status" className="flex items-center justify-center p-10">
+      <div aria-hidden="true" className="size-8 animate-spin rounded-full border-3 border-line border-t-brand" />
+      <span className="sr-only">Yükleniyor…</span>
     </div>
   );
 }

@@ -25,18 +25,37 @@ const cancelSchema = z.object({
   reason: z.string().trim().min(5).max(300),
 });
 
+const optionalText = z.string().trim().max(300).transform((value) => value || undefined).optional();
+const queryDate = z.string().max(64)
+  .transform((value) => value ? new Date(value) : undefined)
+  .refine((value) => value === undefined || !Number.isNaN(value.getTime()), 'Geçerli bir tarih verilmeli')
+  .optional();
+const queryInteger = (fallback: number, maximum: number) => z.string()
+  .regex(/^\d+$/, 'Pozitif bir tam sayı verilmeli')
+  .transform(Number).pipe(z.number().int().min(1).max(maximum))
+  .optional().default(fallback);
+const orderFilterSchema = z.object({
+  activeOnly: z.enum(['true', 'false']).transform((value) => value === 'true').optional(),
+  status: z.enum(['RECEIVED', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED']).optional(),
+  branchId: optionalText,
+  q: optionalText,
+  from: queryDate,
+  to: queryDate,
+}).refine((value) => !value.from || !value.to || value.from <= value.to, {
+  message: 'Başlangıç tarihi bitiş tarihinden sonra olamaz', path: ['to'],
+});
+const orderListSchema = orderFilterSchema.safeExtend({
+  page: queryInteger(1, 100_000),
+  pageSize: queryInteger(25, 100),
+});
+
 adminOrdersRouter.get('/', requireAdmin(), async (req, res, next) => {
   try {
+    const query = orderListSchema.parse(req.query);
     res.json(
       await listOrders({
-        activeOnly: req.query.activeOnly === 'true',
-        status: asStatus(req.query.status),
-        branchId: scopeBranch(req.admin, asString(req.query.branchId)),
-        q: asString(req.query.q),
-        from: asDate(req.query.from),
-        to: asDate(req.query.to),
-        page: Number(req.query.page) || 1,
-        pageSize: Number(req.query.pageSize) || 25,
+        ...query,
+        branchId: scopeBranch(req.admin, query.branchId),
       }),
     );
   } catch (err) {
@@ -47,13 +66,10 @@ adminOrdersRouter.get('/', requireAdmin(), async (req, res, next) => {
 /// Markalı Excel raporu: Özet + Siparişler + Kalemler sayfaları.
 adminOrdersRouter.get('/export.xlsx', requireAdmin(), async (req, res, next) => {
   try {
+    const query = orderFilterSchema.parse(req.query);
     const buffer = await ordersWorkbook({
-      activeOnly: req.query.activeOnly === 'true',
-      status: asStatus(req.query.status),
-      branchId: scopeBranch(req.admin, asString(req.query.branchId)),
-      q: asString(req.query.q),
-      from: asDate(req.query.from),
-      to: asDate(req.query.to),
+      ...query,
+      branchId: scopeBranch(req.admin, query.branchId),
     });
     res.setHeader(
       'Content-Type',
@@ -73,13 +89,10 @@ adminOrdersRouter.get('/export.xlsx', requireAdmin(), async (req, res, next) => 
 
 adminOrdersRouter.get('/export.csv', requireAdmin(), async (req, res, next) => {
   try {
+    const query = orderFilterSchema.parse(req.query);
     const csv = await exportCsv({
-      activeOnly: req.query.activeOnly === 'true',
-      status: asStatus(req.query.status),
-      branchId: scopeBranch(req.admin, asString(req.query.branchId)),
-      q: asString(req.query.q),
-      from: asDate(req.query.from),
-      to: asDate(req.query.to),
+      ...query,
+      branchId: scopeBranch(req.admin, query.branchId),
     });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(
@@ -159,18 +172,3 @@ adminOrdersRouter.post(
     }
   },
 );
-
-function asString(v: unknown): string | undefined {
-  return typeof v === 'string' && v.length > 0 ? v : undefined;
-}
-function asDate(v: unknown): Date | undefined {
-  if (typeof v !== 'string' || !v) return undefined;
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? undefined : d;
-}
-function asStatus(v: unknown) {
-  const allowed = ['RECEIVED', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED'] as const;
-  return typeof v === 'string' && (allowed as readonly string[]).includes(v)
-    ? (v as (typeof allowed)[number])
-    : undefined;
-}

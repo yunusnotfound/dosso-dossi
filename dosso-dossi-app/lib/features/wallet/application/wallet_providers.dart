@@ -51,18 +51,18 @@ class WalletController extends AsyncNotifier<Wallet> {
   }
 
   /// Bakiye yükler; uygulanan bonusla birlikte sonucu döner.
-  Future<TopUpResult> topUp(double amount) {
+  Future<TopUpResult> topUp(double amount, {PaymentBuyer? buyer}) {
     final epoch = ref.read(sessionScopeProvider).revision;
     if (_topUpPending != null && _topUpEpoch == epoch) return _topUpPending!;
     _topUpEpoch = epoch;
-    final pending = _topUp(amount);
+    final pending = _topUp(amount, buyer: buyer);
     _topUpPending = pending;
     return pending.whenComplete(() {
       if (identical(_topUpPending, pending)) _topUpPending = null;
     });
   }
 
-  Future<TopUpResult> _topUp(double amount) async {
+  Future<TopUpResult> _topUp(double amount, {PaymentBuyer? buyer}) async {
     final scope = ref.read(sessionScopeProvider);
     final epoch = scope.revision;
     // Kart numarası uydurulmaz: state henüz yüklenmediyse repodan çekilir.
@@ -74,7 +74,9 @@ class WalletController extends AsyncNotifier<Wallet> {
         message: 'Oturum değişti.',
       );
     }
-    final result = await ref.read(walletRepositoryProvider).topUp(amount);
+    final result = await ref
+        .read(walletRepositoryProvider)
+        .startCheckout(amount, buyer: buyer);
 
     if (!ref.mounted || scope.revision != epoch) {
       throw const ApiException(
@@ -90,6 +92,8 @@ class WalletController extends AsyncNotifier<Wallet> {
       state = AsyncData(Wallet(balance: balance, cardLast4: wallet.cardLast4));
       return TopUpResult(balance: balance, bonusDrinks: result.bonusDrinks);
     }
+
+    if (!result.isSucceeded) return result;
 
     // API modunda sunucu hem bakiyeyi hem bonusu işledi.
     _dataVersion++;

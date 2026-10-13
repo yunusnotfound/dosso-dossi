@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { ApiError, api, readApi } from '../../api/client';
 import { fmtNum, fmtTL } from '../../api/format';
 import type { Branch } from '../../api/schemas';
 import { availabilitySchema, branchSchema } from '../../api/schemas';
 import { useAuth } from '../../auth/auth-state';
-import { Checkbox, Drawer, Field, Input } from '../../components/form';
+import { Checkbox, Drawer, MutationForm, Field, Input } from '../../components/form';
 import { DataTable, PageHeader, type Column } from '../../components/table';
 import { QueryError, Spinner, EmptyState, Badge, Button, Card, SectionTitle, } from '../../components/ui';
 
@@ -33,13 +33,14 @@ export function BranchesPage() {
 
   const list = useQuery({
     queryKey: ['branches'],
+    refetchInterval: 60_000,
     queryFn: ({ signal }) => readApi(branchSchema.array(), '/admin/branches', { signal }),
   });
   const refresh = () => void qc.invalidateQueries({ queryKey: ['branches'] });
 
   const toggle = useMutation({
     mutationFn: (b: Branch) =>
-      api(`/admin/branches/${b.id}/open`, {
+      api(`/admin/branches/${encodeURIComponent(b.id)}/open`, {
         method: 'POST',
         body: { isOpen: !b.isOpen },
       }),
@@ -51,9 +52,9 @@ export function BranchesPage() {
       key: 'name',
       header: 'Şube',
       render: (b) => (
-        <div>
+        <div className="min-w-44 max-w-56 whitespace-normal break-words">
           <p className="font-semibold text-ink">{b.name}</p>
-          <p className="text-xs text-ink-muted">{b.address}</p>
+          <p className="mt-1 text-xs leading-relaxed text-ink-muted">{b.address}</p>
         </div>
       ),
     },
@@ -71,8 +72,13 @@ export function BranchesPage() {
       render: (b) => fmtNum(b.orderCount),
     },
     {
+      key: 'acceptance',
+      header: 'Sipariş alımı',
+      render: (b) => <Badge tone={b.isAcceptingOrders === true ? 'ok' : b.isAcceptingOrders === false ? 'warn' : 'neutral'}>{b.isAcceptingOrders === true ? 'Sipariş alıyor' : b.isAcceptingOrders === false ? 'Sipariş almıyor' : 'Durum bilinmiyor'}</Badge>,
+    },
+    {
       key: 'open',
-      header: 'Durum',
+      header: 'Manuel izin',
       render: (b) => (
         <button
           onClick={(e) => {
@@ -80,9 +86,11 @@ export function BranchesPage() {
             toggle.mutate(b);
           }}
           disabled={!canOperate || toggle.isPending}
-          title="Anlık açık/kapalı — kapalı şube sipariş alamaz"
+          title="Sipariş izni: izin verilse bile çalışma saati ve hazırlık süresi kuralları uygulanır"
+          aria-label={`${b.name}: sipariş izni ${b.isOpen ? 'açık' : 'kapalı'}`}
+          aria-pressed={b.isOpen}
         >
-          <Badge tone={b.isOpen ? 'ok' : 'bad'}>{b.isOpen ? 'Açık' : 'Kapalı'}</Badge>
+          <Badge tone={b.isOpen ? 'neutral' : 'bad'}>{b.isOpen ? 'İzin açık' : 'Durduruldu'}</Badge>
         </button>
       ),
     },
@@ -107,7 +115,7 @@ export function BranchesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Şubeler"
-        subtitle="Bilgiler, çalışma durumu ve ürün müsaitliği"
+        subtitle="Anlık sipariş alımı çalışma saatlerini ve hazırlık süresini içerir. Manuel izin ayrıca yönetilir."
         actions={canManage ? <Button onClick={() => setEditing({ ...EMPTY })}>Yeni şube</Button> : null}
       />
       {toggle.error ? <p role="alert" className="text-sm text-bad">{toggle.error.message}</p> : null}
@@ -143,6 +151,7 @@ function BranchDrawer({
 }) {
   const [form, setForm] = useState<Branch>(EMPTY);
   const [error, setError] = useState('');
+  const formId = useId();
   const [lastKey, setLastKey] = useState<string | null>(null);
 
   const key = branch?.id ?? '';
@@ -176,37 +185,38 @@ function BranchDrawer({
       open={!!branch}
       title={branch?.id ? branch.name : 'Yeni şube'}
       onClose={onClose}
+      busy={save.isPending}
       footer={
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" disabled={save.isPending} onClick={onClose}>
             Vazgeç
           </Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>
+          <Button type="submit" form={formId} disabled={save.isPending}>
             Kaydet
           </Button>
         </div>
       }
     >
-      <div className="flex flex-col gap-4">
+      <MutationForm id={formId} busy={save.isPending} onSubmit={() => save.mutate()}>
         <Field label="Kod (id)">
           <Input
-            value={form.id}
+            required maxLength={60} pattern=".*\S.*" value={form.id}
             disabled={!!branch?.id}
             onChange={(e) => set('id', e.target.value)}
           />
         </Field>
         <Field label="Ad">
-          <Input value={form.name} onChange={(e) => set('name', e.target.value)} />
+          <Input required maxLength={120} pattern=".*\S.*" value={form.name} onChange={(e) => set('name', e.target.value)} />
         </Field>
         <Field label="Adres">
-          <Input value={form.address} onChange={(e) => set('address', e.target.value)} />
+          <Input required maxLength={300} pattern=".*\S.*" value={form.address} onChange={(e) => set('address', e.target.value)} />
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Şehir">
-            <Input value={form.city} onChange={(e) => set('city', e.target.value)} />
+            <Input required maxLength={60} pattern=".*\S.*" value={form.city} onChange={(e) => set('city', e.target.value)} />
           </Field>
           <Field label="Telefon">
-            <Input value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+            <Input maxLength={30} value={form.phone} onChange={(e) => set('phone', e.target.value)} />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -214,33 +224,33 @@ function BranchDrawer({
             <Input
               type="number"
               step="0.000001"
-              value={form.lat}
-              onChange={(e) => set('lat', Number(e.target.value))}
+              required min={-90} max={90} value={Number.isFinite(form.lat) ? form.lat : ''}
+              onChange={(e) => set('lat', e.target.valueAsNumber)}
             />
           </Field>
           <Field label="Boylam">
             <Input
               type="number"
               step="0.000001"
-              value={form.lng}
-              onChange={(e) => set('lng', Number(e.target.value))}
+              required min={-180} max={180} value={Number.isFinite(form.lng) ? form.lng : ''}
+              onChange={(e) => set('lng', e.target.valueAsNumber)}
             />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Çalışma saatleri">
-            <Input value={form.hours} onChange={(e) => set('hours', e.target.value)} />
+            <Input required maxLength={60} pattern=".*\S.*" value={form.hours} onChange={(e) => set('hours', e.target.value)} />
           </Field>
           <Field label="Hazırlık (dk)">
             <Input
               type="number"
-              value={form.prepMinutes}
-              onChange={(e) => set('prepMinutes', Number(e.target.value))}
+              required min={0} max={120} value={Number.isFinite(form.prepMinutes) ? form.prepMinutes : ''}
+              onChange={(e) => set('prepMinutes', e.target.valueAsNumber)}
             />
           </Field>
         </div>
         <Checkbox
-          label="Şube açık (kapalıyken sipariş alınmaz)"
+          label="Sipariş izni açık (çalışma saatleri ayrıca uygulanır)"
           checked={form.isOpen}
           onChange={(v) => set('isOpen', v)}
         />
@@ -249,7 +259,7 @@ function BranchDrawer({
             {error}
           </p>
         ) : null}
-      </div>
+      </MutationForm>
     </Drawer>
   );
 }
@@ -267,13 +277,13 @@ function AvailabilityDrawer({
 
   const list = useQuery({
     queryKey: ['availability', branch?.id],
-    queryFn: ({ signal }) => readApi(availabilitySchema.array(), `/admin/branches/${branch!.id}/availability`, { signal }),
+    queryFn: ({ signal }) => readApi(availabilitySchema.array(), `/admin/branches/${encodeURIComponent(branch!.id)}/availability`, { signal }),
     enabled: !!branch,
   });
 
   const set = useMutation({
     mutationFn: (p: { productId: string; isAvailable: boolean }) =>
-      api(`/admin/branches/${branch!.id}/availability/${p.productId}`, {
+      api(`/admin/branches/${encodeURIComponent(branch!.id)}/availability/${encodeURIComponent(p.productId)}`, {
         method: 'POST',
         body: { isAvailable: p.isAvailable },
       }),
@@ -290,6 +300,7 @@ function AvailabilityDrawer({
       open={!!branch}
       title={`${branch?.name ?? ''} · ürün müsaitliği`}
       onClose={onClose}
+      busy={set.isPending}
     >
       <div className="flex flex-col gap-4">
         <p className="text-sm text-ink-muted">

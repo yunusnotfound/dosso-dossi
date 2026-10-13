@@ -9,6 +9,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../campaigns/application/public_config.dart';
 import '../../../wallet/application/wallet_providers.dart';
 import 'top_up_confirmation.dart';
+import 'payment_checkout_sheet.dart';
 
 class QuickTopUpRow extends ConsumerWidget {
   const QuickTopUpRow({super.key});
@@ -60,8 +61,15 @@ class _TopUpViewState extends ConsumerState<TopUpView> {
 
   double? get _amount {
     final custom = double.tryParse(_customController.text.replaceAll(',', '.'));
-    if (custom != null && custom > 0) return custom;
-    return _selected;
+    if (_customController.text.trim().isEmpty) return _selected;
+    if (custom != null &&
+        custom.isFinite &&
+        custom > 0 &&
+        custom <= 100000 &&
+        (custom * 100 - (custom * 100).round()).abs() < 0.000001) {
+      return custom;
+    }
+    return null;
   }
 
   @override
@@ -74,6 +82,7 @@ class _TopUpViewState extends ConsumerState<TopUpView> {
   Widget build(BuildContext context) {
     final wallet = ref.watch(walletProvider);
     final amount = _amount;
+    final config = ref.watch(walletPaymentConfigProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,6 +183,7 @@ class _TopUpViewState extends ConsumerState<TopUpView> {
           ],
           decoration: const InputDecoration(
             hintText: 'Farklı tutar gir (₺)',
+            helperText: 'En fazla 100.000 ₺ · En fazla 2 ondalık basamak',
             prefixIcon: Icon(
               Icons.edit_outlined,
               size: 20,
@@ -195,7 +205,15 @@ class _TopUpViewState extends ConsumerState<TopUpView> {
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(
-                  'Simülasyon yüklemesi · Gerçek ödeme alınmaz',
+                  config.when(
+                    loading: () => 'Ödeme yöntemi kontrol ediliyor…',
+                    error: (_, _) => 'Ödeme yöntemi şu an doğrulanamıyor',
+                    data: (value) => !value.enabled
+                        ? 'Bakiye yükleme yakında hizmetinde'
+                        : value.isIyzico
+                        ? 'iyzico ile güvenli ödeme · Kart bilgilerin iyzico’da alınır'
+                        : 'Simülasyon yüklemesi · Gerçek ödeme alınmaz',
+                  ),
                   style: AppTypography.body,
                 ),
               ),
@@ -204,7 +222,10 @@ class _TopUpViewState extends ConsumerState<TopUpView> {
         ),
         const SizedBox(height: AppSpacing.xl),
         FilledButton(
-          onPressed: ref.watch(topUpFlowProvider) || amount == null
+          onPressed:
+              ref.watch(topUpFlowProvider) ||
+                  amount == null ||
+                  config.value?.enabled != true
               ? null
               : () => confirmTopUp(context, ref, amount),
           child: Text(

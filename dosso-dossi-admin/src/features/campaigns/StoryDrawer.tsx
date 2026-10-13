@@ -28,7 +28,7 @@ export function StoryDrawer({ initial, onClose, onSaved }: { initial: StoryInput
     const controllers = inFlight.current;
     return () => { alive.current = false; for (const controller of controllers) controller.abort(); controllers.clear(); };
   }, []);
-  const close = () => { cancel(); onClose(); };
+  const close = () => { if (!saving) { cancel(); onClose(); } };
   const set = <K extends keyof StoryInput>(key: K, value: StoryInput[K]) => {
     setForm((previous) => ({ ...previous, [key]: value }));
     setError('');
@@ -71,7 +71,7 @@ export function StoryDrawer({ initial, onClose, onSaved }: { initial: StoryInput
       if (current()) setSaving(false);
     }
   };
-  return <Drawer open title={initial.id ? 'Hikâyeyi düzenle' : 'Yeni hikâye'} onClose={close} footer={<div className="flex justify-end gap-2"><Button variant="ghost" onClick={close}>Vazgeç</Button><Button onClick={() => void save()} disabled={saving || uploading}>{saving ? 'Kaydediliyor…' : 'Hikâyeyi kaydet'}</Button></div>}>
+  return <Drawer open busy={saving} title={initial.id ? 'Hikâyeyi düzenle' : 'Yeni hikâye'} onClose={close} footer={<div className="flex justify-end gap-2"><Button variant="ghost" disabled={saving} onClick={close}>Vazgeç</Button><Button onClick={() => void save()} disabled={saving || uploading}>{saving ? 'Kaydediliyor…' : 'Hikâyeyi kaydet'}</Button></div>}>
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-4 rounded-card bg-surface p-4"><StoryThumbnail {...form} /><div><Badge tone="gold">Ana sayfa önizlemesi</Badge><p className="mt-2 font-semibold text-ink">{form.title || 'Hikâye başlığı'}</p><p className="mt-1 text-xs text-ink-muted">Misafirler ve üyeler görebilir.</p></div></div>
       <Field label="Hikâye başlığı" hint="Dairenin altında görünür. En fazla 60 karakter."><Input autoFocus maxLength={60} value={form.title} disabled={saving} onChange={(e) => set('title', e.target.value)} /></Field>
