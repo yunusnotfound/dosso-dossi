@@ -18,7 +18,7 @@ export function siteRelease(environment = process.env) {
   return { public: visibility === "public", origin: origin ?? "http://127.0.0.1:4000" };
 }
 
-export const publicPagePaths = ["/", "/alisveris", "/hikayemiz", "/menu", "/mobil", "/subeler", "/franchising", "/sanal-magaza"];
+export const publicPagePaths = ["/", "/alisveris", "/hikayemiz", "/menu", "/mobil", "/subeler", "/franchising"];
 export const privatePaths = ["/api", "/yonetim", "/hesabim", "/en/hesabim", "/sepet", "/en/sepet"];
 
 export function publishedProductPaths(products) {

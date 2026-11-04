@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
   turbopack: { root: __dirname },
   async redirects() {
     return [
+      { source: "/sanal-magaza", destination: "/alisveris", permanent: true },
+      { source: "/en/sanal-magaza", destination: "/en/alisveris", permanent: true },
       { source: "/franchise-basvuru", destination: "/franchising#franchise-form", permanent: true },
       { source: "/ceo-dan-mesaj", destination: "/hikayemiz#vizyon", permanent: true },
       { source: "/en/franchise-basvuru", destination: "/en/franchising#franchise-form", permanent: true },

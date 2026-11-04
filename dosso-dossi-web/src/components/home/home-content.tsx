@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { storeBranches as branches } from "@/components/store3d/store-info-data";
-import { pagePath, virtualStorePath, type Locale } from "@/lib/site";
+import { pagePath, type Locale } from "@/lib/site";
 import s from "./home-content.module.css";
 
 const copy = {
@@ -182,7 +182,6 @@ export function HomeContent({ locale, collection }: { locale: Locale; collection
               {slide === 0 ? t.heroCta : t.nextCta}
               <Arrow />
             </Link>
-            <Link className={s.virtualLink} href={virtualStorePath(locale)} prefetch={false}>{locale === "tr" ? "3D mağazada gezintiye çık" : "Take a tour of our 3D store"} <Arrow /></Link>
           </div>
           <div className={s.heroBottom}>
             <span>
