@@ -1,0 +1,24 @@
+[Unit]
+Description=Dosso Dossi Next.js website
+After=network-online.target dosso-web-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dosso
+Group=dosso
+WorkingDirectory=/srv/dosso/current/dosso-dossi-web
+EnvironmentFile=/etc/dosso/web.env
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 4000
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/dosso/current/dosso-dossi-web/.next/cache
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

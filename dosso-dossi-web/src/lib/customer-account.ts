@@ -29,11 +29,12 @@ export class CustomerRequestError extends Error {
 export async function customerRequest<T>(
   endpoint: string,
   body?: Record<string, unknown>,
+  method?: "POST" | "PATCH",
 ): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`/api/web/auth/${endpoint}`, {
-      method: body === undefined ? "GET" : "POST",
+      method: method ?? (body === undefined ? "GET" : "POST"),
       credentials: "same-origin",
       cache: "no-store",
       ...(body === undefined

@@ -1,0 +1,10 @@
+{
+  "date": "2026-10-14",
+  "tool": "Built-in image_gen",
+  "prompt": "Use case: compositing. Asset: ultrahigh-quality cinematic 3D still-life for Dosso Dossi Coffee mobile app website feature banner, wide landscape 1536x1024. Use the provided cup image as exact product identity reference, preserve cream paper cup, vivid orange lid, black-and-orange Dosso Dossi Coffee printed logo. Create a sophisticated photorealistic 3D product sculpture: this cup floating dynamically at a slight angle in the RIGHT HALF, surrounded by one elegant thick glossy orange ribbon making a beautiful orbital loop, three small ivory enamel tokens embossed with an orange coffee bean, and a few sharply sculpted real coffee beans suspended in space. Cream satin sculptural circular plinth underneath and warm ivory infinite studio backdrop. LEFT HALF remains quiet clean pale cream negative space for live web typography. Premium launch-film lighting: large softbox reflections, warm directional light, crisp rich shadows without harsh burn, tactile paper and lacquer. Refined commercial 3D Octane render aesthetic, rich orange and ivory, dark tiny logo accents, dynamic yet balanced. No phones, no extra text, no people, no UI, no watermarks. The cup logo must remain crisp recognizable and accurately aligned on cup. Generous margins, no cropped cup.",
+  "path": "public/images/mobile/coffee-orbit-v1.webp",
+  "source": "public/images/editorial/coffee-cup.webp",
+  "original": "/Users/berkaydemir/.codex/generated_images/01a0ce97-96fb-7c73-902a-cb575c71021e/exec-f10ab7ae-d94f-4b62-b685-140624b94364.png",
+  "screens": "Real Flutter demo screenshots, see mobile-source-assets.md",
+  "three": "Live Three.js models, materials, lighting and phone screen textures"
+}

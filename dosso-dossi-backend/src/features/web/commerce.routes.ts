@@ -3,8 +3,8 @@ import type { PrismaClient } from '@dosso-dossi/web-prisma';
 import { AppError } from '../../lib/errors.js';
 import { requireWebAdmin } from './admin-auth.js';
 import { requireWebCustomer } from './customer-auth.js';
-import { addressCreateInput, addressUpdateInput, addressVersionInput, cartAddInput, cartAddressInput, cartQuantityInput, cartVersionInput, shippingInput } from './commerce.schemas.js';
-import { addCartItem, changeCartItem, createAddress, deleteAddress, listAddresses, readCart, readShipping, removeCartItem, saveShipping, selectCartAddress, updateAddress } from './commerce.service.js';
+import { addressCreateInput, addressUpdateInput, addressVersionInput, cartAddInput, cartSetInput, cartAddressInput, cartQuantityInput, cartVersionInput, shippingInput } from './commerce.schemas.js';
+import { addCartItem, addCartSet, changeCartItem, createAddress, deleteAddress, listAddresses, readCart, readShipping, removeCartItem, saveShipping, selectCartAddress, updateAddress } from './commerce.service.js';
 
 const boundedJson: RequestHandler = (req, res, next) => {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) { next(); return; }
@@ -17,6 +17,7 @@ export function createCommerceRouter(database: () => PrismaClient): Router {
   router.get('/shipping', async (_req, res) => { res.json({ shipping: await readShipping(database()) }); });
   router.use(['/cart', '/addresses'], requireWebCustomer(database), boundedJson);
   router.get('/cart', async (_req, res) => { res.json({ cart: await readCart(database(), res.locals.webCustomer.id) }); });
+  router.post('/cart/set', async (req, res) => { res.json({ cart: await addCartSet(database(), res.locals.webCustomer.id, cartSetInput.parse(req.body)) }); });
   router.post('/cart/items', async (req, res) => { res.json({ cart: await addCartItem(database(), res.locals.webCustomer.id, cartAddInput.parse(req.body)) }); });
   router.patch('/cart/items/:id', async (req, res) => { res.json({ cart: await changeCartItem(database(), res.locals.webCustomer.id, String(req.params.id), cartQuantityInput.parse(req.body)) }); });
   router.delete('/cart/items/:id', async (req, res) => { res.json({ cart: await removeCartItem(database(), res.locals.webCustomer.id, String(req.params.id), cartVersionInput.parse(req.body).version) }); });

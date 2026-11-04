@@ -130,3 +130,12 @@ export async function verifyCustomerEmail(database: PrismaClient, token: string,
 export async function resetCustomerPassword(database: PrismaClient, token: string, password: string, now: () => Date = () => new Date()) {
   await consumeToken(database, token, 'RESET_PASSWORD', now, await hashPassword(password));
 }
+
+export async function updateCustomerProfile(database: PrismaClient, customerId: string, input: { name: string; locale: 'tr' | 'en' }) {
+  return database.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "WebCustomer" WHERE "id"=${customerId} FOR UPDATE`;
+    const current = await tx.webCustomer.findUnique({ where: { id: customerId } });
+    if (!current?.active || !current.emailVerifiedAt) throw AppError.unauthorized();
+    return publicCustomer(await tx.webCustomer.update({ where: { id: customerId }, data: { name: input.name, locale: input.locale } }));
+  });
+}

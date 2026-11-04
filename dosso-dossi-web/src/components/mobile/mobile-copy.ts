@@ -1,0 +1,58 @@
+export const mobileCopy = {
+  tr: {
+    eyebrow: "DOSSO DOSSI · MOBİL DENEYİM", title: ["İYİ KAHVE.", "HEP", "YANINDA."],
+    intro: "Sevdiğin lezzetler, küçük sürprizler ve sana ait bir kahve dünyası. Şimdi çok daha yakın.",
+    explore: "Deneyimin içine gir", preview: "UYGULAMA ÖN İZLEMESİ", pause: "Hareketi durdur", resume: "Hareketi aç",
+    scenes: ["Senin dünyan", "Kahvenin karşılığı", "Yeni favorin"], sceneLabel: "3D telefon sahnesini seç",
+    ribbon: "BİR DOKUNUŞ. BİR KAHVE. BİR GÜZEL AN.", scroll: "AŞAĞIDA DAHA FAZLASI VAR",
+    tourLabel: "EKRANIN ÖTESİNDE", tourTitle: ["HER DOKUNUŞTA", "SANA BİRAZ", "DAHA YAKIN."],
+    tourIntro: "Bir ekran seç. Dosso Dossi’yi kendi ritminde keşfet.", screenNote: "Güncel uygulamamızdan gerçek ekranlar", screenGroup: "Uygulama ekranını seç",
+    screens: [
+      { id: "home", name: "Ana sayfa", title: "GÜNÜN GÜZEL BAŞLANGICI.", text: "Kampanyalar, kahve yolculuğun ve keşfedeceğin yeni tatlar. Hepsi seni karşılayan tek bir ekranda.", detail: "KENDİ KAHVE DÜNYANA HOŞ GELDİN." },
+      { id: "rewards", name: "İkramlarım", title: "KÜÇÜK DAMGALAR. GÜZEL İKRAMLAR.", text: "Kahve ilerlemeni takip et, bir sonraki ikramına ne kadar kaldığını gör. Her buluşmada güzel bir neden daha.", detail: "KAHVE KEYFİNİN BİR KARŞILIĞI VAR." },
+      { id: "menu", name: "Menü", title: "BUGÜN HANGİSİ SENSİN?", text: "Sıcak klasiklerden meyveli serinliklere. Görsellerle menüyü gez, bir sonraki favorini bul.", detail: "HER RUH HALİNE BİR LEZZET." },
+      { id: "wallet", name: "Tara & öde", title: "KARTIN DA YANINDA.", text: "Dosso Dossi Kart ekranını, bakiyeni ve QR deneyimini keşfet. Kahve molanın dijital tarafıyla tanış.", detail: "KAHVE MOLANA TEK EKRANDAN BAK." },
+      { id: "stories", name: "Hikâyeler", title: "HER HİKÂYEDE YENİ BİR TAT.", text: "Kahve ikramlarından meyveli serinliklere, evindeki kahve keyfine. Uygulamadaki hikâyeleri seç, her birinin dünyasına yakından bak.", detail: "KAHVE MOLANA İLHAM VEREN HİKÂYELER." },
+    ],
+    storyGroup: "Uygulama hikâyesini seç", storyLabel: "HİKÂYE SEÇ",
+    stories: [
+      { id: "story-coffee", name: "Kahve Kazan" },
+      { id: "story-topup", name: "Yükle Kazan" },
+      { id: "story-fruit", name: "Serinliğin Üç Hali" },
+      { id: "story-shop", name: "Kahve Keyfi Evinde" },
+    ],
+    stampLabel: "KAHVENİN TATLI DEVAMI", stampTitle: ["BİR KAHVE.", "BİR DAMGA.", "BİR GÜLÜMSEME."],
+    stampIntro: "Beş damgalık yolculuğun nasıl hissettirdiğini keşfet.", stampButton: "Bir kahve daha", stampReset: "Yeniden deneyimle", stampComplete: "İKRAM ZAMANI!", stampProgress: "damga", stampHint: "İnteraktif tanıtım · hesabına damga eklemez.",
+    stampText: "Beşinci damga, bir ikram kahveye dönüşür.", stampDone: "Beş damga tamam. Kahve keyfine bir ikram daha!",
+    closeLabel: "DOSSO DOSSI COFFEE APP", closeTitle: ["KAHVEYLE", "BULUŞMANIN", "YENİ YOLU."], closeText: "Uygulamamızın dünyasını keşfettin. Bir sonraki güzel buluşmamız çok yakında cebinde.", release: "iOS & Android · Yakında", restart: "Bir kez daha keşfet", tech: "COFFEE. ART. MUSIC. YOU.",
+  },
+  en: {
+    eyebrow: "DOSSO DOSSI · MOBILE EXPERIENCE", title: ["GOOD COFFEE.", "ALWAYS", "WITH YOU."],
+    intro: "Your favourite flavours, little surprises and a coffee world of your own. Closer than ever.",
+    explore: "Step into the experience", preview: "APP PREVIEW", pause: "Pause motion", resume: "Enable motion",
+    scenes: ["Your world", "Your coffee rewards", "Your next favourite"], sceneLabel: "Choose a 3D phone scene",
+    ribbon: "ONE TOUCH. ONE COFFEE. ONE GOOD MOMENT.", scroll: "THERE’S MORE BELOW",
+    tourLabel: "BEYOND THE SCREEN", tourTitle: ["EVERY TOUCH.", "A LITTLE", "CLOSER."],
+    tourIntro: "Pick a screen. Discover Dosso Dossi at your own pace.", screenNote: "Real screens from our current app", screenGroup: "Choose an app screen",
+    screens: [
+      { id: "home", name: "Home", title: "A GOOD START TO YOUR DAY.", text: "Campaigns, your coffee journey and new flavours to discover. Together on one welcoming screen.", detail: "WELCOME TO YOUR COFFEE WORLD." },
+      { id: "rewards", name: "My rewards", title: "SMALL STAMPS. HAPPY REWARDS.", text: "Follow your coffee progress and see how close you are to your next treat. One more reason to meet.", detail: "YOUR COFFEE MOMENTS ADD UP." },
+      { id: "menu", name: "Menu", title: "WHAT’S YOUR MOOD TODAY?", text: "From warm classics to fruity refreshment. Explore the visual menu and find your next favourite.", detail: "A FLAVOUR FOR EVERY MOOD." },
+      { id: "wallet", name: "Scan & pay", title: "YOUR CARD. RIGHT HERE.", text: "Explore your Dosso Dossi Card, balance and QR experience. Discover the digital side of your coffee break.", detail: "YOUR COFFEE BREAK AT A GLANCE." },
+      { id: "stories", name: "Stories", title: "A NEW FLAVOUR IN EVERY STORY.", text: "From coffee treats to fruity refreshment and coffee moments at home. Pick an app story and take a closer look at its world.", detail: "A LITTLE INSPIRATION FOR YOUR COFFEE BREAK." },
+    ],
+    storyGroup: "Choose an app story", storyLabel: "PICK A STORY",
+    stories: [
+      { id: "story-coffee", name: "Earn Coffee" },
+      { id: "story-topup", name: "Top Up & Earn" },
+      { id: "story-fruit", name: "Three Ways to Refresh" },
+      { id: "story-shop", name: "Coffee Moments at Home" },
+    ],
+    stampLabel: "GOOD THINGS FOLLOW COFFEE", stampTitle: ["ONE COFFEE.", "ONE STAMP.", "ONE SMILE."],
+    stampIntro: "Experience a little five-stamp journey.", stampButton: "One more coffee", stampReset: "Try it again", stampComplete: "TIME FOR A TREAT!", stampProgress: "stamps", stampHint: "Interactive preview · no stamps are added to your account.",
+    stampText: "Your fifth stamp becomes a complimentary coffee.", stampDone: "Five stamps complete. One more coffee moment to enjoy!",
+    closeLabel: "DOSSO DOSSI COFFEE APP", closeTitle: ["A NEW WAY", "TO MEET", "OVER COFFEE."], closeText: "You’ve explored our app’s world. Your next good coffee moment is coming to your pocket soon.", release: "iOS & Android · Coming soon", restart: "Explore once more", tech: "COFFEE. ART. MUSIC. YOU.",
+  },
+} as const;
+
+export type AppScreen = "home" | "rewards" | "menu" | "wallet" | "story-coffee" | "story-topup" | "story-fruit" | "story-shop";

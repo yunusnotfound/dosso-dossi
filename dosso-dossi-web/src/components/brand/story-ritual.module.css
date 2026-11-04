@@ -1,0 +1,142 @@
+.ritual {
+  --ritual-orange: var(--brand-orange-hsl);
+  --ritual-cream: 38 52% 96%;
+  --ritual-ink: 60 6% 9%;
+  --ritual-muted: 45 5% 38%;
+  --ritual-surface: var(--ritual-cream);
+  --ritual-spot: var(--ritual-orange);
+  --ritual-accent: var(--ritual-orange);
+  --ritual-line: 43 13% 81%;
+  --ritual-ease: cubic-bezier(.2,.7,.2,1);
+  position: relative;
+  overflow: clip;
+  color: hsl(var(--ritual-ink));
+  background: hsl(var(--ritual-surface));
+  padding: clamp(36px, 5vw, 68px) clamp(24px, 4.8vw, 64px) 0;
+  transition: background-color .75s var(--ritual-ease);
+}
+.ritual[data-mood="bright"] {
+  --ritual-surface: var(--ritual-orange);
+  --ritual-spot: var(--ritual-cream);
+  --ritual-accent: var(--ritual-cream);
+  --ritual-muted: var(--ritual-ink);
+  --ritual-line: 21 73% 37%;
+}
+.ritual[data-mood="together"] {
+  --ritual-surface: 29 63% 94%;
+  --ritual-spot: var(--ritual-orange);
+}
+.layout { display: grid; grid-template-columns: 1fr 1.06fr; grid-template-rows: auto auto 1fr; column-gap: 20px; max-width: 1250px; margin: 0 auto; }
+.heading { grid-column: 1; grid-row: 1; position: relative; z-index: 3; padding-top: 12px; }
+.ritual .eyebrow { display: flex; align-items: center; gap: 9px; font-size: 9px; font-weight: 700; line-height: 1.5; letter-spacing: .13em; margin: 0 0 23px; }
+.ritual .eyebrow > span { width: 6px; height: 6px; border-radius: 50%; background: hsl(var(--ritual-accent)); transition: background-color .5s; }
+.ritual .heading h3 { font-family: var(--font-heading), "Arial Narrow", sans-serif; font-size: clamp(66px, 7.4vw, 100px); line-height: .89; font-weight: 800; letter-spacing: -.025em; margin: 0; }
+.ritual .heading h3 em { font-style: normal; color: hsl(var(--ritual-accent)); transition: color .5s; }
+.ritual .invitation { margin: 21px 0 25px; font-size: 12px; line-height: 1.6; color: hsl(var(--ritual-muted)); }
+.stage { position: relative; grid-column: 2; grid-row: 1 / 4; min-width: 0; min-height: 560px; isolation: isolate; }
+.stageIndex { display: flex; align-items: center; gap: 10px; position: absolute; top: 3%; right: 2%; font-size: 9px; font-weight: 600; letter-spacing: .1em; z-index: 5; }
+.stageIndex i { display: block; height: 1px; width: 28px; background: hsl(var(--ritual-ink) / .35); }
+.orbit { position: absolute; width: 84%; aspect-ratio: 1; top: 16%; left: 8%; border-radius: 50%; background: hsl(var(--ritual-spot)); transition: background-color .7s var(--ritual-ease), transform 1s var(--ritual-ease); transform: rotate(calc(var(--scene-turn, 0deg) * .7)); }
+.orbitLine { position: absolute; width: 99%; aspect-ratio: 1; top: 9%; left: 0; border: 1px solid hsl(var(--ritual-ink) / .17); border-radius: 50%; transform: scaleY(.95) rotate(-20deg); }
+.stageWord { position: absolute; left: 50%; top: 32%; transform: translateX(-50%); font-family: var(--font-heading), sans-serif; font-weight: 800; font-size: clamp(110px, 13vw, 190px); line-height: 1; letter-spacing: -.03em; color: hsl(var(--ritual-surface)); opacity: .74; white-space: nowrap; max-width: 120%; transition: color .7s, opacity .7s; }
+.ritual[data-mood="together"] .stageWord { font-size: clamp(95px, 9vw, 145px); }
+.drinks { position: absolute; inset: 0; z-index: 2; }
+.drink { position: absolute; transition: width .8s var(--ritual-ease), height .8s var(--ritual-ease), left .8s var(--ritual-ease), top .8s var(--ritual-ease), transform .8s var(--ritual-ease), opacity .6s; }
+.drink img { object-fit: contain; filter: drop-shadow(12px 22px 10px hsl(var(--ritual-ink) / .18)); }
+.lead { width: 66%; height: 82%; left: 19%; top: 4%; z-index: 3; opacity: 1; transform: translate3d(calc(var(--pointer-x, 0px) * -.5), calc(var(--scene-shift, 0px) * -.15 + var(--pointer-y, 0px) * .5), 0) rotate(calc(-6deg + var(--scene-turn, 0deg) * .25)); }
+.next { width: 27%; height: 44%; left: 72%; top: 9%; z-index: 1; opacity: .9; transform: translate3d(calc(var(--pointer-x, 0px) * .6), calc(var(--scene-shift, 0px) * -.55), 0) rotate(calc(17deg - var(--scene-turn, 0deg) * .3)); }
+.previous { width: 29%; height: 47%; left: -1%; top: 46%; z-index: 4; opacity: .95; transform: translate3d(calc(var(--pointer-x, 0px) * -.8), calc(var(--scene-shift, 0px) * .35), 0) rotate(calc(-18deg + var(--scene-turn, 0deg) * .4)); }
+.seal { position: absolute; right: -1%; bottom: 12%; width: 88px; height: 88px; z-index: 5; background: hsl(var(--ritual-ink)); color: hsl(var(--ritual-cream)); border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; rotate: 9deg; }
+.seal svg { width: 25px; height: 25px; stroke: hsl(var(--ritual-orange)); stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; margin-bottom: 7px; }
+.seal span { text-align: center; font-size: 8px; font-weight: 700; letter-spacing: .08em; line-height: 1.4; }
+.productCaption { display: flex; gap: 22px; align-items: center; position: absolute; bottom: 5%; left: 30%; z-index: 6; font-size: 10px; line-height: 1.5; padding: 11px 15px; max-width: 62%; color: hsl(var(--ritual-ink)); background: hsl(var(--ritual-cream)); rotate: -4deg; border: 1px solid hsl(var(--ritual-ink) / .1); }
+.productCaption i { font-style: normal; font-size: 18px; }
+.choices { display: flex; align-items: center; gap: 8px; grid-column: 1; grid-row: 2; position: relative; z-index: 5; padding-bottom: 24px; border-bottom: 1px solid hsl(var(--ritual-line)); }
+.choices button { display: flex; align-items: center; gap: 9px; min-height: 47px; background: transparent; color: hsl(var(--ritual-ink)); padding: 11px 12px; border: 1px solid hsl(var(--ritual-ink) / .2); border-radius: 0; cursor: pointer; transition: color .25s, background-color .25s, border-color .25s; }
+.choices .choiceIndex { font-size: 7px; opacity: .6; align-self: flex-start; padding-top: 1px; }
+.choices strong { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.choices svg { width: 17px; height: 17px; flex-shrink: 0; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.choices button:hover { border-color: hsl(var(--ritual-ink)); }
+.choices button[aria-pressed="true"] { background: hsl(var(--ritual-ink)); color: hsl(var(--ritual-cream)); border-color: hsl(var(--ritual-ink)); }
+.choices button[aria-pressed="true"] .choiceIndex { color: hsl(var(--ritual-orange)); opacity: 1; }
+.details { position: relative; z-index: 5; grid-column: 1; grid-row: 3; padding-top: 25px; padding-bottom: 44px; }
+.description { min-height: 122px; max-width: 365px; }
+.ritual .description h4 { font-family: var(--font-heading), sans-serif; font-size: 30px; font-weight: 600; line-height: 1.12; margin: 0 0 13px; }
+.ritual .description p { font-size: 12px; line-height: 1.8; color: hsl(var(--ritual-muted)); margin: 0; }
+.actions { display: flex; align-items: flex-start; flex-direction: column; gap: 18px; margin-top: 22px; }
+.actions button { display: inline-flex; align-items: center; justify-content: space-between; cursor: pointer; border: 0; font: inherit; }
+.menuButton { background: hsl(var(--ritual-ink)); color: hsl(var(--ritual-cream)); font-size: 9px !important; font-weight: 700 !important; letter-spacing: .07em; padding: 16px 20px; gap: 30px; min-height: 51px; }
+.menuButton svg { transition: transform .25s; }
+.menuButton:hover svg { transform: translateX(5px); }
+.branchButton { font-size: 11px !important; gap: 14px; background: transparent; color: hsl(var(--ritual-ink)); padding: 0 0 5px; border-bottom: 1px solid hsl(var(--ritual-ink) / .4) !important; }
+.branchButton span { font-size: 19px; line-height: 1; }
+.choices button:focus-visible, .actions button:focus-visible { outline: 2px solid hsl(var(--ritual-ink)); outline-offset: 5px; }
+.footer { max-width: 1250px; margin: 0 auto; border-top: 1px solid hsl(var(--ritual-line)); padding: 18px 0; display: flex; gap: 20px; align-items: center; justify-content: space-between; }
+.footer span:first-child { font-family: var(--font-heading), sans-serif; font-size: 19px; font-weight: 700; }
+.footer span:nth-child(2) { font-size: 7px; font-weight: 600; letter-spacing: .14em; }
+.footer span:last-child { font-size: 25px; line-height: 1; }
+@media (max-width: 1050px) {
+  .ritual { padding-inline: 32px; }
+  .layout { column-gap: 10px; }
+  .ritual .heading h3 { font-size: 72px; }
+  .stage { min-height: 545px; }
+  .orbit { top: 22%; }
+  .orbitLine { top: 17%; }
+  .stageWord { top: 35%; font-size: 135px; }
+  .lead { height: 74%; top: 13%; }
+  .next { height: 39%; top: 19%; }
+  .previous { top: 49%; height: 41%; }
+  .choices { gap: 6px; }
+  .choices button { gap: 6px; padding: 10px 9px; }
+  .choices strong { font-size: 11px; }
+  .choices svg { width: 14px; height: 14px; }
+  .seal { height: 75px; width: 75px; bottom: 16%; }
+  .productCaption { left: 25%; bottom: 9%; max-width: 70%; }
+}
+@media (max-width: 740px) {
+  .ritual { padding: 35px 24px 0; }
+  .layout { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; }
+  .heading { grid-column: 1; grid-row: 1; padding-top: 0; }
+  .ritual .eyebrow { font-size: 8px; margin-bottom: 22px; }
+  .ritual .heading h3 { font-size: clamp(63px, 14vw, 95px); }
+  .ritual .invitation { margin: 19px 0 0; font-size: 11px; }
+  .stage { grid-column: 1; grid-row: 2; width: min(100%, 440px); margin: 6px auto 15px; min-height: 390px; height: 95vw; max-height: 470px; }
+  .stageIndex { top: 5%; right: 0; font-size: 7px; }
+  .orbit { top: 20%; width: 76%; left: 12%; }
+  .orbitLine { width: 91%; left: 4%; top: 13%; }
+  .stageWord { top: 37%; font-size: clamp(120px, 30vw, 180px); }
+  .ritual[data-mood="together"] .stageWord { font-size: clamp(85px, 21vw, 125px); }
+  .lead { top: 4%; height: 86%; width: 66%; left: 19%; }
+  .next { top: 15%; height: 43%; width: 25%; left: 75%; }
+  .previous { top: 48%; height: 44%; left: -1%; width: 27%; }
+  .seal { width: 70px; height: 70px; right: 0; bottom: 13%; }
+  .seal svg { width: 21px; height: 21px; margin-bottom: 5px; }
+  .seal span { font-size: 7px; }
+  .productCaption { left: 29%; bottom: 4%; max-width: 64%; padding: 9px 12px; font-size: 9px; gap: 14px; }
+  .choices { grid-column: 1; grid-row: 3; gap: 8px; justify-content: flex-start; padding-bottom: 22px; }
+  .choices button { flex: 1; justify-content: space-between; gap: 6px; padding: 11px 10px; min-height: 47px; }
+  .choices strong { font-size: 12px; }
+  .choices svg { width: 16px; height: 16px; }
+  .details { grid-column: 1; grid-row: 4; padding-top: 24px; padding-bottom: 32px; }
+  .description { min-height: 110px; max-width: 390px; }
+  .ritual .description h4 { font-size: 30px; margin-bottom: 11px; }
+  .ritual .description p { font-size: 12px; }
+  .actions { margin-top: 20px; }
+  .footer { padding: 16px 0; gap: 15px; }
+  .footer span:first-child { font-size: 16px; }
+  .footer span:nth-child(2) { font-size: 6px; max-width: 115px; line-height: 1.7; }
+  .footer span:last-child { font-size: 23px; }
+}
+@media (max-width: 380px) {
+  .ritual { padding-inline: 19px; }
+  .ritual .heading h3 { font-size: 61px; }
+  .stage { min-height: 350px; }
+  .choices { gap: 5px; }
+  .choices button { padding-inline: 8px; gap: 5px; }
+  .choices strong { font-size: 11px; }
+  .choices .choiceIndex { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ritual, .ritual *, .ritual *::before, .ritual *::after { animation: none !important; transition: none !important; }
+  .menuButton:hover svg { transform: none; }
+}

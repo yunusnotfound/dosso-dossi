@@ -1,6 +1,6 @@
 import { Prisma, type PrismaClient } from '@dosso-dossi/web-prisma';
 import { AppError, ErrorCodes } from '../../lib/errors.js';
-import type { ProductInput } from './catalog.schemas.js';
+import { productDetailsInput, type ProductInput } from './catalog.schemas.js';
 
 export const productInclude = {
   images: { include: { media: true }, orderBy: { sortOrder: 'asc' as const } },
@@ -12,7 +12,7 @@ export function serializeProduct(product: ProductRecord, publicOnly = false) {
   return {
     id: product.id, slug: product.slug, type: product.type, status: product.status,
     nameTr: product.nameTr, nameEn: product.nameEn, descriptionTr: product.descriptionTr, descriptionEn: product.descriptionEn,
-    sortOrder: product.sortOrder, version: product.version,
+    sortOrder: product.sortOrder, version: product.version, details: productDetailsInput.safeParse(product.details).data ?? {},
     images: product.images.map(({ id, mediaId, media, altTr, altEn, sortOrder }) => ({ id, mediaId, url: `/web/media/${media.filename}`, altTr, altEn, sortOrder })),
     variants: product.variants.filter((item) => !publicOnly || item.active).map(({ productId: _productId, ...item }) => item),
     grindOptions: product.grindOptions.filter((item) => !publicOnly || item.active).map(({ productId: _productId, ...item }) => item),
@@ -44,7 +44,7 @@ export async function saveProduct(database: PrismaClient, input: ProductInput, a
       }) || input.variants.some((item) => !item.id && item.stock > 0);
       if (before && stockChanges && !input.stockReason?.trim()) throw bad('Stok değişikliği için gerekçe gerekli.');
       const data = { slug: input.slug, type: input.type, status: input.status, nameTr: input.nameTr, nameEn: input.nameEn,
-        descriptionTr: input.descriptionTr, descriptionEn: input.descriptionEn, sortOrder: input.sortOrder };
+        descriptionTr: input.descriptionTr, descriptionEn: input.descriptionEn, sortOrder: input.sortOrder, ...(input.details !== undefined ? { details: json(input.details) } : {}) };
       let productId: string;
       if (before) {
         const updated = await tx.webProduct.updateMany({ where: { id: before.id, version: input.version }, data: { ...data, version: { increment: 1 } } });

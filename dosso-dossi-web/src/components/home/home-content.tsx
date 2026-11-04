@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { catalogItems, variantLabel, type CatalogResult } from "@/lib/catalog";
-import { pagePath, type Locale } from "@/lib/site";
+import { useState, type ReactNode } from "react";
+import { storeBranches as branches } from "@/components/store3d/store-info-data";
+import { pagePath, virtualStorePath, type Locale } from "@/lib/site";
 import s from "./home-content.module.css";
 
 const copy = {
@@ -13,7 +13,7 @@ const copy = {
     heroTitle: "İYİ KAHVE.\nGÜZEL ANLAR.",
     heroText:
       "Günün telaşına küçük bir ara. Sevdiğin kahveye, yeni fikirlere ve uzun sohbetlere yer aç.",
-    heroCta: "Dünyamızı keşfet",
+    heroCta: "Paket kahveleri keşfet",
     nextLabel: "KAHVENİN RENGİ SANA KALSIN",
     nextTitle: "HER ANINA\nBİR RENK.",
     nextText:
@@ -54,8 +54,8 @@ const copy = {
       "Kimi gün sıcacık bir klasik, kimi gün buz gibi bir mola. Bugün senin kahven hangisi?",
     hot: "Sıcak kahveler",
     cold: "Soğuk kahveler",
-    menuNote: "Şubelerdeki ürün bulunurluğu değişebilir.",
-    menuCta: "En yakın şubeyi bul",
+    menuNote: "İçecekler şubelerimizde sunulur; web mağazasında satılmaz. Bulunurluk şubeye göre değişebilir.",
+    menuCta: "Şube menüsünü keşfet",
     franchiseLabel: "BİRLİKTE BÜYÜYELİM",
     franchiseTitle: "BU HİKÂYEYE\nSEN DE KATIL.",
     franchiseText:
@@ -72,7 +72,7 @@ const copy = {
     heroTitle: "GOOD COFFEE.\nGREAT MOMENTS.",
     heroText:
       "A little pause in a busy day. Make room for your favourite coffee, fresh ideas and conversations that linger.",
-    heroCta: "Explore our world",
+    heroCta: "Explore our coffees",
     nextLabel: "COLOUR YOUR COFFEE BREAK",
     nextTitle: "A COLOUR FOR\nEVERY MOMENT.",
     nextText:
@@ -113,8 +113,8 @@ const copy = {
       "Some days call for a comforting classic. Others, a refreshing pause. What’s your coffee today?",
     hot: "Hot coffees",
     cold: "Iced coffees",
-    menuNote: "Product availability may vary by location.",
-    menuCta: "Find your nearest location",
+    menuNote: "Drinks are served at our cafés and are not sold online. Availability varies by location.",
+    menuCta: "Explore the café menu",
     franchiseLabel: "LET’S GROW TOGETHER",
     franchiseTitle: "BE PART OF\nOUR STORY.",
     franchiseText:
@@ -127,41 +127,11 @@ const copy = {
     coldAlt: "Dosso Dossi cold drinks",
   },
 };
-const branches = [
-  {
-    name: "Beylikdüzü Vadi Loca",
-    city: "İstanbul",
-    address: "Adnan Kahveci Mah. Sayaca Cad. No:13, Beylikdüzü / İstanbul",
-    coordinates: "41.00838,28.632925",
-  },
-  {
-    name: "Beylikdüzü Son Durak",
-    city: "İstanbul",
-    address:
-      "Cumhuriyet Mah. Yıldıray Çınar Sok. No:47-1, Büyükçekmece / İstanbul",
-    coordinates: "41.021873,28.623523",
-  },
-  {
-    name: "Vatan Caddesi",
-    city: "İstanbul",
-    address:
-      "Akşemsettin Mah. Adnan Menderes Vatan Bulvarı, Dosso Dossi Hotel No:46-48, Fatih / İstanbul",
-    coordinates: "41.016863,28.940617",
-  },
-  {
-    name: "Diyarbakır Stad",
-    city: "Diyarbakır",
-    address:
-      "Fırat Mah. 507. Sok. Dicle Fırat No:5 İç Kapı No:29, Kayapınar / Diyarbakır",
-    coordinates: "37.926528,40.164817",
-  },
-];
 function Arrow({ diagonal = true }: { diagonal?: boolean }) {
   return <span aria-hidden="true">{diagonal ? "↗" : "→"}</span>;
 }
 
-export function HomeContent({ locale, catalog }: { locale: Locale; catalog: CatalogResult }) {
-  const products = catalogItems(catalog.products);
+export function HomeContent({ locale, collection }: { locale: Locale; collection: ReactNode }) {
   const t = copy[locale],
     shop = pagePath(locale, "shop");
   const [slide, setSlide] = useState(0),
@@ -207,11 +177,12 @@ export function HomeContent({ locale, catalog }: { locale: Locale; catalog: Cata
             </p>
             <Link
               className={s.lightButton}
-              href={slide === 0 ? "#hikayemiz" : `${shop}?category=thermos`}
+              href={`${shop}?category=${slide === 0 ? "coffee" : "thermos"}`}
             >
               {slide === 0 ? t.heroCta : t.nextCta}
               <Arrow />
             </Link>
+            <Link className={s.virtualLink} href={virtualStorePath(locale)} prefetch={false}>{locale === "tr" ? "3D mağazada gezintiye çık" : "Take a tour of our 3D store"} <Arrow /></Link>
           </div>
           <div className={s.heroBottom}>
             <span>
@@ -246,56 +217,7 @@ export function HomeContent({ locale, catalog }: { locale: Locale; catalog: Cata
         </div>
       </section>
 
-      <section className={s.collection} aria-labelledby="collection-title">
-        <div className={s.sectionTop}>
-          <div>
-            <p className={s.eyebrow}>{t.collectionLabel}</p>
-            <h2 id="collection-title">{t.collectionTitle}</h2>
-            <p className={s.intro}>{t.collectionText}</p>
-          </div>
-          <Link className={s.textLink} href={shop}>
-            {t.all}
-            <Arrow />
-          </Link>
-        </div>
-        <div className={s.productGrid}>
-          {products.slice(0, 3).map((product, index) => (
-            <Link
-              key={product.id}
-              href={`${shop}?product=${product.product.id}&variant=${product.id}`}
-              className={s.productCard}
-            >
-              <div
-                className={`${s.productImage} ${index === 0 ? s.coffeeProduct : ""}`}
-              >
-                <span className={s.productTag}>
-                  {product.category === "coffee" ? t.packaged : t.thermos}
-                </span>
-                {product.image ? <Image
-                  src={product.image}
-                  alt={product.imageAlt[locale]}
-                  fill
-                  sizes="(max-width: 600px) 70vw, 30vw"
-                /> : <span className={s.noImage}>{locale === "tr" ? "Görsel hazırlanıyor" : "Image coming soon"}</span>}
-                <span className={s.productArrow} aria-label={t.inspect}>
-                  <Arrow />
-                </span>
-              </div>
-              <div className={s.productInfo}>
-                <h3>{product.name[locale]}</h3>
-                <span>
-                  {variantLabel(product, locale)}
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-        {!catalog.available ? <div className={s.catalogNotice} role="status">
-          <p>{locale === "tr" ? "Ürünler şu anda yüklenemiyor. Lütfen yeniden deneyin." : "Products could not be loaded. Please try again."}</p>
-          <button onClick={() => window.location.reload()}>{locale === "tr" ? "Yeniden dene" : "Try again"}</button>
-        </div> : products.length === 0 ? <p className={s.catalogNotice}>{locale === "tr" ? "Yeni koleksiyonumuz hazırlanıyor." : "Our new collection is on its way."}</p> : null}
-        <p className={s.previewNote}>{t.collectionNote}</p>
-      </section>
+      {collection}
 
       <section className={s.story} id="hikayemiz" aria-labelledby="story-title">
         <div className={s.storyVisual}>
@@ -456,7 +378,7 @@ export function HomeContent({ locale, catalog }: { locale: Locale; catalog: Cata
             ))}
           </ul>
           <p className={s.menuNote}>{t.menuNote}</p>
-          <Link href="#subeler" className={s.textLink}>
+          <Link href={`${locale === "en" ? "/en" : ""}/menu`} className={s.textLink}>
             {t.menuCta}
             <Arrow />
           </Link>
@@ -473,7 +395,7 @@ export function HomeContent({ locale, catalog }: { locale: Locale; catalog: Cata
         </div>
         <div className={s.franchiseRight}>
           <p>{t.franchiseText}</p>
-          <a href="tel:+902122422121" className={s.lightButton}>
+          <a href={`${locale === "en" ? "/en" : ""}/franchising#franchise-form`} className={s.lightButton}>
             {t.franchiseCta}
             <Arrow />
           </a>

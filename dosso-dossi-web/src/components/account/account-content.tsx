@@ -1,7 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { safeShopReturn } from "@/lib/product-helpers";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { pagePath, type Locale } from "@/lib/site";
 import {
@@ -15,8 +16,8 @@ import {
   type DeliveryResponse,
 } from "@/lib/customer-account";
 import s from "./account.module.css";
-import { ordersPath } from "@/lib/web-orders";
-import { addressesPath, cartPath } from "@/lib/web-commerce";
+import { AccountStory } from "./account-story";
+import { AccountProfile } from "./account-profile";
 
 function notifyCustomerSessionChanged() {
   window.dispatchEvent(new CustomEvent("dosso-customer-session-changed"));
@@ -269,6 +270,11 @@ function PasswordField({
 }
 
 function AccountForm({ locale }: { locale: Locale }) {
+  const router = useRouter();
+  function returnToSelection() {
+    const destination = safeShopReturn(new URLSearchParams(window.location.search).get("returnTo"));
+    if (destination) router.replace(destination);
+  }
   const t = copy[locale];
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
@@ -290,7 +296,7 @@ function AccountForm({ locale }: { locale: Locale }) {
     setSessionError(false);
     try {
       const result = await customerRequest<{ customer: Customer }>("session");
-      if (mounted.current) setCustomer(result.customer);
+      if (mounted.current) { setCustomer(result.customer); returnToSelection(); }
     } catch (caught) {
       if (
         mounted.current &&
@@ -349,6 +355,7 @@ function AccountForm({ locale }: { locale: Locale }) {
         notifyCustomerSessionChanged();
         setCustomer(result.customer);
         setPassword("");
+        returnToSelection();
       } else {
         const endpoint =
           mode === "register"
@@ -417,56 +424,7 @@ function AccountForm({ locale }: { locale: Locale }) {
     );
   if (customer)
     return (
-      <div className={s.profile}>
-        <div className={s.monogram} aria-hidden="true">
-          {customer.name.trim().slice(0, 1).toLocaleUpperCase(locale)}
-        </div>
-        <p className={s.kicker}>{t.welcome}</p>
-        <h2>{customer.name}</h2>
-        <p className={s.description}>{t.profileIntro}</p>
-        <div className={s.profileDetails}>
-          <h3>{t.profile}</h3>
-          <dl>
-            <div>
-              <dt>{t.name}</dt>
-              <dd>{customer.name}</dd>
-            </div>
-            <div>
-              <dt>{t.email}</dt>
-              <dd>{customer.email}</dd>
-            </div>
-          </dl>
-          <span className={s.verified}>
-            {customer.emailVerifiedAt ? "✓ " + t.verified : t.pending}
-          </span>
-        </div>
-        {error && (
-          <p className={s.error} role="alert">
-            {error}
-          </p>
-        )}
-        <div className={s.accountLinks}>
-          <Link href={ordersPath(locale)}>
-            {locale === "tr" ? "Siparişlerim" : "My orders"}
-            <Arrow />
-          </Link>
-          <Link href={cartPath(locale)}>
-            {locale === "tr" ? "Sepetim" : "My bag"}
-            <Arrow />
-          </Link>
-          <Link href={addressesPath(locale)}>
-            {locale === "tr" ? "Teslimat adreslerim" : "My delivery addresses"}
-            <Arrow />
-          </Link>
-        </div>
-        <Link className={s.primary} href={pagePath(locale, "shop")}>
-          {t.store}
-          <Arrow />
-        </Link>
-        <button className={s.textButton} onClick={logout} disabled={busy}>
-          {busy ? t.busy : t.logout}
-        </button>
-      </div>
+      <AccountProfile customer={customer} locale={locale} busy={busy} error={error} onLogout={logout} onUpdated={updated => { setCustomer(updated); notifyCustomerSessionChanged(); }} />
     );
   if (sent)
     return (
@@ -803,24 +761,7 @@ export function AccountContent({
         <span>{locale === "tr" ? "Hesabım" : "My account"}</span>
       </div>
       <div className={s.accountGrid}>
-        <div className={s.story}>
-          <p className={s.kicker}>{t.eyebrow}</p>
-          <h1>{t.title}</h1>
-          <p className={s.intro}>{t.intro}</p>
-          <div className={s.storyImage}>
-            <Image
-              src="/images/editorial/coffee-moment.webp"
-              alt=""
-              fill
-              sizes="(max-width: 760px) 100vw, 50vw"
-              priority
-            />
-            <div className={s.photoCaption}>
-              <span>DOSSO DOSSI</span>
-              <p>{t.brandNote}</p>
-            </div>
-          </div>
-        </div>
+        <AccountStory locale={locale} />
         <div className={s.card}>
           {view === "account" ? (
             <AccountForm locale={locale} />

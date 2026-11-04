@@ -3,6 +3,7 @@ import { Prisma, type PrismaClient } from '@dosso-dossi/web-prisma';
 import { AppError, ErrorCodes } from '../../lib/errors.js';
 import { cartSnapshot, serializeAddress } from './commerce.service.js';
 import { getPaymentAvailability } from './iyzico.service.js';
+import { queueOrderMessage } from './order-messages.js';
 import type { OrderAdminInput, OrderCreateInput, OrderListInput } from './orders.schemas.js';
 
 export type OrderTx = Prisma.TransactionClient;
@@ -11,6 +12,8 @@ export const orderInclude = {
   items: { orderBy: { sortOrder: 'asc' as const } },
   attempts: { orderBy: [{ createdAt: 'desc' as const }, { id: 'desc' as const }] },
   audits: { orderBy: { createdAt: 'desc' as const }, take: 50 },
+  returnRequest: true as const,
+  messages: { select: { id: true, kind: true, status: true, attempts: true, createdAt: true, sentAt: true, lastError: true }, orderBy: { createdAt: 'desc' as const }, take: 50 },
 };
 export type OrderRecord = Prisma.WebOrderGetPayload<{ include: typeof orderInclude }>;
 export const orderJson = (value: unknown): Prisma.InputJsonValue => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -48,6 +51,7 @@ const state = (order: Pick<OrderRecord, 'status' | 'paymentStatus' | 'fulfillmen
 export async function auditOrder(tx: OrderTx, orderId: string, action: string, before: unknown, note = '', adminId?: string) {
   const after = await tx.webOrder.findUniqueOrThrow({ where: { id: orderId } });
   await tx.webOrderAudit.create({ data: { orderId, action, note, adminId, before: before ? orderJson(before) : Prisma.DbNull, after: orderJson(state(after)) } });
+  await queueOrderMessage(tx, orderId, action);
 }
 export function serializeOrder(order: OrderRecord, admin = false) {
   const attempt = order.attempts[0];
@@ -64,6 +68,8 @@ export function serializeOrder(order: OrderRecord, admin = false) {
     carrier: order.carrier, trackingNumber: order.trackingNumber, createdAt: order.createdAt, updatedAt: order.updatedAt,
     reservationExpiresAt: order.reservationExpiresAt, paidAt: order.paidAt, cancelledAt: order.cancelledAt,
     shippedAt: order.shippedAt, deliveredAt: order.deliveredAt,
+    ...(admin ? { messages: order.messages ?? [] } : {}),
+    returnRequest: order.returnRequest ?? null, canRequestReturn: order.paymentStatus === 'PAID' && ['OPEN', 'COMPLETED'].includes(order.status) && !order.returnRequest,
     canCancel: active && unpaid && !initializing,
     canPay: active && unpaid && payment.configured && (!attempt || attempt.status === 'FAILED' || (attempt.status === 'READY' && Boolean(attempt.paymentPageUrl) && Boolean(attempt.expiresAt && attempt.expiresAt.getTime() > Date.now()))),
     canRefreshPayment: Boolean(attempt?.token && (attempt.status === 'READY' || attempt.status === 'REVIEW') && order.paymentStatus !== 'PAID'),

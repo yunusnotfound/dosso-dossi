@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import type { PrismaClient } from '@dosso-dossi/web-prisma';
+import { createFranchiseRouter } from './franchise.routes.js';
 import { createCatalogRouter } from './catalog.routes.js';
 import { createCustomerAuthRouter } from './customer-auth.routes.js';
 import { createCommerceRouter } from './commerce.routes.js';
@@ -35,6 +36,7 @@ export function createWebRouter(database: () => WebDatabase): Router {
   router.use(createCustomerAuthRouter(database as () => PrismaClient));
   router.use(createCommerceRouter(database as () => PrismaClient));
   router.use(createWebOrdersRouter(database as () => PrismaClient));
+  router.use(createFranchiseRouter(database as () => PrismaClient));
   router.use(createCatalogRouter(database as () => PrismaClient));
   return router;
 }

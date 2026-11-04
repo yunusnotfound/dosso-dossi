@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-14",
+  "writtenSource": "https://dossodossicoffee.com/ceo-dan-mesaj",
+  "sourceUsage": "Original concise Turkish/English paraphrase of coffee, art, music, creativity, considered design and sharing themes. No founding dates, counts or certifications added.",
+  "generationTool": "Built-in image_gen",
+  "assets": [
+    {
+      "path": "public/images/story/coffee-meets-art-v1.webp",
+      "prompt": "Use case: stylized-concept. Asset type: premium coffee brand editorial story website hero background, widescreen 1536x1024. Create a stunning art-directed photorealistic 3D still life: a flowing burnt-bright-orange satin ribbon moves through a large sculptural warm ivory arch, a classical Renaissance-style white marble head/bust with modern black sunglasses stands on a low warm cream plinth to the RIGHT, and a refined plain ivory ceramic espresso cup and saucer with crema sits lower center-right. A few dark coffee beans hover along the orange ribbon, subtle elegant orbital arrangement. Theme: coffee meets Renaissance art and contemporary music. Set like a high-end Italian design gallery, warm ivory plaster sculpted walls, vivid brand orange details, soft directional daylight and precise shadows, lightly tactile materials. Very sophisticated, restrained, beautiful editorial photography quality, not cartoon or cluttered. Composition: the left 42 percent is largely warm ivory negative space and soft architectural shadows for black website heading; main bust, cup, orange ribbon on right two-thirds, keep subjects within frame. Full image no border no text no logos no typography no watermark. Do NOT show a real store, recognizable real person, or brand signage. It is a conceptual art piece. No brown background, no dark moody lighting, no green plants, no generic corporate illustration."
+    },
+    {
+      "path": "public/images/story/coffee-meets-music-v1.webp",
+      "prompt": "Use case: ads-marketing. Asset type: editorial visual for an interactive coffee, art and music website story chapter, landscape 1536x1024. A beautifully styled audiophile turntable on a warm ivory stone table, dramatic near top-down closeup, one black vinyl record with a saturated orange blank label and fine grooves, elegant silver tone arm on the right, a small simple ivory espresso cup with rich crema near the back top-left, and a tiny sculptural orange sound wave shaped ribbon detail. Late-afternoon warm directional sunlight across creamy plaster backdrop. Premium contemporary Italian gallery atmosphere, exceptionally tactile photorealistic material quality, subtle film grain. Composition: vinyl occupies central lower right, left upper area has soft negative space. Color palette black, vivid orange, warm ivory. No people, no brand labels, no text, no watermark, no UI. A conceptual studio photograph, not a photo of any real cafe."
+    }
+  ],
+  "assetTreatment": "Generated conceptual editorial compositions, not photographs of real branches. Original PNG outputs retained; optimized 1536×1024 WebP copies total 331746 bytes. Original brand and product photos preserved."
+}

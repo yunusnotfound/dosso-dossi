@@ -184,3 +184,14 @@ describe('web catalogue admin and PostgreSQL persistence', () => {
     expect(tables.every(({ tablename }) => tablename.startsWith('Web') || tablename === '_prisma_migrations')).toBe(true);
   });
 });
+
+it('persists factual metadata and preserves it when an older admin omits the optional field', async () => {
+  const product = await create('metadata-coffee');
+  const updated = await request(app).put(`/web/admin/products/${product.id}`).set(auth()).send({ ...updateInput(product), details: { originTr: 'Kolombiya', roast: 'MEDIUM', brewingMethods: ['FILTER'] } });
+  expect(updated.status).toBe(200);
+  const oldInput = updateInput(updated.body.product); delete oldInput.details;
+  const retained = await request(app).put(`/web/admin/products/${product.id}`).set(auth()).send(oldInput);
+  expect(retained.status).toBe(200); expect(retained.body.product.details).toMatchObject({ originTr: 'Kolombiya', roast: 'MEDIUM' });
+  const published = await request(app).get('/web/catalog');
+  expect(published.body.products[0].details.brewingMethods).toEqual(['FILTER']);
+});

@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Locale } from "@/lib/site";
-import { accountPath } from "@/lib/customer-account";
 import { formatPrice } from "@/lib/catalog";
+import { loginForSelection, productPath } from "@/lib/product-helpers";
 import {
   addressesPath,
   commerceError,
@@ -205,7 +205,7 @@ export function CartContent({ locale }: { locale: Locale }) {
             <p className={s.eyebrow}>DOSSO DOSSI & YOU</p>
             <h2>{t.guestTitle}</h2>
             <p>{t.guestText}</p>
-            <Link className={s.primary} href={accountPath(locale)}>
+            <Link className={s.primary} href={loginForSelection(locale, `${locale === "en" ? "/en" : ""}/sepet`)}>
               {t.login}
               <span aria-hidden="true">→</span>
             </Link>
@@ -276,7 +276,7 @@ export function CartContent({ locale }: { locale: Locale }) {
                             <h3>
                               {line.slug ? (
                                 <Link
-                                  href={`${shopPath}?product=${encodeURIComponent(line.slug)}&variant=${encodeURIComponent(line.variantId)}`}
+                                  href={`${productPath(locale, line.slug)}?${new URLSearchParams({ variant: line.variantId, ...(line.grindId ? { grind: line.grindId } : {}) })}`}
                                 >
                                   {itemLabel(line)}
                                 </Link>

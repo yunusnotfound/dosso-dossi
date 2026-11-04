@@ -32,6 +32,7 @@ export function useCustomerCart(withAddresses = true) {
   const controller = useRef<AbortController | null>(null);
   const mutation = useRef(false);
   const mounted = useRef(true);
+  const source = useRef(Symbol("customer-cart"));
 
   const publish = useCallback((next: CartState) => {
     current.current = next;
@@ -113,6 +114,9 @@ export function useCustomerCart(withAddresses = true) {
       if (document.visibilityState === "hidden") invalidate();
       else resume();
     }
+    function cartChanged(event: Event) {
+      if ((event as CustomEvent).detail !== source.current) resume();
+    }
     const channel =
       typeof BroadcastChannel === "undefined"
         ? null
@@ -122,6 +126,7 @@ export function useCustomerCart(withAddresses = true) {
     window.addEventListener("pageshow", resume);
     window.addEventListener("pagehide", invalidate);
     window.addEventListener("dosso-customer-session-changed", resume);
+    window.addEventListener("dosso-cart-changed", cartChanged);
     document.addEventListener("visibilitychange", visibility);
     return () => {
       mounted.current = false;
@@ -131,6 +136,7 @@ export function useCustomerCart(withAddresses = true) {
       window.removeEventListener("pageshow", resume);
       window.removeEventListener("pagehide", invalidate);
       window.removeEventListener("dosso-customer-session-changed", resume);
+      window.removeEventListener("dosso-cart-changed", cartChanged);
       document.removeEventListener("visibilitychange", visibility);
       channel?.close();
     };
@@ -186,6 +192,7 @@ export function useCustomerCart(withAddresses = true) {
           return false;
         }
         publish({ ...snapshot, cart });
+        window.dispatchEvent(new CustomEvent("dosso-cart-changed", { detail: source.current }));
         return true;
       } catch (cause) {
         if (

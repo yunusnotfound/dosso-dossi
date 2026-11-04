@@ -13,9 +13,11 @@ const json = { Origin: origin.origin, "Content-Type": "application/json" };
 const mutations = [
   ["POST", "orders"],
   ["POST", "orders/example/cancel"],
+  ["POST", "orders/example/return"],
   ["POST", "orders/example/payment"],
   ["POST", "orders/example/payment/refresh"],
   ["PATCH", "admin/orders/example"],
+  ["PATCH", "admin/orders/example/return"],
 ];
 
 test("all order/payment/admin mutations require same-origin JSON", async () => {
@@ -70,6 +72,7 @@ test("customer cookie cannot list or change administrator orders", async () => {
     ["GET", "admin/orders"],
     ["GET", "admin/orders/example"],
     ["PATCH", "admin/orders/example"],
+  ["PATCH", "admin/orders/example/return"],
   ]) {
     const response = await fetch(endpoint(path), {
       method,

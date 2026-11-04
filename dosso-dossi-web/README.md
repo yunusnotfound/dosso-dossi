@@ -1,6 +1,8 @@
 # Dosso Dossi web
 
-Yerel geliştirme için native Next.js App Router, TypeScript ve React başlangıç projesi. Bu aşamada yalnız Türkçe/İngilizce ana sayfa, mağaza başlangıç sayfası ve backend bağlantısı vardır. Ürünler, üyelik, sepet, ödeme ve yönetim paneli sonraki aşamalardır.
+Next.js App Router, TypeScript ve React ile Türkçe/İngilizce kurumsal site ve web mağazası. Kurumsal içerik, isteğe bağlı 3D mağaza, ürün detayları, müşteri hesabı, sepet, adresler, sandbox siparişleri ve yönetim paneli bulunur. Web müşteri ve veritabanı mobil uygulamadan ayrıdır.
+
+**Yayın durumu: önizleme.** Gerçek satış/ödeme açılmış değildir. `WEB_VISIBILITY=public` yalnız onaylı public sayfaların arama motoru görünürlüğünü açar; ödeme, Kerzz/POS, SMS veya e-posta sağlayıcısını etkinleştirmez. Onaylı hukuki metinler, domain/sunucu ayarları ve dış entegrasyon kabul testleri tamamlanmadan bu ayarı canlı ticaret onayı saymayın.
 
 ## Çalıştırma
 
@@ -13,20 +15,24 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Uygulama yalnız `127.0.0.1:4000` üzerinde dinler. Backend, `http://127.0.0.1:3000` adresinde çalışmalı ve web modülü etkin olmalıdır. Backend kurulumu için [ana depo README](../README.md) ve [proje planına](../docs/WEB_PLATFORM_PLAN.md) bakın. `BACKEND_URL` yalnız sunucuda okunur; `NEXT_PUBLIC_` öneki kullanılmaz. Next.js veritabanına doğrudan bağlanmaz.
+Uygulama yalnız `127.0.0.1:4000` üzerinde dinler. Backend, `http://127.0.0.1:3000` adresinde çalışmalı ve web modülü etkin olmalıdır. Backend dizininde `npm run dev:web` yalnız `/web` API'sini başlatır; mobil/POS endpoint ve görevleri başlamaz. Web sipariş bakım görevi varsayılan kapalıdır; gerçek mail için ayrıca açık sağlayıcı yapılandırması gerekir. Backend kurulumu için [ana depo README](../README.md) ve [yayın runbook'una](../docs/WEB_PRODUCTION_RUNBOOK.md) bakın. `BACKEND_URL` yalnız sunucuda okunur; `NEXT_PUBLIC_` öneki kullanılmaz. Next.js veritabanına doğrudan bağlanmaz. Tarayıcıda `WEB_ORIGIN` ile aynı adresi kullanın; `localhost` ve `127.0.0.1` CSRF açısından farklı originlerdir.
 
 | Adres | İşlev |
 | --- | --- |
 | `/` | Türkçe ana sayfa |
-| `/alisveris` | Türkçe mağaza başlangıcı |
+| `/alisveris` | Ürün kataloğu |
+| `/urun/[slug]` | Paylaşılabilir ürün detayı |
+| `/sanal-magaza` | İsteğe bağlı 3D mağaza |
+| `/hesabim`, `/sepet` | Web müşteri hesabı ve sepet |
+| `/yonetim` | Web mağazası yönetimi |
 | `/en` | İngilizce ana sayfa |
-| `/en/alisveris` | İngilizce mağaza başlangıcı |
+| `/en/alisveris` | İngilizce katalog; public sayfaların `/en` karşılıkları bulunur |
 | `/api/health` | Backend `/web/health` kontrolü; hazırsa 200, aksi halde 503 |
-| `/robots.txt` | Tüm taramaları engelleyen yerel önizleme kuralı |
+| `/robots.txt`, `/sitemap.xml` | Önizlemede tüm taramalar kapalı, sitemap boş; onaylı public modda açık sayfalar ve yayımlı ürünler |
 
-Sayfalar backend’den yalnız sabit `/web/config` yolunu okur. Backend kapalıysa marka başlangıç sayfaları görüntülenmeye devam eder; `/api/health` sağlıklı yanıt vermez. Sağlık kontrolü backend yanıtını üç saniye içinde bekler; bağlantı sorunu, hata HTTP durumu veya beklenmeyen yanıt 503 üretir. Her iki backend isteği de önbelleksizdir. İstemcinin gönderdiği bir URL veya hedef yol üzerinden proxy yapılmaz.
+Public veri yalnız sabit backend yollarından okunur; oturumlu işlemler ayrı ve sınırlı proxy'lerden geçer. Yazmalar aynı-origin JSON kontrolüne, gövde sınırına ve ilgili oturuma tabidir. Backend kapalıysa kurumsal içerik kalır; ana sayfanın katalog bölümü ayrı Suspense sınırında yüklenir ve hata durumu gösterir. `/api/health` hazır olmayan backend/DB için503 üretir. İstemcinin seçtiği URL'ye serbest proxy yapılmaz.
 
-Dil geçişi aynı sayfanın karşılığına gider; HTML `lang` değeri ve metadata yerelleştirilir. Her sayfa robots metadata ve `X-Robots-Tag` ile indekslemeye kapalıdır. Yayına geçişte bu kurallar kontrollü biçimde değiştirilecektir. Uzak font, eski kurumsal site görseli veya üçüncü taraf takip kodu yoktur.
+Dil geçişi aynı sayfanın karşılığına gider; HTML `lang`, canonical, hreflang ve paylaşım metadata'sı yerelleştirilir. `WEB_VISIBILITY` varsayılan `preview` değerinde tüm sayfalar indekslemeye kapalıdır. Public mod gerçek HTTPS `WEB_ORIGIN` ister ve yeniden build gerektirir. Hesap, sepet, API, panel ve henüz onaylanmamış hukuki sayfalar kapalı kalır. Frame koruması enforce edilir; geniş CSP önce report-only olarak gözlemlenir. Uzak font veya üçüncü taraf takip kodu eklenmemiştir.
 
 ## Kontroller
 
@@ -34,6 +40,8 @@ Dil geçişi aynı sayfanın karşılığına gider; HTML `lang` değeri ve meta
 npm run typecheck
 npm run build
 npm start
+# Yerel sunucu çalışırken; sınır testleri başarılı sipariş/başvuru göndermez:
+node --experimental-strip-types --test scripts/*.test.mjs
 ```
 
-`npm start` da yalnız `127.0.0.1:4000` adresinde çalışır. `.env.local`, `.next` ve `node_modules` Git’e eklenmez. Bağımlılıklar `package-lock.json` ile sabitlenir. Bu proje için alan adı, bulut kayıt veya yayın işlemi yapılmadı.
+`npm start` da yalnız `127.0.0.1:4000` adresinde çalışır. Çalışan dev sunucusuyla aynı `.next` dizininde build/typegen çalıştırmayın; dev'i durdurun veya ayrı release dizini kullanın. `.env.local`, `.next` ve `node_modules` Git'e eklenmez. CI tanımı [.github/workflows/web-checks.yml](../.github/workflows/web-checks.yml) içindedir. Kalıcı görseller, DB/medya yedekleri, test geri yükleme ve tek VPS servis şablonları [runbook'ta](../docs/WEB_PRODUCTION_RUNBOOK.md) açıklanır. Bu değişiklikler tek başına domain kaydı, bulut deployment veya canlı satış başlatmaz.

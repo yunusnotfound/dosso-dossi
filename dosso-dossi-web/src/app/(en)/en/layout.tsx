@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import "../../globals.css";
 
-export { previewMetadata as metadata } from "@/lib/site";
+import { siteMetadata } from "@/lib/site-seo";
+export const metadata = siteMetadata("en");
 
 export default function EnglishLayout({ children }: { children: ReactNode }) {
   return (

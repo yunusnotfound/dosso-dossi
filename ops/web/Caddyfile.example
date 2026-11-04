@@ -1,0 +1,9 @@
+# Set DOSSO_DOMAIN to the one approved domain. WEB_ORIGIN must use its HTTPS origin.
+{$DOSSO_DOMAIN} {
+    encode zstd gzip
+    header Strict-Transport-Security "max-age=15552000"
+    header -Server
+    reverse_proxy 127.0.0.1:4000
+    # The API is private. Do not proxy /web/* or expose port 3000 publicly.
+    # A reviewed payment callback ingress is a separate release step; not enabled here.
+}

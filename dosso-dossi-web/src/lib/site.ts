@@ -15,3 +15,7 @@ export function pagePath(locale: Locale, page: PageKind): string {
   const prefix = locale === "en" ? "/en" : "";
   return page === "shop" ? `${prefix}/alisveris` : prefix || "/";
 }
+
+export function virtualStorePath(locale: Locale): string {
+  return `${locale === "en" ? "/en" : ""}/sanal-magaza`;
+}

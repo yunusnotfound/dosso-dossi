@@ -2,21 +2,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { accountPath } from "@/lib/customer-account";
-import { cartPath, commerceError } from "@/lib/web-commerce";
+import { cartPath } from "@/lib/web-commerce";
 import { useCustomerCart } from "@/components/commerce/use-customer-cart";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { productSelectionPath } from "@/lib/product-helpers";
+import { ShopDiscovery } from "./shop-discovery";
+import { ProductComparison } from "./product-comparison";
+import { useEffect, useMemo, useState } from "react";
 import {
   formatPrice,
   catalogItems,
   variantLabel,
   minimumPriceMinor,
   type CatalogCategory,
-  type CatalogItem,
   type CatalogResult,
 } from "../../lib/catalog";
 import type { Locale } from "../../lib/site";
+import { ShopHero } from "./shop-showcase";
 import styles from "./shop-content.module.css";
 
 const copy = {
@@ -27,7 +29,7 @@ const copy = {
     thermosEyebrow: "HEP YANINIZDA",
     intro: "Kahveniz, tarzınız, ritüeliniz.\nDosso Dossi her anınızda sizinle.",
     explore: "KOLEKSİYONU KEŞFET",
-    categories: "KENDİ RİTÜELİNİ BUL",
+    categories: "SENİN GÜNÜN. SENİN SEÇİMİN.",
     coffee: "Kahveler",
     coffeeNote: "Bir fincandan çok daha fazlası.",
     thermos: "Termoslar",
@@ -80,7 +82,7 @@ const copy = {
     capacity: "Hacim",
     productDetail: "ÜRÜN DETAYI",
     editorialLabel: "HER GÜN, YENİ BİR RİTÜEL",
-    editorialTitle: "İyi bir kahve.\nSize ait bir an.",
+    editorialTitle: "İYİ BİR KAHVE.\nSANA AİT BİR AN.",
     editorialText:
       "Güne başlarken, kısa bir mola verirken ya da sevdiklerinizle aynı masada. Dosso Dossi ile kahvenin etrafında buluşun.",
     editorialLink: "Kahveleri keşfet",
@@ -95,7 +97,7 @@ const copy = {
     intro:
       "Your coffee, your style, your ritual.\nTake Dosso Dossi along for every moment.",
     explore: "EXPLORE THE COLLECTION",
-    categories: "FIND YOUR OWN RITUAL",
+    categories: "YOUR DAY. YOUR WAY.",
     coffee: "Coffee",
     coffeeNote: "More than just a cup.",
     thermos: "Thermoses",
@@ -149,7 +151,7 @@ const copy = {
     capacity: "Capacity",
     productDetail: "PRODUCT DETAILS",
     editorialLabel: "EVERY DAY, A NEW RITUAL",
-    editorialTitle: "Good coffee.\nA moment of your own.",
+    editorialTitle: "GOOD COFFEE.\nYOUR OWN MOMENT.",
     editorialText:
       "As the day begins, on a short break, or around a table with your favourite people. Come together over Dosso Dossi coffee.",
     editorialLink: "Explore coffee",
@@ -225,6 +227,8 @@ export function ShopContent({
   catalog: CatalogResult;
 }) {
   const t = copy[locale];
+  const router = useRouter();
+  const [comparison, setComparison] = useState<string[]>([]);
   const products = useMemo(
     () => catalogItems(catalog.products),
     [catalog.products],
@@ -241,98 +245,27 @@ export function ShopContent({
   );
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [sort, setSort] = useState("recommended");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected =
-    products.find((product) => product.id === selectedId) ?? null;
-  const variants = products.filter(
-    (product) => product.product.id === selected?.product.id,
-  );
-  const [grindId, setGrindId] = useState<string | null>(null);
-  const grinds =
-    selected?.product.grindOptions.filter((grind) => grind.active) ?? [];
-  const selectedGrind =
-    grinds.find((grind) => grind.id === grindId) ?? grinds[0] ?? null;
-  const [galleryId, setGalleryId] = useState<string | null>(null);
-  const galleryImage = selected?.product.images.find(
-    (image) => image.id === galleryId,
-  );
-  const [quantity, setQuantity] = useState(1);
-  const {
-    cart,
-    status: cartStatus,
-    busy: cartBusy,
-    error: cartError,
-    refresh: refreshCart,
-    mutate,
-  } = useCustomerCart(false);
-  const [announcement, setAnnouncement] = useState("");
-  const detailRef = useRef<HTMLDialogElement>(null);
+  const customerCart = useCustomerCart(false);
+  const { cart, status: cartStatus } = customerCart;
   const cartCount = cart?.itemCount ?? 0;
-  const skuQuantity = selected
-    ? (cart?.lines ?? [])
-        .filter((line) => line.variantId === selected.id)
-        .reduce((sum, line) => sum + line.quantity, 0)
-    : 0;
-  const liveStock = selected?.variant.stock ?? 0;
-  const sameOptionQuantity =
-    cart?.lines.find(
-      (line) =>
-        line.variantId === selected?.id &&
-        line.grindId === (selectedGrind?.id ?? null),
-    )?.quantity ?? 0;
-  const remaining = Math.max(
-    0,
-    Math.min(liveStock - skuQuantity, 99 - sameOptionQuantity),
-  );
-  const selectedQuantity = Math.min(
-    quantity,
-    Math.max(1, Math.min(99, remaining)),
-  );
-  const selectedPrice = selected
-    ? selected.priceMinor + (selectedGrind?.priceDeltaMinor ?? 0)
-    : 0;
-
   useEffect(() => {
     const query = new URLSearchParams(queryString);
     const queryCategory = query.get("category");
-    setCategory(
-      queryCategory === "coffee" || queryCategory === "thermos"
-        ? queryCategory
-        : "all",
-    );
+    setCategory(queryCategory === "coffee" || queryCategory === "thermos" ? queryCategory : "all");
     setSearch(query.get("q") ?? "");
+    const sort = query.get("sort");
+    setSort(["price-asc", "price-desc", "name"].includes(sort ?? "") ? sort! : "recommended");
   }, [queryString]);
-
   useEffect(() => {
-    const candidates = products.filter(
-      (item) =>
-        item.product.id === productQuery ||
-        item.product.slug === productQuery ||
-        item.id === productQuery,
-    );
-    setQuantity(1);
-    setGrindId(null);
-    setGalleryId(null);
-    setSelectedId(
-      (candidates.find((item) => item.id === variantQuery) ?? candidates[0])
-        ?.id ?? null,
-    );
-  }, [productQuery, variantQuery, products]);
-
-  useEffect(() => {
-    const dialog = detailRef.current;
-    if (selected && dialog && !dialog.open) dialog.showModal();
-    if (!selected && dialog?.open) dialog.close();
-  }, [selected]);
-
-  useEffect(() => {
-    if (!selected) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [selected]);
+    if (!productQuery) return;
+    const candidates = products.filter(item => item.product.id === productQuery || item.product.slug === productQuery || item.id === productQuery);
+    const item = candidates.find(item => item.id === variantQuery) ?? candidates[0];
+    if (item) {
+      const query = new URLSearchParams(queryString);
+      const amount = Number(query.get("quantity") ?? 1);
+      router.replace(productSelectionPath(locale, item, query.get("grind"), Number.isSafeInteger(amount) && amount > 0 ? amount : 1));
+    }
+  }, [products, productQuery, variantQuery, queryString, locale, router]);
 
   const filtered = useMemo(() => {
     const term = search.toLocaleLowerCase(locale).trim();
@@ -378,87 +311,18 @@ export function ShopContent({
         : "smooth",
     });
   }
-  function openProduct(product: CatalogItem) {
-    setQuantity(1);
-    setGrindId(null);
-    setGalleryId(null);
-    setSelectedId(product.id);
-  }
-  function chooseVariant(product: CatalogItem) {
-    setQuantity(1);
-    setGalleryId(null);
-    setSelectedId(product.id);
-  }
-  function closeProduct() {
-    setSelectedId(null);
-    const url = new URL(window.location.href);
-    url.searchParams.delete("product");
-    url.searchParams.delete("variant");
-    window.history.replaceState(
-      null,
-      "",
-      `${url.pathname}${url.search}${url.hash}`,
-    );
-  }
-  async function addToCart(product: CatalogItem) {
-    if (!remaining || cartBusy) return;
-    const added = await mutate("cart/items", "POST", {
-      variantId: product.id,
-      grindId: selectedGrind?.id ?? null,
-      quantity: selectedQuantity,
-    });
-    if (added) {
-      setAnnouncement(
-        `${product.name[locale]} · ${variantLabel(product, locale)} ${t.added}`,
-      );
-      closeProduct();
-    }
-  }
 
   return (
     <div className={styles.shop}>
+      <ShopHero locale={locale} onExplore={() => chooseCategory("all")} />
       <div className={styles.container}>
-        <section className={styles.hero} aria-labelledby="shop-heading">
-          <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>{t.eyebrow}</p>
-            <h1 id="shop-heading">{t.hero}</h1>
-            <p className={styles.heroIntro}>{t.intro}</p>
-            <a
-              className={styles.heroLink}
-              href="#katalog"
-              onClick={() => updateFilters("thermos", "")}
-            >
-              {t.explore}
-              <Arrow />
-            </a>
-          </div>
-          <div className={styles.heroVisual} aria-hidden="true">
-            <span className={styles.heroHalo} />
-            {["orange", "cream", "pink", "green"].map((color, index) => (
-              <div
-                key={color}
-                className={`${styles.heroBottle} ${styles[`bottle${index}`]}`}
-              >
-                <Image
-                  src={`/images/products/thermos-${color}.webp`}
-                  alt=""
-                  fill
-                  sizes="(max-width: 700px) 24vw, 15vw"
-                  loading="eager"
-                />
-              </div>
-            ))}
-            <span className={styles.heroCaption}>{t.heroCaption}</span>
-          </div>
-        </section>
-
         <section
           className={styles.categorySection}
           aria-labelledby="categories-title"
         >
           <div className={styles.sectionHeading}>
             <h2 id="categories-title">{t.categories}</h2>
-            <span>01 / 02</span>
+            <span>{locale === "tr" ? "KÜÇÜK RİTÜELLER, BÜYÜK KEYİFLER." : "LITTLE RITUALS. GREAT MOMENTS."}</span>
           </div>
           <div className={styles.categories}>
             <button
@@ -556,7 +420,12 @@ export function ShopContent({
               </label>
               <select
                 value={sort}
-                onChange={(event) => setSort(event.target.value)}
+                onChange={(event) => {
+                    setSort(event.target.value);
+                    const url = new URL(window.location.href);
+                    if (event.target.value === "recommended") url.searchParams.delete("sort"); else url.searchParams.set("sort", event.target.value);
+                    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+                  }}
                 aria-label={t.sort}
               >
                 <option value="recommended">{t.recommended}</option>
@@ -589,10 +458,10 @@ export function ShopContent({
           ) : filtered.length ? (
             <div className={styles.productGrid}>
               {filtered.map((product) => (
-                <article className={styles.productCard} key={product.id}>
-                  <button
+                <article className={`${styles.productCard} ${product.category === "coffee" ? styles.coffeeCard : styles.thermosCard}`} key={product.id}>
+                  <Link
                     className={styles.productPhoto}
-                    onClick={() => openProduct(product)}
+                    href={productSelectionPath(locale, product)}
                     aria-label={`${t.view}: ${product.name[locale]} ${product.color?.[locale] ?? ""} ${product.size}`}
                   >
                     <span className={styles.productTag}>
@@ -618,13 +487,11 @@ export function ShopContent({
                     <span className={styles.photoArrow}>
                       <Arrow />
                     </span>
-                  </button>
+                  </Link>
                   <div className={styles.productInfo}>
                     <p>{variantLabel(product, locale)}</p>
                     <h3>
-                      <button onClick={() => openProduct(product)}>
-                        {product.name[locale]}
-                      </button>
+                      <Link href={productSelectionPath(locale, product)}>{product.name[locale]}</Link>
                     </h3>
                     <div className={styles.priceRow}>
                       <strong>
@@ -642,13 +509,11 @@ export function ShopContent({
                     {product.variant.stock === 0 && (
                       <p className={styles.stockNote}>{t.soldOut}</p>
                     )}
-                    <button
-                      className={styles.productAction}
-                      onClick={() => openProduct(product)}
-                    >
+                    <Link className={styles.productAction} href={productSelectionPath(locale, product)}>
                       {t.view}
                       <span>+</span>
-                    </button>
+                    </Link>
+                    <label className={styles.compareChoice}><input type="checkbox" checked={comparison.includes(product.id)} disabled={!comparison.includes(product.id) && comparison.length >= 3} onChange={event => setComparison(current => event.target.checked ? [...current, product.id].slice(0,3) : current.filter(id => id !== product.id))} />{locale === "tr" ? "Karşılaştır" : "Compare"}</label>
                   </div>
                 </article>
               ))}
@@ -670,7 +535,10 @@ export function ShopContent({
             </div>
           )}
         </section>
+        <ProductComparison locale={locale} items={products.filter(item => comparison.includes(item.id))} onRemove={id => setComparison(current => current.filter(item => item !== id))} />
       </div>
+
+      <ShopDiscovery locale={locale} products={products} customerCart={customerCart} />
 
       <section
         className={styles.editorial}
@@ -678,12 +546,14 @@ export function ShopContent({
       >
         <div className={`${styles.container} ${styles.editorialInner}`}>
           <div className={styles.editorialImage}>
+            <span className={styles.editorialWord} aria-hidden="true">COFFEE</span>
             <Image
-              src="/images/editorial/coffee-beans.webp"
+              src="/images/products/turkish-coffee-250.webp"
               alt=""
               fill
               sizes="(max-width: 700px) 45vw, 450px"
             />
+            <span className={styles.editorialImageCaption}>THE ART OF A GOOD MOMENT.</span>
           </div>
           <div className={styles.editorialCopy}>
             <p className={styles.eyebrow}>{t.editorialLabel}</p>
@@ -716,248 +586,6 @@ export function ShopContent({
         </Link>
       </section>
 
-      <div className={styles.announcement} role="status" aria-live="polite">
-        {announcement && (
-          <>
-            <Bag />
-            <span>
-              {announcement}{" "}
-              <Link href={cartPath(locale)} className={styles.announcementLink}>
-                {t.viewCart} →
-              </Link>
-            </span>
-            <button aria-label={t.close} onClick={() => setAnnouncement("")}>
-              ×
-            </button>
-          </>
-        )}
-      </div>
-
-      <dialog
-        ref={detailRef}
-        className={styles.productDialog}
-        aria-labelledby="product-dialog-title"
-        onClose={closeProduct}
-        onClick={(event) => {
-          if (event.target === event.currentTarget) closeProduct();
-        }}
-      >
-        {selected && (
-          <>
-            <button
-              className={styles.closeDialog}
-              onClick={closeProduct}
-              aria-label={t.close}
-            >
-              ×
-            </button>
-            <div className={styles.dialogLayout}>
-              <div className={styles.dialogGallery}>
-                <div className={styles.dialogImage}>
-                  {galleryImage?.url || selected.image ? (
-                    <Image
-                      src={galleryImage?.url ?? selected.image!}
-                      alt={
-                        galleryImage
-                          ? (locale === "tr"
-                              ? galleryImage.altTr
-                              : galleryImage.altEn) || selected.name[locale]
-                          : selected.imageAlt[locale]
-                      }
-                      fill
-                      sizes="(max-width: 700px) 70vw, 380px"
-                    />
-                  ) : (
-                    <span className={styles.noImage}>{t.noImage}</span>
-                  )}
-                </div>
-                {selected.product.images.length > 1 && (
-                  <div
-                    className={styles.galleryThumbs}
-                    role="group"
-                    aria-label={t.gallery}
-                  >
-                    {selected.product.images.map((image, index) => (
-                      <button
-                        key={image.id}
-                        onClick={() => setGalleryId(image.id)}
-                        aria-label={`${t.gallery} ${index + 1}`}
-                        aria-pressed={
-                          galleryImage
-                            ? galleryImage.id === image.id
-                            : selected.image === image.url
-                        }
-                      >
-                        <Image src={image.url} alt="" fill sizes="64px" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className={styles.dialogInfo}>
-                <p className={styles.eyebrow}>{t.productDetail}</p>
-                <h2 id="product-dialog-title">{selected.name[locale]}</h2>
-                <p className={styles.dialogPrice}>
-                  {formatPrice(selectedPrice, locale)}
-                </p>
-                <p className={styles.description}>
-                  {selected.description[locale]}
-                </p>
-                {variants.some((item) => item.color?.hex) && (
-                  <fieldset className={styles.options}>
-                    <legend>
-                      {t.color}: <span>{selected.color?.[locale]}</span>
-                    </legend>
-                    <div className={styles.swatches}>
-                      {variants
-                        .filter(
-                          (item, index, all) =>
-                            item.color &&
-                            all.findIndex(
-                              (other) =>
-                                other.color?.tr === item.color?.tr &&
-                                other.color?.en === item.color?.en,
-                            ) === index,
-                        )
-                        .map((item) => (
-                          <button
-                            key={item.id}
-                            aria-label={item.color?.[locale]}
-                            aria-pressed={
-                              item.color?.tr === selected.color?.tr &&
-                              item.color?.en === selected.color?.en
-                            }
-                            style={{
-                              backgroundColor: item.color?.hex ?? undefined,
-                            }}
-                            onClick={() =>
-                              chooseVariant(
-                                variants.find(
-                                  (candidate) =>
-                                    candidate.color?.tr === item.color?.tr &&
-                                    candidate.color?.en === item.color?.en &&
-                                    candidate.size === selected.size,
-                                ) ?? item,
-                              )
-                            }
-                          />
-                        ))}
-                    </div>
-                  </fieldset>
-                )}
-                <label className={styles.grindLabel}>
-                  {selected.category === "coffee" ? t.weight : t.variant}
-                  <select
-                    value={selected.id}
-                    onChange={(event) => {
-                      const item = variants.find(
-                        (item) => item.id === event.target.value,
-                      );
-                      if (item) chooseVariant(item);
-                    }}
-                  >
-                    {variants.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {variantLabel(item, locale)}
-                        {item.variant.stock === 0 ? ` — ${t.soldOut}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {selected.category === "coffee" && grinds.length > 0 && (
-                  <label className={styles.grindLabel}>
-                    {t.grind}
-                    <select
-                      value={selectedGrind?.id ?? ""}
-                      onChange={(event) => setGrindId(event.target.value)}
-                    >
-                      {grinds.map((grind) => (
-                        <option key={grind.id} value={grind.id}>
-                          {locale === "tr" ? grind.nameTr : grind.nameEn}
-                          {grind.priceDeltaMinor
-                            ? ` (+${formatPrice(grind.priceDeltaMinor, locale)})`
-                            : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-                <p className={styles.stockNote} aria-live="polite">
-                  {liveStock === 0 ? t.soldOut : `${t.stock}: ${liveStock}`}
-                  {liveStock > 0 && remaining === 0 ? ` · ${t.stockLimit}` : ""}
-                </p>
-                <div className={styles.addRow}>
-                  <div className={styles.quantity}>
-                    <button
-                      onClick={() =>
-                        setQuantity(Math.max(1, selectedQuantity - 1))
-                      }
-                      disabled={cartBusy || selectedQuantity <= 1 || !remaining}
-                      aria-label={t.minus}
-                    >
-                      −
-                    </button>
-                    <span aria-label={t.quantity}>{selectedQuantity}</span>
-                    <button
-                      onClick={() =>
-                        setQuantity((current) =>
-                          Math.min(99, remaining, current + 1),
-                        )
-                      }
-                      disabled={
-                        cartBusy || selectedQuantity >= Math.min(99, remaining)
-                      }
-                      aria-label={t.plus}
-                    >
-                      +
-                    </button>
-                  </div>
-                  {cartStatus === "guest" && remaining > 0 ? (
-                    <Link
-                      className={styles.addButton}
-                      href={accountPath(locale)}
-                    >
-                      {t.login}
-                      <Bag />
-                    </Link>
-                  ) : (
-                    <button
-                      className={styles.addButton}
-                      onClick={() =>
-                        cartStatus === "error"
-                          ? void refreshCart()
-                          : void addToCart(selected)
-                      }
-                      disabled={
-                        cartBusy ||
-                        cartStatus === "loading" ||
-                        (!remaining && cartStatus !== "error")
-                      }
-                    >
-                      {cartBusy
-                        ? t.updating
-                        : cartStatus === "loading"
-                          ? t.loading
-                          : cartStatus === "error"
-                            ? t.retry
-                            : liveStock === 0
-                              ? t.soldOut
-                              : t.add}
-                      <Bag />
-                    </button>
-                  )}
-                </div>
-                {Boolean(cartError) && (
-                  <p className={styles.cartError} role="alert">
-                    {commerceError(cartError, locale)}
-                  </p>
-                )}
-                <p className={styles.dialogPreview}>{t.preview}</p>
-              </div>
-            </div>
-          </>
-        )}
-      </dialog>
     </div>
   );
 }

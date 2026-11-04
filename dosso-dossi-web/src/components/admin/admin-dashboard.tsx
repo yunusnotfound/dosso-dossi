@@ -21,6 +21,7 @@ import {
   type ProductStatus,
 } from "@/lib/admin-catalog";
 import { ProductEditor } from "./product-editor";
+import { InquiriesManager } from "./inquiries-manager";
 import { OrdersManager } from "./orders-manager";
 import { ShippingEditor } from "./shipping-editor";
 import type { ShippingEditorState } from "@/lib/admin-shipping";
@@ -46,7 +47,7 @@ export function AdminDashboard() {
   const [editorBusy, setEditorBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
-  const [section, setSection] = useState<"products" | "shipping" | "orders">(
+  const [section, setSection] = useState<"products" | "shipping" | "orders" | "inquiries">(
     "products",
   );
   const [shippingState, setShippingState] =
@@ -172,6 +173,10 @@ export function AdminDashboard() {
     setSection("orders");
     window.scrollTo({ top: 0, behavior: "instant" });
   }
+  function openInquiries() {
+    if (section === "inquiries" || !canLeave()) return;
+    setEditor(null); setShippingState(null); setDirty(false); setNotice(""); setSection("inquiries");
+  }
   async function logout() {
     if (!canLeave()) return;
     setLoggingOut(true);
@@ -235,6 +240,7 @@ export function AdminDashboard() {
       />
     );
   const showShipping = section === "shipping" && admin.role === "ADMIN";
+  const showInquiries = section === "inquiries" && admin.role === "ADMIN";
   const showOrders = section === "orders" && admin.role === "ADMIN";
 
   return (
@@ -252,7 +258,7 @@ export function AdminDashboard() {
         <div className={styles.workspaceLabel}>YÖNETİM PANELİ</div>
         <button
           className={
-            showShipping || showOrders ? styles.navInactive : styles.navActive
+            showShipping || showOrders || showInquiries ? styles.navInactive : styles.navActive
           }
           onClick={closeEditor}
           disabled={editorBusy}
@@ -278,6 +284,7 @@ export function AdminDashboard() {
             <span aria-hidden="true">▱</span> Kargo ayarları
           </button>
         )}
+        {admin.role === "ADMIN" && <button className={showInquiries ? styles.navActive : styles.navInactive} onClick={openInquiries} disabled={editorBusy}><span aria-hidden="true">↗</span> Franchise başvuruları</button>}
         <a
           className={styles.storeLink}
           href="/alisveris"
@@ -307,12 +314,12 @@ export function AdminDashboard() {
         <header className={styles.topbar}>
           <span>
             Web mağazası <span aria-hidden="true">/</span>{" "}
-            {showShipping
+            {showInquiries ? "Franchise başvuruları" : showShipping
               ? "Kargo ayarları"
               : showOrders
                 ? "Siparişler"
                 : "Ürünler"}
-            {editor && !showShipping && !showOrders ? (
+            {editor && !showShipping && !showOrders && !showInquiries ? (
               <>
                 <span aria-hidden="true">/</span>{" "}
                 {editor.original ? "Düzenle" : "Yeni ürün"}
@@ -329,7 +336,7 @@ export function AdminDashboard() {
             </button>
           </div>
         )}
-        {showOrders ? (
+        {showInquiries ? <InquiriesManager admin={admin} onExpired={expired} onBusy={setEditorBusy} onDirty={setDirty} /> : showOrders ? (
           <OrdersManager
             admin={admin}
             onExpired={expired}

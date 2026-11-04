@@ -84,6 +84,9 @@ export function isTrustedOrigin(origin: string | null): boolean {
 }
 
 function allowedRoute(method: string, path: string[]): boolean {
+  if (path.length === 1 && path[0] === "franchise-inquiries") return method === "GET";
+  if (path.length === 2 && path[0] === "franchise-inquiries" && ID.test(path[1])) return method === "PATCH";
+  if (path.length === 3 && path[0] === "orders" && ID.test(path[1]) && path[2] === "return") return method === "PATCH";
   if (path.length === 1 && path[0] === "orders") return method === "GET";
   if (path.length === 2 && path[0] === "orders" && ID.test(path[1]))
     return ["GET", "PATCH"].includes(method);
@@ -199,6 +202,15 @@ export async function proxyWebAdmin(
       return error(400, "INVALID_QUERY", "Sipariş filtreleri geçerli değil.");
     }
   }
+  if (method === "GET" && path.length === 1 && path[0] === "franchise-inquiries") {
+    const params = new URLSearchParams();
+    for (const [key, value] of request.nextUrl.searchParams) {
+      if (params.has(key) || !(key === "page" ? /^[1-9]\d{0,5}$/.test(value) && Number(value) <= 100000 : key === "status" && ["NEW", "IN_REVIEW", "CONTACTED", "CLOSED"].includes(value)))
+        return error(400, "INVALID_QUERY", "Başvuru filtreleri geçerli değil.");
+      params.set(key, value);
+    }
+    query = params.size ? `?${params}` : "";
+  }
   let body: string | undefined;
   if (mutation) {
     try {
@@ -206,7 +218,7 @@ export async function proxyWebAdmin(
         request,
         path[0] === "media"
           ? 7_100_000
-          : ["shipping", "orders"].includes(path[0])
+          : ["shipping", "orders", "franchise-inquiries"].includes(path[0])
             ? 8_192
             : 1_000_000,
       );

@@ -7,4 +7,4 @@ type Context = { params: Promise<{ path: string[] }> };
 async function handle(request: NextRequest, { params }: Context) {
   return proxyWebCustomer(request, (await params).path);
 }
-export { handle as GET, handle as POST };
+export { handle as GET, handle as POST, handle as PATCH };

@@ -1,0 +1,102 @@
+.hero, .citrusSection {
+  --showcase-orange: #ea580c;
+  --showcase-cream: #faf6ef;
+  --showcase-ink: #171714;
+  --showcase-muted: #625f58;
+  --showcase-line: #dcd7ce;
+  --showcase-ease: cubic-bezier(.2,.7,.2,1);
+  --scene-shift: 0px;
+  --scene-turn: 0deg;
+  --pointer-x: 0px;
+  --pointer-y: 0px;
+  position: relative;
+  background: var(--showcase-cream);
+  color: var(--showcase-ink);
+  overflow: clip;
+}
+.heroInner { max-width: 1440px; margin: 0 auto; padding: 0 64px; min-height: 610px; display: grid; grid-template-columns: 1fr 1.1fr; align-items: center; }
+.heroCopy { position: relative; z-index: 3; padding: 64px 0 54px; }
+.eyebrow { display: flex; gap: 10px; align-items: center; margin: 0 0 26px; font-size: 10px; line-height: 1.6; letter-spacing: .12em; font-weight: 700; }
+.eyebrow > span { width: 7px; height: 7px; border-radius: 50%; background: var(--showcase-orange); flex-shrink: 0; }
+.hero h1, .citrusCopy h2 { font-family: var(--font-heading), "Arial Narrow", sans-serif; font-weight: 800; font-size: clamp(76px, 7.5vw, 110px); line-height: .86; letter-spacing: -.025em; margin: 0; }
+.hero h1 em, .citrusCopy h2 em { font-style: normal; color: var(--showcase-orange); }
+.description { max-width: 325px; margin: 28px 0; color: var(--showcase-muted); font-size: 14px; line-height: 1.8; }
+.primaryAction, .menuAction { display: inline-flex; align-items: center; justify-content: space-between; gap: 30px; padding: 18px 22px; border: 0; background: var(--showcase-ink); color: var(--showcase-cream); font-size: 10px !important; font-weight: 700 !important; letter-spacing: .08em; transition: background .25s, transform .25s; }
+.primaryAction:hover, .menuAction:hover { background: var(--showcase-orange); transform: translateY(-2px); }
+.primaryAction svg, .menuAction svg { transition: transform .3s; }
+.primaryAction:hover svg, .menuAction:hover svg { transform: translateX(4px); }
+.quietAction { display: flex; align-items: center; gap: 14px; width: fit-content; margin-top: 20px; font-size: 11px; color: var(--showcase-muted); }
+.quietAction span { color: var(--showcase-orange); font-size: 18px; }
+.heroStage { position: relative; height: 570px; min-width: 0; isolation: isolate; }
+.thermosComposition { position: absolute; inset: -20px -28px 25px -16px; transform: translate3d(calc(var(--pointer-x) * .35), calc(var(--scene-shift) * -.06 + var(--pointer-y) * .3), 0) rotate(calc(var(--scene-turn) * -.08)); transition: transform .7s var(--showcase-ease); }
+.thermosComposition img { object-fit: contain; }
+.stageCaption { position: absolute; right: -14px; top: 35%; writing-mode: vertical-rl; font-size: 8px; font-weight: 600; letter-spacing: .25em; }
+.stageIndex { position: absolute; bottom: 3%; left: 6%; font-size: 8px; font-weight: 600; letter-spacing: .15em; }
+.heroFoot { display: flex; justify-content: space-between; align-items: center; gap: 20px; border-top: 1px solid var(--showcase-line); max-width: 1312px; padding: 18px 0; margin: 0 auto; }
+.heroFoot > span { font-family: var(--font-heading), sans-serif; font-size: 18px; font-weight: 700; }
+.heroFoot p { margin: 0; font-size: 9px; font-weight: 600; letter-spacing: .12em; }
+.heroFoot a { font-size: 24px; line-height: 1; padding: 5px; }
+.citrusSection { background: var(--showcase-orange); padding: 24px 0; scroll-margin-top: 100px; }
+.citrusInner { display: grid; grid-template-columns: 1.1fr 1fr; align-items: center; max-width: 1280px; padding: 0 40px; margin: 0 auto; gap: 70px; }
+.citrusStage { height: 550px; position: relative; isolation: isolate; }
+.citrusWord { position: absolute; z-index: -1; top: 16%; left: -10%; font-family: var(--font-heading), sans-serif; font-size: clamp(160px, 19vw, 255px); line-height: 1; letter-spacing: -.02em; font-weight: 800; color: var(--showcase-cream); opacity: .17; }
+.citrusHalo { position: absolute; width: 78%; aspect-ratio: 1; left: 9%; top: 15%; border: 1px solid #faf6ef50; border-radius: 50%; }
+.drink { position: absolute; z-index: 1; width: 53%; height: 85%; top: 6%; left: 25%; transform: translate3d(calc(var(--pointer-x) * -.5), calc(var(--scene-shift) * .3), 0) rotate(calc(8deg + var(--scene-turn) * -.3)); }
+.drink img { object-fit: contain; filter: drop-shadow(15px 22px 12px #65180033); }
+.drinkLabel { position: absolute; z-index: 4; bottom: 9%; left: 34%; background: var(--showcase-cream); padding: 13px 16px; font-size: 11px; transform: rotate(-5deg); box-shadow: 0 3px 8px #17171410; display: flex; gap: 24px; align-items: center; }
+.drinkLabel i { font-size: 20px; font-style: normal; }
+.citrusCopy { padding: 38px 0; position: relative; z-index: 3; }
+.citrusCopy .eyebrow { margin-bottom: 24px; }
+.citrusCopy .eyebrow > span { background: var(--showcase-cream); }
+.citrusCopy h2 { font-size: clamp(72px, 6.5vw, 92px); }
+.citrusCopy h2 em { color: var(--showcase-cream); }
+.citrusCopy > p:not(.eyebrow) { max-width: 340px; line-height: 1.8; font-size: 14px; margin: 26px 0; }
+.menuAction:hover { background: var(--showcase-cream); color: var(--showcase-ink); }
+.citrusNotes { display: flex; gap: 14px; align-items: center; margin-top: 36px; padding-top: 22px; border-top: 1px solid #17171435; max-width: 365px; font-size: 8px; font-weight: 700; letter-spacing: .1em; }
+.citrusNotes i { width: 4px; height: 4px; background: currentColor; border-radius: 50%; }
+@media (max-width: 1440px) { .heroFoot { margin-inline: 64px; } }
+@media (max-width: 1000px) {
+  .heroInner { padding-inline: 36px; min-height: 550px; }
+  .heroStage { height: 500px; }
+  .hero h1 { font-size: 80px; }
+  .thermosComposition { inset: -8px -18px 20px -12px; }
+  .heroFoot { margin-inline: 36px; }
+  .citrusInner { gap: 30px; padding-inline: 30px; }
+  .citrusStage { height: 460px; }
+  .citrusCopy h2 { font-size: 72px; }
+}
+@media (max-width: 700px) {
+  .heroInner { grid-template-columns: 1fr; padding: 0 24px; }
+  .heroCopy { padding: 38px 0 8px; }
+  .eyebrow { margin-bottom: 22px; font-size: 8px; letter-spacing: .1em; gap: 8px; }
+  .hero h1 { font-size: clamp(67px, 16.8vw, 106px); }
+  .description { margin: 22px 0; font-size: 12px; max-width: 310px; }
+  .primaryAction, .menuAction { padding: 15px 18px; gap: 26px; font-size: 9px !important; }
+  .quietAction { display: inline-flex; margin: 15px 0 0 18px; font-size: 10px; gap: 9px; }
+  .heroStage { height: 370px; width: min(100%, 440px); margin: 0 auto; }
+  .thermosComposition { inset: -8px -18px 16px; }
+  .stageCaption { font-size: 6px; right: -9px; top: 29%; }
+  .stageIndex { font-size: 7px; bottom: 5%; }
+  .heroFoot { margin-inline: 24px; padding: 13px 0; }
+  .heroFoot > span { font-size: 16px; }
+  .heroFoot p { font-size: 7px; max-width: 140px; line-height: 1.6; }
+  .heroFoot a { font-size: 22px; }
+  .citrusSection { padding: 20px 0 32px; }
+  .citrusInner { grid-template-columns: 1fr; padding: 0 24px; gap: 0; }
+  .citrusStage { width: min(100%, 420px); height: 385px; margin: 0 auto; }
+  .citrusWord { font-size: clamp(170px, 48vw, 230px); left: -1%; top: 17%; }
+  .drink { height: 88%; top: 2%; }
+  .drinkLabel { bottom: 6%; padding: 10px 13px; font-size: 10px; }
+  .citrusCopy { padding: 16px 0 10px; }
+  .citrusCopy .eyebrow { margin-bottom: 20px; }
+  .citrusCopy h2 { font-size: clamp(66px, 15.5vw, 92px); }
+  .citrusCopy > p:not(.eyebrow) { margin: 23px 0; font-size: 12px; max-width: 310px; }
+  .citrusNotes { margin-top: 26px; padding-top: 18px; font-size: 7px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thermosComposition, .primaryAction, .menuAction, .primaryAction svg, .menuAction svg { transition: none; }
+  .thermosComposition { transform: none; }
+  .primaryAction:hover, .menuAction:hover { transform: none; }
+}
+.hero .eyebrow { font-size:12px; }.hero .description { font-size:16px; }.hero .primaryAction { font-size:14px !important; min-height:52px; letter-spacing:.025em; }.hero .primaryAction:hover { color:var(--showcase-ink); }.hero .quietAction { font-size:14px; }.heroFoot p { font-size:12px; }
+@media(max-width:700px) { .hero .quietAction { margin:16px 0 0; }.hero .heroCopy { min-width:0; }.hero .heroFoot { flex-wrap:wrap; }.hero .heroFoot p { max-width:190px; } }

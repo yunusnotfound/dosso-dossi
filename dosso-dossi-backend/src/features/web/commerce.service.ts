@@ -158,18 +158,30 @@ async function assertStock(tx: Tx, cartId: string, variantId: string, stock: num
   const other = await tx.webCartItem.aggregate({ where: { cartId, variantId, ...(exceptId ? { id: { not: exceptId } } : {}) }, _sum: { quantity: true } });
   if ((other._sum.quantity ?? 0) + quantity > stock) throw AppError.productUnavailable('Seçilen seçeneklerin toplam adedi mevcut stoğu aşıyor.');
 }
+async function appendSelection(tx: Tx, cartId: string, input: {variantId: string; grindId: string | null; quantity: number}, expectedType?: 'COFFEE' | 'THERMOS') {
+  const { product, variant, grind } = await selection(tx, input.variantId, input.grindId);
+  if (expectedType && product.type !== expectedType) throw invalid('Set için bir kahve ve bir termos seçin.');
+  const existing = await tx.webCartItem.findUnique({ where: { cartId_variantId_grindId: { cartId, variantId: input.variantId, grindId: input.grindId ?? '' } } });
+  const quantity = (existing?.quantity ?? 0) + input.quantity;
+  if (quantity > 99) throw invalid('Bir sepet satırında en fazla 99 adet olabilir.');
+  if (!existing && await tx.webCartItem.count({ where: { cartId } }) >= 100) throw invalid('Sepette en fazla 100 farklı seçenek bulunabilir.');
+  await assertStock(tx, cartId, variant.id, variant.stock, quantity, existing?.id);
+  if (existing) await tx.webCartItem.update({ where: { id: existing.id }, data: { quantity } });
+  else await tx.webCartItem.create({ data: { cartId, productId: product.id, variantId: variant.id, grindId: input.grindId ?? '', quantity,
+    nameTr: product.nameTr, nameEn: product.nameEn, variantLabelTr: variantLabel(variant, 'tr'), variantLabelEn: variantLabel(variant, 'en'), grindNameTr: grind?.nameTr, grindNameEn: grind?.nameEn } });
+}
 export async function addCartItem(database: PrismaClient, customerId: string, input: {version: number; variantId: string; grindId: string | null; quantity: number}) {
   return customerTransaction(database, customerId, async (tx) => {
     const cart = await writableCart(tx, customerId, input.version);
-    const { product, variant, grind } = await selection(tx, input.variantId, input.grindId);
-    const existing = await tx.webCartItem.findUnique({ where: { cartId_variantId_grindId: { cartId: cart.id, variantId: input.variantId, grindId: input.grindId ?? '' } } });
-    const quantity = (existing?.quantity ?? 0) + input.quantity;
-    if (quantity > 99) throw invalid('Bir sepet satırında en fazla 99 adet olabilir.');
-    if (!existing && await tx.webCartItem.count({ where: { cartId: cart.id } }) >= 100) throw invalid('Sepette en fazla 100 farklı seçenek bulunabilir.');
-    await assertStock(tx, cart.id, variant.id, variant.stock, quantity, existing?.id);
-    if (existing) await tx.webCartItem.update({ where: { id: existing.id }, data: { quantity } });
-    else await tx.webCartItem.create({ data: { cartId: cart.id, productId: product.id, variantId: variant.id, grindId: input.grindId ?? '', quantity,
-      nameTr: product.nameTr, nameEn: product.nameEn, variantLabelTr: variantLabel(variant, 'tr'), variantLabelEn: variantLabel(variant, 'en'), grindNameTr: grind?.nameTr, grindNameEn: grind?.nameEn } });
+    await appendSelection(tx, cart.id, input);
+    return cartSnapshot(tx, customerId);
+  });
+}
+export async function addCartSet(database: PrismaClient, customerId: string, input: { version: number; coffeeVariantId: string; coffeeGrindId: string | null; thermosVariantId: string }) {
+  return customerTransaction(database, customerId, async (tx) => {
+    const cart = await writableCart(tx, customerId, input.version);
+    await appendSelection(tx, cart.id, { variantId: input.coffeeVariantId, grindId: input.coffeeGrindId, quantity: 1 }, 'COFFEE');
+    await appendSelection(tx, cart.id, { variantId: input.thermosVariantId, grindId: null, quantity: 1 }, 'THERMOS');
     return cartSnapshot(tx, customerId);
   });
 }

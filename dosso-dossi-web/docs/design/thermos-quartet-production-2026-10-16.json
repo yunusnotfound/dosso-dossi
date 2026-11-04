@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-16",
+  "tool": "built-in image_gen",
+  "asset": "public/images/editorial/thermos-quartet-v1.webp",
+  "original": "/Users/berkaydemir/.codex/generated_images/01a0ce97-96fb-7c73-902a-cb575c71021e/exec-3b438305-24aa-4a93-a0c0-501e71e5a2fb.png",
+  "references": [
+    "public/images/products/thermos-cream.webp",
+    "public/images/products/thermos-orange.webp",
+    "public/images/products/thermos-green.webp",
+    "public/images/products/thermos-pink.webp",
+    "public/images/store3d/product-logo.png"
+  ],
+  "prompt": "Use case: product-mockup / premium editorial product campaign. Create one stunning square website hero artwork, 2048x2048 if available, using the attached real Dosso Dossi travel tumblers as exact product identity references. Images 1-4: cream body with orange lid, all-orange, forest green, blush pink; Image 5: the exact circular Dosso Dossi Coffee logo for faithful label reproduction. Show exactly FOUR thermoses, one of each of these four colorways, all completely visible, all lids and bases within frame. Preserve each real product's tall tapered form, lid construction with rectangular flip tab, thin black lid seam, matte microtextured finish, centered circular brand badge and correct color. No handles, no straws, no metallic bottles, no invented product designs. Re-render the real products with pristine clean silhouettes, studio-grade material detail and crisp correct badges, not the rough cutout edges in the reference files.\nArt direction: striking luxury 3D product campaign called a sculptural quartet. Dynamic balanced composition in depth: orange hero thermos forward near center-right, cream thermos forward left, green thermos higher at rear left, pink thermos higher at rear right, all front logos face camera. Slight elegant opposing tilts and generous space between the four silhouettes; do not hide any logo. Beneath/behind them a single elegant broad curved ribbon of vivid Dosso orange enamel forms an ascending open spiral sculpture, with a low pale cream circular plinth and fine soft contact shadows. The ribbon is a sculptural supporting element, never a flat orange disk and never wrapping across the product labels. Sophisticated architectural studio composition, premium visual tension, tactile products, cinematic depth, beautiful controlled softbox highlights and gentle long shadows, restrained warm studio lighting, no blown out highlights. Whole composition fills 85% of the image but 7% clear margins around every edge. Seamless plain warm off-white/cream background matching hex #faf6ef across the outer edges, no horizon line, no frame, no vignette. Grounded and levitating balance, realistic polished product advertising photograph / meticulous high-end 3D render. Orange is the only accent in the set; preserve the four original product colors. No coffee brown decor. No slogan, no typography outside original product logos, no watermark, no UI, no border. This goes into only the right-hand visual area of an existing cream-and-orange website; do not draw a website or add any copy. Exactly four thermoses.",
+  "encoding": "WebP quality 92, effort 6; no content edits or crop",
+  "use": "Only online shop hero visual; copy, catalog, routes, and citrus showcase preserved"
+}

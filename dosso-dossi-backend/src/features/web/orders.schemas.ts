@@ -27,3 +27,6 @@ export const orderListInput = z.object({
 export type OrderCreateInput = z.infer<typeof orderCreateInput>;
 export type OrderAdminInput = z.infer<typeof orderAdminInput>;
 export type OrderListInput = z.infer<typeof orderListInput>;
+const returnText = z.string().trim().min(10).max(2000).refine((value) => !/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value), 'Kontrol karakteri kullanılamaz.');
+export const orderReturnInput = z.object({ version, reason: returnText }).strict();
+export const orderReturnReviewInput = z.object({ version, status: z.enum(['IN_REVIEW', 'ACCEPTED', 'REJECTED', 'RECEIVED', 'CLOSED']), resolutionNote: safeText(2000).min(5) }).strict();

@@ -13,3 +13,5 @@ export const customerEmailInput = z.object({ email, locale }).strict();
 // pre-registered another person's address from retaining a known password.
 export const customerVerifyInput = z.object({ token, password }).strict();
 export const customerResetInput = z.object({ token, password }).strict();
+
+export const customerProfileInput = z.object({ name: z.string().trim().min(2).max(120).refine((value) => !/[\x00-\x1f\x7f]/.test(value)), locale }).strict();

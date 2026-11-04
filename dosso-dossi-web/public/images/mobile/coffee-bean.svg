@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <mask id="bean" maskUnits="userSpaceOnUse" x="-50" y="-50" width="100" height="100">
+      <ellipse rx="30" ry="43" fill="white" />
+      <path d="M0 -34C-17 -17 17 17 0 34" stroke="black" stroke-width="13" stroke-linecap="round" />
+    </mask>
+  </defs>
+  <g transform="translate(50 50) rotate(-34.377)">
+    <ellipse rx="30" ry="43" fill="#f5651c" mask="url(#bean)" />
+  </g>
+</svg>
