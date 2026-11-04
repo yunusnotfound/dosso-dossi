@@ -5,6 +5,7 @@ const version = z.number().int().min(0).max(2_147_483_646);
 const quantity = z.number().int().min(1).max(99);
 const text = (min: number, max: number) => z.string().trim().min(min).max(max).refine((value) => !/[\u0000-\u001f\u007f]/.test(value), 'Kontrol karakterleri kullanılamaz.');
 export const cartAddInput = z.object({ version, variantId: id, grindId: id.nullable().default(null), quantity }).strict();
+export const cartSetInput = z.object({ version, coffeeVariantId: id, coffeeGrindId: id.nullable().default(null), thermosVariantId: id }).strict().refine((value) => value.coffeeVariantId !== value.thermosVariantId, 'Set iki farklı ürün içermeli.');
 export const cartQuantityInput = z.object({ version, quantity }).strict();
 export const cartVersionInput = z.object({ version }).strict();
 export const cartAddressInput = z.object({ version, addressId: id.nullable() }).strict();

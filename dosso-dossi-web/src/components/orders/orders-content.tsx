@@ -8,6 +8,7 @@ import { accountPath } from "@/lib/customer-account";
 import { cartPath, CommerceRequestError } from "@/lib/web-commerce";
 import { formatPrice } from "@/lib/catalog";
 import {
+  returnLabel,
   orderDate,
   orderError,
   orderLabel,
@@ -50,14 +51,22 @@ export function OrdersContent({
     useCustomerOrders<OrderData>(path);
   const [accepted, setAccepted] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [returnReason, setReturnReason] = useState("");
   const creationKey = useRef<{ identity: string; key: string } | null>(null);
   const quote = data?.quote;
   const order = data?.order;
   useEffect(() => {
+    setReturnReason("");
     setAccepted(false);
     setConfirmCancel(false);
   }, [quote?.quoteHash, customer?.id, order?.version]);
 
+  async function requestReturn(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!order || busy || returnReason.trim().length < 10) return;
+    const result = await mutate<OrderResponse>(`orders/${order.id}/return`, { version: order.version, reason: returnReason.trim() });
+    if (result) { setReturnReason(""); await refresh(); }
+  }
   async function create() {
     if (!quote || !customer || !accepted || busy) return;
     const identity = `${customer.id}:${quote.quoteHash}`;
@@ -407,6 +416,19 @@ export function OrdersContent({
                         ? "Refresh order"
                         : "Siparişi yenile"}
                   </button>
+                  {(order.returnRequest || order.canRequestReturn) && <section className={s.returnPanel} aria-labelledby="return-heading">
+                    <h3 id="return-heading">{en ? "Return request" : "İade talebi"}</h3>
+                    <p>{en ? "Your request will be reviewed. This form does not initiate a financial refund." : "Talebiniz değerlendirilir. Bu form para iadesi başlatmaz."}</p>
+                    {order.returnRequest ? <>
+                      <strong>{returnLabel(order.returnRequest.status, locale)}</strong>
+                      <p>{order.returnRequest.reason}</p>
+                      {order.returnRequest.resolutionNote && <p>{order.returnRequest.resolutionNote}</p>}
+                    </> : <form onSubmit={requestReturn}>
+                      <label htmlFor="return-reason">{en ? "Tell us what happened" : "Talebinizin nedenini yazın"}</label>
+                      <textarea id="return-reason" required minLength={10} maxLength={2000} value={returnReason} onChange={(event) => setReturnReason(event.target.value)} disabled={busy} rows={4} />
+                      <button className={s.secondary} disabled={busy || returnReason.trim().length < 10}>{en ? "Send return request" : "İade talebi oluştur"}</button>
+                    </form>}
+                  </section>}
                   {order.canCancel && !confirmCancel && (
                     <button
                       className={s.textButton}

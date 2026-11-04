@@ -10,6 +10,10 @@
 @import "@fontsource/barlow-condensed/latin-ext-500.css";
 @import "@fontsource/barlow-condensed/latin-600.css";
 @import "@fontsource/barlow-condensed/latin-ext-600.css";
+@import "@fontsource/barlow-condensed/latin-700.css";
+@import "@fontsource/barlow-condensed/latin-ext-700.css";
+@import "@fontsource/barlow-condensed/latin-800.css";
+@import "@fontsource/barlow-condensed/latin-ext-800.css";
 @import "./tokens.css";
 
 * {
@@ -104,3 +108,8 @@ dialog::backdrop {
     transition-duration: 0.01ms !important;
   }
 }
+textarea { font: inherit; color: inherit; }
+textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.collection-loading { padding: 80px 6%; min-height: 340px; background: var(--paper); color: var(--muted); }
+::selection { background: var(--brand-peach); color: var(--ink); }
+@media(max-width: 1080px) { html { scroll-padding-top: 92px; } }

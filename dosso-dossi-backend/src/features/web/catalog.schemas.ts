@@ -18,6 +18,16 @@ const grind = z.object({
   nameTr: text(120).min(1), nameEn: text(120).min(1), priceDeltaMinor: money,
   sortOrder: z.number().int().min(0).max(10_000), active: z.boolean(),
 }).strict();
+const detailText = (max: number) => text(max).refine((value) => !/[\x00-\x1f\x7f]/.test(value), 'Kontrol karakteri kullanılamaz.').optional();
+const detailMultiline = text(2000).refine((value) => !/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value), 'Kontrol karakteri kullanılamaz.').optional();
+export const productDetailsInput = z.object({
+  originTr: detailText(160), originEn: detailText(160),
+  roast: z.enum(['LIGHT', 'MEDIUM', 'MEDIUM_DARK', 'DARK']).optional(),
+  tastingNotesTr: z.array(text(80).min(1)).max(8).optional(), tastingNotesEn: z.array(text(80).min(1)).max(8).optional(),
+  brewingMethods: z.array(z.enum(['ESPRESSO', 'FILTER', 'FRENCH_PRESS', 'MOKA_POT', 'TURKISH', 'COLD_BREW'])).max(6).refine((values) => new Set(values).size === values.length, 'Demleme yöntemleri tekrar edemez.').optional(),
+  brewGuideTr: detailMultiline, brewGuideEn: detailMultiline,
+  materialTr: detailText(200), materialEn: detailText(200), careTr: detailMultiline, careEn: detailMultiline,
+}).strict();
 export const productInput = z.object({
   slug: z.string().trim().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   type: z.enum(['COFFEE', 'THERMOS']), status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']),
@@ -25,7 +35,7 @@ export const productInput = z.object({
   sortOrder: z.number().int().min(0).max(10_000), version: z.number().int().min(1).optional(),
   images: z.array(z.object({ id: id.optional(), mediaId: id, altTr: text(250), altEn: text(250), sortOrder: z.number().int().min(0).max(10000) }).strict()).max(20),
   variants: z.array(variant).max(100), grindOptions: z.array(grind).max(30),
-  stockReason: text(500).optional(),
+  stockReason: text(500).optional(), details: productDetailsInput.optional(),
 }).strict().superRefine((value, ctx) => {
   const fail = (path: (string | number)[], message: string) => ctx.addIssue({ code: 'custom', path, message });
   for (const key of ['variants', 'images', 'grindOptions'] as const) {
@@ -35,6 +45,8 @@ export const productInput = z.object({
   if (new Set(value.variants.map((item) => item.sku)).size !== value.variants.length) fail(['variants'], 'SKU benzersiz olmalı.');
   if (new Set(value.images.map((item) => item.mediaId)).size !== value.images.length) fail(['images'], 'Galeri görselleri benzersiz olmalı.');
   if (new Set(value.grindOptions.map((item) => item.code)).size !== value.grindOptions.length) fail(['grindOptions'], 'Öğütüm kodları benzersiz olmalı.');
+  if (value.type === 'THERMOS' && value.details && ['originTr', 'originEn', 'roast', 'tastingNotesTr', 'tastingNotesEn', 'brewingMethods', 'brewGuideTr', 'brewGuideEn'].some((key) => key in value.details!)) fail(['details'], 'Kahve bilgileri termos ürününe eklenemez.');
+  if (value.type === 'COFFEE' && value.details && ['materialTr', 'materialEn', 'careTr', 'careEn'].some((key) => key in value.details!)) fail(['details'], 'Termos bilgileri kahve ürününe eklenemez.');
   if (value.type === 'THERMOS' && value.grindOptions.length) fail(['grindOptions'], 'Termos için öğütüm tanımlanamaz.');
   value.variants.forEach((item, index) => {
     if (item.imageId && !value.images.some((image) => image.mediaId === item.imageId)) fail(['variants', index, 'imageId'], 'Varyant görseli ürün galerisinde olmalı.');

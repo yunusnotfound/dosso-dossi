@@ -42,12 +42,12 @@ export async function proxyWebCustomer(
   path: string[],
 ): Promise<NextResponse> {
   const action = path[0];
-  const mutation = request.method === "POST";
+  const mutation = request.method === "POST" || request.method === "PATCH";
   if (
     path.length !== 1 ||
-    !(mutation
-      ? publicActions.has(action) || action === "logout"
-      : request.method === "GET" && action === "session")
+    !((request.method === "POST" && (publicActions.has(action) || action === "logout")) ||
+      (request.method === "PATCH" && action === "profile") ||
+      (request.method === "GET" && action === "session"))
   ) {
     return failure(404, "NOT_FOUND", "İstenen işlem bulunamadı.");
   }
@@ -69,7 +69,7 @@ export async function proxyWebCustomer(
   ) {
     return failure(415, "INVALID_CONTENT_TYPE", "JSON içerik gerekli.");
   }
-  const authenticated = action === "session" || action === "logout";
+  const authenticated = ["session", "logout", "profile"].includes(action);
   const token = request.cookies.get(COOKIE)?.value;
   if (authenticated && !token)
     return failure(401, "UNAUTHORIZED", "Müşteri girişi gerekli.");

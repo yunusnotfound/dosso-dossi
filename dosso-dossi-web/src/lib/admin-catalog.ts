@@ -1,3 +1,4 @@
+import type { ProductDetails } from "./catalog";
 export type Admin = { id: string; email: string; name: string; role: string };
 export type ProductStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 export type ProductType = "COFFEE" | "THERMOS";
@@ -13,7 +14,7 @@ export type AdminProduct = {
   id: string; slug: string; type: ProductType; status: ProductStatus;
   nameTr: string; nameEn: string; descriptionTr: string; descriptionEn: string;
   sortOrder: number; version: number; images: ProductImage[];
-  variants: ProductVariant[]; grindOptions: GrindOption[];
+  variants: ProductVariant[]; grindOptions: GrindOption[]; details?: ProductDetails;
 };
 export type VariantDraft = Omit<ProductVariant, "priceMinor" | "stock" | "weightGrams" | "volumeMl"> & {
   key: string; price: string; stock: string; weight: string; volume: string;
@@ -92,8 +93,13 @@ export function prepareProduct(draft: ProductDraft, original?: AdminProduct): { 
     if (price === null || price > 100000000) errors.push(`${index + 1}. öğütüm seçeneği: Ek ücret 0–1.000.000 ₺ arasında, en fazla iki ondalıklı olmalıdır.`);
     return { ...(grind.id ? { id: grind.id } : {}), code: grind.code, nameTr: grind.nameTr.trim(), nameEn: grind.nameEn.trim(), priceDeltaMinor: price || 0, sortOrder: index, active: grind.active };
   });
+  const details: ProductDetails = { ...draft.details };
+  for (const key of ["tastingNotesTr", "tastingNotesEn"] as const) {
+    if (details[key]) details[key] = details[key].map(note => note.trim()).filter(Boolean);
+    if ((details[key]?.length ?? 0) > 8 || details[key]?.some(note => note.length > 80)) errors.push("En fazla 8 tat notu girin; her biri en fazla 80 karakter olmalı.");
+  }
   if (errors.length) return { errors };
-  return { errors, payload: { slug: draft.slug, type: draft.type, status: draft.status, nameTr: draft.nameTr.trim(), nameEn: draft.nameEn.trim(), descriptionTr: draft.descriptionTr.trim(), descriptionEn: draft.descriptionEn.trim(), sortOrder: Number(draft.sortOrder), ...(draft.version !== undefined ? { version: draft.version } : {}), images: draft.images.map(({ url: _url, ...image }, index) => ({ ...image, sortOrder: index })), variants, grindOptions, stockReason: draft.stockReason.trim() } };
+  return { errors, payload: { slug: draft.slug, type: draft.type, status: draft.status, nameTr: draft.nameTr.trim(), nameEn: draft.nameEn.trim(), descriptionTr: draft.descriptionTr.trim(), descriptionEn: draft.descriptionEn.trim(), ...(draft.details === undefined ? {} : { details }), sortOrder: Number(draft.sortOrder), ...(draft.version !== undefined ? { version: draft.version } : {}), images: draft.images.map(({ url: _url, ...image }, index) => ({ ...image, sortOrder: index })), variants, grindOptions, stockReason: draft.stockReason.trim() } };
 }
 
 export function mediaUrl(url: string) {

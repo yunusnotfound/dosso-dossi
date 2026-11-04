@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-14",
+  "tool": "Built-in image_gen",
+  "source": "https://dossodossicoffee.com/franchise-basvuru",
+  "contactSource": "https://dossodossicoffee.com/iletisim",
+  "scope": "Conceptual city illustrations and an architectural cafe concept. These are not photographs of existing branches. Branch addresses use the existing static storeBranches dataset. Franchise brief stays local and is never automatically submitted.",
+  "assets": [
+    {
+      "key": "istanbul",
+      "prompt": "Use case: stylized-concept. Premium coffee brand website city illustration, widescreen1536x1024. An exquisitely detailed architectural miniature of ISTANBUL on a sculptural warm ivory island pedestal, Bosphorus ribbon of very pale aqua, a delicate bridge stretching over it, domed skyline and small Galata-inspired tower in warm ivory stone. A single beautiful plain white espresso cup at lower right with rich coffee crema, and a vivid orange sculptural ribbon winding through the city like a route. A few tiny saturated orange round markers integrated into the miniature. High-end photorealistic3D editorial still-life, tactile plaster and stone, warm soft directional sunlight, elegant clean creamy background, sophisticated sharp miniature architecture, nothing cartoon. Camera three-quarter aerial angle, city fills centralcomposition, generous cream negative space aroundedges. Orange/cream/black brand palette with only a little subdued aqua water. It is a poetic city illustration not accurate map, no store signage, NO TEXT, no letters, no logos,no watermark,no people.",
+      "path": "public/images/locations/istanbul-concept-v1.webp"
+    },
+    {
+      "key": "diyarbakir",
+      "prompt": "Use case: stylized-concept. Premium coffee brand website city illustration, widescreen1536x1024. An exquisitely detailed architectural miniature inspired by DIYARBAKIR on a sculptural warm ivory island pedestal: monumental curved dark basalt fortress walls, cylindrical bastions, old stone arches and compact historic courtyard buildings, a subtle Tigris river-like band alongside the island. A single beautiful plain white espresso cup at lower right with rich coffee crema and a vivid orange sculptural ribbon winding around the old stone fortress like a route. A few tiny saturated orange markers integrated. High-end photorealistic3D editorial still-life,tactile stone with warm directional daylight,clean elegant ivory backdrop,premium architectural model photography. Camera three-quarter aerial,city fillscentralcomposition withnegative space aroundedges. Match orange/cream/charcoal palette. It is poetic cityart notanaccuratemap,no storefrontclaims,no signage,NO TEXT,no letters,no logos,no watermark,nopeople.",
+      "path": "public/images/locations/diyarbakir-concept-v1.webp"
+    },
+    {
+      "key": "franchise",
+      "prompt": "Use case: stylized-concept. Asset: premium coffee brand franchise architectural concept hero, landscape1536x1024. Stunning contemporary Italian-inspired coffee shop concept as an architectural dollhouse cutaway, finely detailed warm ivory stone facade, three tall sculptural arched entrances with vivid bright orange window/door frames, translucent glazing, sculptural orange marble counter visible inside, refined cream chairs, tiny chrome espresso machine, two elegant terrazzo roundtables. Foreground one oversized ivory porcelain coffee cup and orange ribbon curve as playful still-life accent. No people. Sophisticated photorealistic3D architecture visualization with warm afternoon sunshine and accurate shadows, tactile satin stone and glass. Composition front-right three-quarter angle, freestanding miniature cafe on rounded ivory plinth and seamless pale cream studio background, leave margins aroundarchitecture,veryhighquality,inspiring notcartoon. Palette predominantlywarmcream,brightorange,smallblackmetal details. No brown wood. No text,no logos,no signage,no letters,no watermark. Clearly an artistic concept model, not a photograph of an existing real location.",
+      "path": "public/images/franchise/cafe-concept-v1.webp"
+    }
+  ]
+}

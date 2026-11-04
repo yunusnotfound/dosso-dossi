@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import "../globals.css";
 
-export { previewMetadata as metadata } from "@/lib/site";
+import { siteMetadata } from "@/lib/site-seo";
+export const metadata = siteMetadata("tr");
 
 export default function TurkishLayout({ children }: { children: ReactNode }) {
   return (

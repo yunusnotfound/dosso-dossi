@@ -23,6 +23,15 @@ export type PaymentConfig = {
   configured: boolean;
   paymentPageUrl?: string | null;
 };
+export type ReturnStatus = "REQUESTED" | "IN_REVIEW" | "ACCEPTED" | "REJECTED" | "RECEIVED" | "CLOSED";
+export function returnLabel(status: ReturnStatus, locale: Locale) {
+  const labels: Record<ReturnStatus, [string, string]> = {
+    REQUESTED: ["Talep alındı", "Request received"], IN_REVIEW: ["İnceleniyor", "Under review"],
+    ACCEPTED: ["Ürün dönüşü bekleniyor", "Awaiting returned item"], REJECTED: ["Talep reddedildi", "Request declined"],
+    RECEIVED: ["Ürün teslim alındı", "Returned item received"], CLOSED: ["Talep kapatıldı", "Request closed"],
+  };
+  return labels[status][locale === "en" ? 1 : 0];
+}
 export type WebOrder = {
   id: string;
   number: string;
@@ -52,6 +61,9 @@ export type WebOrder = {
     note: string | null;
     createdAt: string;
   }[];
+  returnRequest?: { id: string; orderId: string; status: ReturnStatus; reason: string; resolutionNote: string; createdAt: string; updatedAt: string } | null;
+  messages?: { id: string; kind: string; status: "PENDING" | "SENDING" | "SENT" | "FAILED"; attempts: number; createdAt: string; sentAt: string | null; lastError: string | null }[];
+  canRequestReturn?: boolean;
   canCancel?: boolean;
   canPay?: boolean;
   canRefreshPayment?: boolean;

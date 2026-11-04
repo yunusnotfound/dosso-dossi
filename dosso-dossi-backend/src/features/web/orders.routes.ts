@@ -5,8 +5,9 @@ import { AppError } from '../../lib/errors.js';
 import { requireWebAdmin } from './admin-auth.js';
 import { requireWebCustomer } from './customer-auth.js';
 import { getPaymentAvailability } from './iyzico.service.js';
-import { orderAdminInput, orderCreateInput, orderListInput, orderVersionInput } from './orders.schemas.js';
+import { orderAdminInput, orderCreateInput, orderListInput, orderVersionInput, orderReturnInput, orderReturnReviewInput } from './orders.schemas.js';
 import { cancelOrder, createOrder, expireOrders, listOrders, manageOrder, readOrder, readOrderQuote } from './orders.service.js';
+import { requestOrderReturn, reviewOrderReturn } from './order-returns.js';
 import { reconcilePaymentToken, refreshOrderPayment, startOrderPayment } from './orders.payments.js';
 
 const boundedJson: RequestHandler = (req, res, next) => {
@@ -65,6 +66,10 @@ export function createWebOrdersRouter(database: () => PrismaClient): Router {
     const customerId: string = res.locals.webCustomer.id;
     res.json({ customerId, order: await readOrder(database(), String(req.params.id), customerId), payment: getPaymentAvailability() });
   });
+  router.post('/orders/:id/return', async (req, res) => {
+    const customerId: string = res.locals.webCustomer.id;
+    res.json({ customerId, order: await requestOrderReturn(database(), customerId, String(req.params.id), orderReturnInput.parse(req.body)) });
+  });
   router.post('/orders/:id/cancel', async (req, res) => {
     const customerId: string = res.locals.webCustomer.id;
     res.json({ customerId, order: await cancelOrder(database(), String(req.params.id), orderVersionInput.parse(req.body).version, customerId) });
@@ -81,6 +86,7 @@ export function createWebOrdersRouter(database: () => PrismaClient): Router {
     async (_req, _res, next) => { await expireOrders(database(), 10); next(); });
   router.get('/admin/orders', async (req, res) => { res.json({ ...await listOrders(database(), orderListInput.parse(req.query)), payment: getPaymentAvailability() }); });
   router.get('/admin/orders/:id', async (req, res) => { res.json({ order: await readOrder(database(), String(req.params.id)), payment: getPaymentAvailability() }); });
+  router.patch('/admin/orders/:id/return', async (req, res) => { res.json({ order: await reviewOrderReturn(database(), String(req.params.id), orderReturnReviewInput.parse(req.body), res.locals.webAdmin.id) }); });
   router.patch('/admin/orders/:id', async (req, res) => { res.json({ order: await manageOrder(database(), String(req.params.id), orderAdminInput.parse(req.body), res.locals.webAdmin.id) }); });
   return router;
 }

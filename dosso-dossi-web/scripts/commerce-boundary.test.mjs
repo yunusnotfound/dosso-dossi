@@ -12,6 +12,7 @@ const endpoint = (path) => new URL(`/api/web/${path}`, origin);
 const headers = { Origin: origin.origin, "Content-Type": "application/json" };
 const mutations = [
   ["POST", "cart/items"],
+  ["POST", "cart/set"],
   ["PATCH", "cart/items/example"],
   ["DELETE", "cart/items/example"],
   ["PUT", "cart/address"],

@@ -196,6 +196,7 @@ model WebProduct {
   nameEn        String
   descriptionTr String               @default("")
   descriptionEn String               @default("")
+  details       Json                 @default("{}")
   sortOrder     Int                  @default(0)
   version       Int                  @default(1)
   createdAt     DateTime             @default(now())
@@ -347,6 +348,8 @@ model WebOrder {
   items                 WebOrderItem[]
   attempts              WebPaymentAttempt[]
   audits                WebOrderAudit[]
+  returnRequest         WebOrderReturn?
+  messages              WebOrderMessage[]
 
   @@unique([customerId, idempotencyKey])
   @@index([customerId, createdAt])
@@ -404,4 +407,74 @@ model WebOrderAudit {
   createdAt             DateTime @default(now())
 
   @@index([orderId, createdAt])
+}
+
+// Return handling records the operational request only. No state represents a financial refund.
+enum WebOrderReturnStatus {
+  REQUESTED
+  IN_REVIEW
+  ACCEPTED
+  REJECTED
+  RECEIVED
+  CLOSED
+}
+model WebOrderReturn {
+  id             String               @id @default(cuid())
+  orderId        String               @unique
+  order          WebOrder             @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  status         WebOrderReturnStatus  @default(REQUESTED)
+  reason         String
+  resolutionNote String               @default("")
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+}
+enum WebOrderMessageStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+}
+model WebOrderMessage {
+  id           String                @id @default(cuid())
+  orderId      String
+  order        WebOrder              @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  dedupeKey    String                @unique
+  recipient    String
+  locale       String
+  kind         String
+  payload      Json
+  status       WebOrderMessageStatus @default(PENDING)
+  attempts     Int                   @default(0)
+  availableAt  DateTime              @default(now())
+  firstAttemptAt DateTime?
+  lockedAt     DateTime?
+  sentAt       DateTime?
+  lastError    String?
+  createdAt    DateTime              @default(now())
+  @@index([status, availableAt])
+}
+enum WebFranchiseStatus {
+  NEW
+  IN_REVIEW
+  CONTACTED
+  CLOSED
+}
+model WebFranchiseInquiry {
+  id                  String             @id @default(cuid())
+  receipt             String             @unique
+  name                String
+  email               String
+  phone               String
+  city                String
+  space               String
+  experience          String
+  message             String
+  privacyAcknowledgedAt DateTime
+  privacyVersion      String             @default("franchise-2026-10")
+  status              WebFranchiseStatus @default(NEW)
+  note                String             @default("")
+  version             Int                @default(1)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  @@index([status, createdAt])
 }

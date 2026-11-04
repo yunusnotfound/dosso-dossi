@@ -23,13 +23,13 @@ function allowed(method: string, path: string[]): boolean {
   }
   if (path.length === 2) {
     if (path[0] === "orders" && ID.test(path[1])) return method === "GET";
-    if (path[0] === "cart" && path[1] === "items") return method === "POST";
+    if (path[0] === "cart" && ["items", "set"].includes(path[1])) return method === "POST";
     if (path[0] === "cart" && path[1] === "address") return method === "PUT";
     if (path[0] === "addresses" && ID.test(path[1]))
       return ["PUT", "DELETE"].includes(method);
   }
   if (path[0] === "orders" && ID.test(path[1] ?? "")) {
-    if (path.length === 3 && ["cancel", "payment"].includes(path[2]))
+    if (path.length === 3 && ["cancel", "payment", "return"].includes(path[2]))
       return method === "POST";
     if (path.length === 4 && path[2] === "payment" && path[3] === "refresh")
       return method === "POST";

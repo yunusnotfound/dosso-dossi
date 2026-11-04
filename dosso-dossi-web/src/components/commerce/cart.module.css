@@ -565,3 +565,5 @@
   display: block;
   margin-top: 18px;
 }
+.primary { min-height:52px; font-size:16px; font-weight:700; border-radius:8px; }
+.intro,.variant,.shippingInfo,.notice { font-size:14px; }.continueLink,.unit,.removeButton { font-size:14px; }

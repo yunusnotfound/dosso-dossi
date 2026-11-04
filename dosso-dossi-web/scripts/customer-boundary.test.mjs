@@ -109,3 +109,12 @@ test("a customer cookie cannot authenticate the admin proxy", async () => {
   });
   assert.equal(response.status, 401);
 });
+
+test("profile updates require the same-origin customer cookie and cannot use public POST", async () => {
+  const foreign = await fetch(endpoint("profile"), { method: "PATCH", headers: { ...headers, Origin: "https://foreign.example" }, body: "{}" });
+  assert.equal(foreign.status, 403);
+  const guest = await fetch(endpoint("profile"), { method: "PATCH", headers: { ...headers, Cookie: `dosso_web_admin=${"a".repeat(64)}` }, body: "{}" });
+  assert.equal(guest.status, 401);
+  const post = await fetch(endpoint("profile"), { method: "POST", headers, body: "{}" });
+  assert.equal(post.status, 404);
+});

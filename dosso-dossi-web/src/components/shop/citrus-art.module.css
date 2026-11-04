@@ -1,0 +1,39 @@
+.citrus {
+  --citrus-rind: #e95506;
+  --citrus-flesh: #ff971c;
+  --citrus-pith: #fff1c5;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--citrus-pith);
+  z-index: 2;
+}
+.slice { position: absolute; width: 24%; filter: drop-shadow(0 12px 10px #30130718); }
+.slice svg { display: block; width: 100%; height: auto; animation: float 8s ease-in-out infinite alternate; }
+.rind { fill: var(--citrus-rind); }
+.pith { fill: var(--citrus-pith); }
+.flesh { fill: var(--citrus-flesh); }
+.segment { stroke: var(--citrus-pith); stroke-width: 3; stroke-linecap: round; }
+.texture { stroke: var(--citrus-pith); stroke-width: 1; opacity: .45; stroke-linecap: round; }
+.first { left: 0; top: 16%; transform: translate3d(calc(var(--pointer-x, 0px) * -1.4), calc(var(--scene-shift, 0px) * -1.2), 0) rotate(calc(-24deg + var(--scene-turn, 0deg))) scaleY(.65); }
+.second { width: 20%; right: 1%; bottom: 15%; transform: translate3d(var(--pointer-x, 0px), calc(var(--scene-shift, 0px) * .9), 0) rotate(calc(28deg - var(--scene-turn, 0deg))) scaleY(.7); }
+.second svg { animation-delay: -4s; animation-duration: 10s; }
+.third { width: 11%; right: 13%; top: 6%; transform: translate3d(calc(var(--pointer-x, 0px) * .6), calc(var(--scene-shift, 0px) * -1.5), 0) rotate(calc(20deg + var(--scene-turn, 0deg))) scaleY(.65); }
+.third svg { animation-delay: -2s; animation-duration: 9s; }
+.peel { position: absolute; width: 36%; height: 60%; left: 1%; bottom: 1%; transform: translate3d(calc(var(--pointer-x, 0px) * -1), calc(var(--scene-shift, 0px) * -.55), 0) rotate(calc(-20deg - var(--scene-turn, 0deg))); }
+.peel svg { width: 100%; height: 100%; overflow: visible; animation: peel 11s ease-in-out infinite alternate; }
+.peelEdge { stroke: var(--citrus-rind); stroke-width: 20; stroke-linecap: round; }
+.peelInner { stroke: var(--citrus-flesh); stroke-width: 11; stroke-linecap: round; }
+.peelShine { stroke: var(--citrus-pith); stroke-width: 3; stroke-linecap: round; }
+.zest { position: absolute; display: block; width: 10px; height: 24px; border-radius: 80% 10% 80% 10%; background: var(--citrus-rind); transform: rotate(35deg); }
+.zestOne { top: 10%; left: 36%; transform: translateY(calc(var(--scene-shift, 0px) * -1.6)) rotate(20deg); }
+.zestTwo { top: 43%; right: 2%; height: 18px; transform: translateY(calc(var(--scene-shift, 0px) * .7)) rotate(65deg); }
+.zestThree { bottom: 12%; left: 36%; width: 6px; height: 17px; transform: translateY(calc(var(--scene-shift, 0px) * -1.1)) rotate(-30deg); }
+@keyframes float { from { translate: 0 -5px; rotate: -3deg; } to { translate: 0 7px; rotate: 4deg; } }
+@keyframes peel { from { translate: 0 4px; rotate: -3deg; } to { translate: 0 -8px; rotate: 5deg; } }
+:global([data-in-view="false"]) .slice svg,
+:global([data-in-view="false"]) .peel svg { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .slice, .peel, .zest { translate: none; }
+  .slice svg, .peel svg { animation: none; }
+}

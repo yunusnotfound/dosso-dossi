@@ -1,9 +1,16 @@
 :root {
-  --paper: #faf8f5;
-  --ink: #28231f;
-  --muted: #716a63;
-  --line: #e8e2db;
-  --accent: #b65b35;
+  --brand-orange-hsl: 17.73 86.38% 53.92%;
+  --brand-orange: hsl(var(--brand-orange-hsl));
+  --brand-orange-ink: hsl(18 78% 35%);
+  --brand-peach: hsl(23 80% 91%);
+  --paper: hsl(40 53% 97%);
+  --cream: hsl(36 42% 90%);
+  --ink: hsl(21 28% 14%);
+  --muted: hsl(26 12% 38%);
+  --line: hsl(30 21% 84%);
+  --accent: var(--brand-orange-ink);
+  --accent-surface: var(--brand-orange);
+  --shadow-panel: 0 24px 80px hsl(21 28% 14% / .16);
   --font-heading: "Barlow Condensed", sans-serif;
   --font-body: "DM Sans", sans-serif;
 }

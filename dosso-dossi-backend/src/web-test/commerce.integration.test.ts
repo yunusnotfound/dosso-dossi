@@ -55,6 +55,21 @@ beforeEach(async () => {
 afterAll(async () => { await clear(); await database.$disconnect(); });
 
 describe('account-owned persistent carts', () => {
+  it('adds a coffee and thermos atomically and rolls everything back if the second choice fails', async () => {
+    await database.webProductVariant.update({ where: { id: thermosId }, data: { stock: 0 } });
+    const payload = { version: 0, coffeeVariantId: variantId, coffeeGrindId: grindId, thermosVariantId: thermosId };
+    expect((await api('post', '/cart/set', payload)).status).toBe(409);
+    expect(await database.webCartItem.count()).toBe(0);
+    expect((await cart()).version).toBe(0);
+    await database.webProductVariant.update({ where: { id: thermosId }, data: { stock: 3 } });
+    const result = await api('post', '/cart/set', payload);
+    expect(result.status).toBe(200); expect(result.body.cart).toMatchObject({ version: 1, itemCount: 2, subtotalMinor: 110000 });
+    expect(result.body.cart.lines).toHaveLength(2);
+    expect((await api('post', '/cart/set', payload)).status).toBe(409);
+    expect((await cart()).itemCount).toBe(2);
+    expect((await api('post', '/cart/set', { ...payload, version: 1, coffeeVariantId: thermosId, coffeeGrindId: null, thermosVariantId: variantId })).status).toBe(400);
+  });
+
   it('returns a private virtual empty cart without writes and rejects missing/unverified/admin/mobile sessions', async () => {
     const result = await api('get', '/cart');
     expect(result.status).toBe(200); expect(result.headers['cache-control']).toBe('no-store');

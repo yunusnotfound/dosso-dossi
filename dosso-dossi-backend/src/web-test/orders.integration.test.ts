@@ -27,6 +27,7 @@ const api = (method: 'get' | 'post' | 'put' | 'patch' | 'delete', path: string, 
   return body === undefined ? call : call.send(body);
 };
 async function clear() {
+  await database.webOrderMessage.deleteMany(); await database.webOrderReturn.deleteMany();
   await database.webOrder.deleteMany(); await database.webCustomer.deleteMany(); await database.webShippingAudit.deleteMany();
   await database.webCatalogAudit.deleteMany(); await database.webStockAdjustment.deleteMany(); await database.webProduct.deleteMany(); await database.webAdmin.deleteMany();
 }
@@ -286,5 +287,40 @@ describe('sandbox payment reconciliation and order tracking', () => {
     await database.webPaymentAttempt.update({ where: { id: ready.attempt.id }, data: { expiresAt: new Date(0) } });
     const current = (await api('get', `/orders/${order.id}`)).body.order; expect(current).toMatchObject({ canPay: false, canCancel: true });
     expect((await api('post', `/orders/${order.id}/payment`, { version: current.version })).status).toBe(409);
+  });
+});
+
+describe('return requests and durable order messages', () => {
+  it('queues each transactional event once, without sending externally', async () => {
+    const quote = await prepare(); const body = input(quote);
+    const first = await api('post', '/orders', body); expect(first.status).toBe(201);
+    const repeated = await api('post', '/orders', body); expect(repeated.status).toBe(200);
+    expect(first.body.order.messages).toBeUndefined();
+    const adminView = await api('get', `/admin/orders/${first.body.order.id}`, undefined, tokenAdmin);
+    expect(adminView.body.order.messages[0]).toMatchObject({ kind: 'CREATED', status: 'PENDING' });
+    expect(adminView.body.order.messages[0].recipient).toBeUndefined();
+    const rows = await database.webOrderMessage.findMany();
+    expect(rows).toHaveLength(1); expect(rows[0]).toMatchObject({ kind: 'CREATED', status: 'PENDING', attempts: 0, recipient: 'orders-a@example.test' });
+  });
+  it('accepts only owned paid orders and reviews returns without changing money or stock', async () => {
+    let order = await create();
+    expect((await api('post', `/orders/${order.id}/return`, { version: order.version, reason: 'Ürün için iade talebi oluşturuyorum.' })).status).toBe(409);
+    const payment = await start(order.id, order.version);
+    await reconcilePaymentToken(database, payment.attempt.token!);
+    order = (await api('get', `/orders/${order.id}`)).body.order;
+    expect((await api('post', `/orders/${order.id}/return`, { version: order.version, reason: 'Ürün için iade talebi oluşturuyorum.' }, tokenB)).status).toBe(404);
+    const inventory = await stock();
+    let result = await api('post', `/orders/${order.id}/return`, { version: order.version, reason: 'Ürün için iade talebi oluşturuyorum.' });
+    expect(result.status).toBe(200); order = result.body.order;
+    expect(order.returnRequest.status).toBe('REQUESTED');
+    expect((await api('patch', `/admin/orders/${order.id}/return`, { version: order.version, status: 'CLOSED', resolutionNote: 'Atlanmış durum testi.' }, tokenAdmin)).status).toBe(409);
+    expect((await api('patch', `/admin/orders/${order.id}/return`, { version: order.version, status: 'IN_REVIEW', resolutionNote: 'Talebinizi inceliyoruz.' }, tokenEditor)).status).toBe(403);
+    for (const status of ['IN_REVIEW', 'ACCEPTED', 'RECEIVED', 'CLOSED']) {
+      result = await api('patch', `/admin/orders/${order.id}/return`, { version: order.version, status, resolutionNote: 'Talep durumu kaydedildi; ödeme işlemi ayrı doğrulanır.' }, tokenAdmin);
+      expect(result.status).toBe(200); order = result.body.order;
+    }
+    expect(order.paymentStatus).toBe('PAID'); expect(await stock()).toBe(inventory);
+    expect(await database.webOrderReturn.count()).toBe(1);
+    expect(await database.webOrderMessage.count({ where: { kind: 'RETURN_UPDATED' } })).toBe(4);
   });
 });

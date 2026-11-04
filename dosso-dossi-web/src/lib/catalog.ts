@@ -1,6 +1,16 @@
 import type { Locale } from "./site";
 
 export type CatalogCategory = "coffee" | "thermos";
+export type BrewingMethod = "ESPRESSO" | "FILTER" | "FRENCH_PRESS" | "MOKA_POT" | "TURKISH" | "COLD_BREW";
+export type ProductDetails = {
+  originTr?: string; originEn?: string;
+  roast?: "LIGHT" | "MEDIUM" | "MEDIUM_DARK" | "DARK";
+  tastingNotesTr?: string[]; tastingNotesEn?: string[];
+  brewingMethods?: BrewingMethod[];
+  brewGuideTr?: string; brewGuideEn?: string;
+  materialTr?: string; materialEn?: string;
+  careTr?: string; careEn?: string;
+};
 export type CatalogImage = {
   id: string;
   mediaId: string;
@@ -47,6 +57,7 @@ export type CatalogProduct = {
   images: CatalogImage[];
   variants: CatalogVariant[];
   grindOptions: CatalogGrind[];
+  details?: ProductDetails;
 };
 export type CatalogResult =
   | { available: true; products: CatalogProduct[] }

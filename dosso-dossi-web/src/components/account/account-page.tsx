@@ -5,6 +5,7 @@ import type { Locale } from "@/lib/site";
 import { accountPath, type AccountView } from "@/lib/customer-account";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { AccountContent } from "./account-content";
+import { safeShopReturn } from "@/lib/product-helpers";
 
 export function AccountPage({
   locale: initialLocale,
@@ -16,11 +17,16 @@ export function AccountPage({
   const [locale, setLocale] = useState(initialLocale);
   function changeLocale(next: Locale) {
     setLocale(next);
-    const mode = new URLSearchParams(window.location.search).get("islem");
-    const search =
-      view === "account" && (mode === "sifre" || mode === "dogrulama")
-        ? `?islem=${mode}`
-        : "";
+    const currentQuery = new URLSearchParams(window.location.search);
+    const mode = currentQuery.get("islem");
+    const query = new URLSearchParams();
+    if (view === "account" && (mode === "sifre" || mode === "dogrulama")) query.set("islem", mode);
+    const destination = safeShopReturn(currentQuery.get("returnTo"));
+    if (destination) {
+      const nextDestination = `${next === "en" ? "/en" : ""}${destination.replace(/^\/en(?=\/)/, "")}`;
+      query.set("returnTo", nextDestination);
+    }
+    const search = query.size ? `?${query}` : "";
     window.history.replaceState(
       window.history.state,
       "",

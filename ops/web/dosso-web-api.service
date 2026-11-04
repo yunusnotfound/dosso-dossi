@@ -1,0 +1,24 @@
+[Unit]
+Description=Dosso Dossi dedicated web API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dosso
+Group=dosso
+WorkingDirectory=/srv/dosso/current/dosso-dossi-backend
+EnvironmentFile=/etc/dosso/backend.env
+ExecStart=/usr/bin/node dist/src/web-index.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/dosso/shared/uploads
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

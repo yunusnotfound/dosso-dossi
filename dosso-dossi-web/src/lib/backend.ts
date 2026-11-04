@@ -95,6 +95,14 @@ function parseCatalogProduct(value: unknown): CatalogProduct | null {
     !["COFFEE", "THERMOS"].includes(value.type as string) || value.status !== "PUBLISHED" ||
     !Number.isSafeInteger(value.sortOrder) || !isUnsignedInteger(value.version) ||
     !Array.isArray(value.images) || !Array.isArray(value.variants) || !Array.isArray(value.grindOptions)) return null;
+  if (value.details !== undefined) {
+    if (!isRecord(value.details)) return null;
+    const details = value.details;
+    if (["originTr", "originEn", "brewGuideTr", "brewGuideEn", "materialTr", "materialEn", "careTr", "careEn"].some(key => details[key] !== undefined && !isText(details[key]))) return null;
+    if (details.roast !== undefined && !["LIGHT", "MEDIUM", "MEDIUM_DARK", "DARK"].includes(details.roast as string)) return null;
+    if (["tastingNotesTr", "tastingNotesEn"].some(key => details[key] !== undefined && (!Array.isArray(details[key]) || !(details[key] as unknown[]).every(isText)))) return null;
+    if (details.brewingMethods !== undefined && (!Array.isArray(details.brewingMethods) || !details.brewingMethods.every(method => ["ESPRESSO", "FILTER", "FRENCH_PRESS", "MOKA_POT", "TURKISH", "COLD_BREW"].includes(method)))) return null;
+  }
   const images = [];
   for (const image of value.images) {
     if (!isRecord(image) || !["id", "mediaId", "url", "altTr", "altEn"].every((key) => isText(image[key])) ||

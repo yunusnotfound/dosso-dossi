@@ -14,6 +14,8 @@ import {
   type Admin,
 } from "@/lib/admin-catalog";
 import {
+  returnLabel,
+  type ReturnStatus,
   orderDate,
   orderLabel,
   type FulfillmentStatus,
@@ -69,12 +71,13 @@ export function OrdersManager({
   const [carrier, setCarrier] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [note, setNote] = useState("");
+  const [returnNote, setReturnNote] = useState("");
   const [confirmAction, setConfirmAction] = useState<Action | null>(null);
   const epoch = useRef(0);
   const control = useRef<AbortController | null>(null);
   const mutation = useRef(false);
   const busy = loading || saving;
-  const dirty = Boolean(carrier || trackingNumber || note);
+  const dirty = Boolean(carrier || trackingNumber || note || returnNote);
   useEffect(() => {
     onBusy(saving);
     return () => onBusy(false);
@@ -87,6 +90,7 @@ export function OrdersManager({
     setCarrier("");
     setTrackingNumber("");
     setNote("");
+    setReturnNote("");
     setConfirmAction(null);
   }, []);
   const invalidate = useCallback(() => {
@@ -205,7 +209,7 @@ export function OrdersManager({
     setNotice("");
     setSelected(id);
   }
-  async function mutate(action: Action) {
+  async function mutate(action: Action | ReturnStatus, returnReview = false) {
     if (!order || mutation.current) return;
     mutation.current = true;
     setSaving(true);
@@ -225,10 +229,10 @@ export function OrdersManager({
         return;
       }
       const response = await adminRequest<{ order: WebOrder }>(
-        `/orders/${order.id}`,
+        `/orders/${order.id}${returnReview ? "/return" : ""}`,
         {
           method: "PATCH",
-          body: JSON.stringify({
+          body: JSON.stringify(returnReview ? { version: order.version, status: action, resolutionNote: returnNote.trim().replace(/\s+/g, " ") } : {
             version: order.version,
             action,
             ...(action === "SHIP"
@@ -565,6 +569,20 @@ export function OrdersManager({
                 <OrderLines lines={order.lines} locale="tr" />
               </section>
               <OrderAddressCard address={order.address} locale="tr" />
+              {order.messages && <section className={styles.formCard}>
+                <div className={styles.sectionHeading}><span>✉</span><div><h2>Bildirim kuyruğu</h2><p>Gönderim açıkça etkinleştirilene kadar e-postalar bekler. Burada alıcı adresi veya içerik gösterilmez.</p></div></div>
+                {order.messages.length ? <ol className={s.audit}>{order.messages.map(message => <li key={message.id}><strong>{auditLabel(message.kind)}</strong><span>{{ PENDING: "Gönderim bekliyor", SENDING: "Gönderiliyor", SENT: "Sağlayıcı kabul etti", FAILED: "Operasyon incelemesi gerekli" }[message.status]}</span><time>{orderDate(message.createdAt, "tr")}</time></li>)}</ol> : <p className={s.note}>Bu sipariş için yeni bildirim kaydı yok.</p>}
+              </section>}
+              {order.returnRequest && <section className={styles.formCard}>
+                <div className={styles.sectionHeading}><span>↩</span><div><h2>İade talebi</h2><p>{returnLabel(order.returnRequest.status, "tr")}</p></div></div>
+                <p className={s.note}>{order.returnRequest.reason}</p>
+                {order.returnRequest.resolutionNote && <p className={s.note}><strong>Son yanıt:</strong> {order.returnRequest.resolutionNote}</p>}
+                <p className={s.warning}>Bu işlemler talebin incelenmesini kaydeder. Para iadesi ve stok girişi yapmaz. Ödeme sağlayıcısı ve depo işlemleri ayrıca doğrulanmalıdır.</p>
+                {returnNextStates(order.returnRequest.status).length > 0 && <fieldset disabled={saving} className={s.fieldset}>
+                  <label className={styles.field}><span>Müşteriye gösterilecek açıklama</span><textarea required minLength={5} maxLength={2000} rows={3} value={returnNote} onChange={(event) => setReturnNote(event.target.value)} /></label>
+                  <div className={s.operationButtons}>{returnNextStates(order.returnRequest.status).map((next) => <button key={next} className={styles.secondary} disabled={saving || returnNote.trim().length < 5} onClick={() => void mutate(next, true)}>{returnLabel(next, "tr")} olarak kaydet</button>)}</div>
+                </fieldset>}
+              </section>}
               <section className={styles.formCard}>
                 <div className={styles.sectionHeading}>
                   <span>02</span>
@@ -723,6 +741,8 @@ export function OrdersManager({
 
 function auditLabel(action: string) {
   const names: Record<string, string> = {
+    RETURN_REQUESTED: "İade talebi alındı",
+    RETURN_UPDATED: "İade talebi güncellendi",
     CREATED: "Sipariş oluşturuldu",
     ORDER_CREATED: "Sipariş oluşturuldu",
     CANCELLED: "Sipariş iptal edildi",
@@ -747,4 +767,9 @@ function auditLabel(action: string) {
     PAYMENT_REVIEW: "Ödeme incelemeye alındı",
   };
   return names[action] || "Sipariş durumu güncellendi";
+}
+
+function returnNextStates(status: ReturnStatus): ReturnStatus[] {
+  const states: Record<ReturnStatus, ReturnStatus[]> = { REQUESTED: ["IN_REVIEW", "REJECTED"], IN_REVIEW: ["ACCEPTED", "REJECTED"], ACCEPTED: ["RECEIVED"], RECEIVED: ["CLOSED"], REJECTED: [], CLOSED: [] };
+  return states[status];
 }

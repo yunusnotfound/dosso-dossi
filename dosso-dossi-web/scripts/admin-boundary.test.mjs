@@ -91,3 +91,15 @@ test("public media proxy rejects HTML, SVG and path-like names", async () => {
     assert.equal(response.status, 404);
   }
 });
+
+test("franchise records require an admin cookie and restrict mutation origin", async () => {
+  assert.equal((await fetch(endpoint("franchise-inquiries"))).status, 401);
+  assert.equal((await fetch(endpoint("franchise-inquiries/example"), { method: "PATCH", headers: { "Content-Type": "application/json", Origin: "https://other.example" }, body: "{}" })).status, 403);
+  assert.equal((await fetch(endpoint("franchise-inquiries/example"), { method: "PATCH", headers: { "Content-Type": "application/json", Origin: origin.origin }, body: "{}" })).status, 401);
+});
+test("franchise list does not forward unknown or repeated filters", async () => {
+  for (const query of ["page=1&page=2", "page=0", "status=PAID", "email=private@example.test"]) {
+    const response = await fetch(endpoint(`franchise-inquiries?${query}`), { headers: { Cookie: `dosso_web_admin=${"a".repeat(64)}` } });
+    assert.equal(response.status, 400);
+  }
+});

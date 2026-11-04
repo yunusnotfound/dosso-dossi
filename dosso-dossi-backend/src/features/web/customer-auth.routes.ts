@@ -6,9 +6,9 @@ import { loginRateLimit } from './admin-auth.js';
 import {
   CustomerAuthError, customerLogin, customerSessionToken, hashCustomerSession,
   issueCustomerToken, registerCustomer, releaseCustomerToken, requireWebCustomer,
-  resetCustomerPassword, verifyCustomerEmail,
+  resetCustomerPassword, verifyCustomerEmail, updateCustomerProfile,
 } from './customer-auth.js';
-import { customerEmailInput, customerLoginInput, customerRegisterInput, customerResetInput, customerVerifyInput } from './customer-auth.schemas.js';
+import { customerEmailInput, customerLoginInput, customerRegisterInput, customerResetInput, customerVerifyInput, customerProfileInput } from './customer-auth.schemas.js';
 import { CustomerMailConfigurationError, getCustomerMailConfiguration, sendCustomerEmail } from './customer-mail.js';
 import { customerEmailRateLimit } from './customer-rate-limit.js';
 
@@ -28,7 +28,7 @@ export function createCustomerAuthRouter(database: () => PrismaClient, dependenc
   const emailLimiter = customerEmailRateLimit(now);
   router.use('/auth', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
   router.use('/auth', (req, res, next) => {
-    if (req.method !== 'POST') { next(); return; }
+    if (!['POST', 'PATCH'].includes(req.method)) { next(); return; }
     loginLimiter.aggregate(req, res, (error) => {
       if (error) { next(error); return; }
       if (!req.is('application/json')) {
@@ -101,6 +101,9 @@ export function createCustomerAuthRouter(database: () => PrismaClient, dependenc
       finish(error instanceof AppError && error.status === 401 ? 'failure' : 'unavailable');
       throw error;
     }
+  });
+  router.patch('/auth/profile', requireWebCustomer(database, now), async (req, res) => {
+    res.json({ customer: await updateCustomerProfile(database(), res.locals.webCustomer.id, customerProfileInput.parse(req.body)) });
   });
   router.get('/auth/session', requireWebCustomer(database, now), (_req, res) => { res.json({ customer: res.locals.webCustomer }); });
   router.post('/auth/logout', requireWebCustomer(database, now), async (req, res) => {

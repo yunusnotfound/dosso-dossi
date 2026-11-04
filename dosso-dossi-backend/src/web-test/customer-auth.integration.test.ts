@@ -290,3 +290,17 @@ describe('isolated web customer email/password authentication', () => {
     expect(await database.webCustomer.count()).toBe(0);
   });
 });
+
+it('updates only the authenticated customer profile and never security fields', async () => {
+  const customer = await verified();
+  const session = await login();
+  const token = session.body.token;
+  const auth = { Authorization: `Bearer ${token}` };
+  expect((await request(app).patch('/web/auth/profile').send({ name: 'Changed', locale: 'tr' })).status).toBe(401);
+  expect((await request(app).patch('/web/auth/profile').set(auth).send({ name: 'Changed', locale: 'en', email: 'other@example.test' })).status).toBe(400);
+  const result = await request(app).patch('/web/auth/profile').set(auth).send({ name: 'Changed Name', locale: 'en' });
+  expect(result.status).toBe(200); expect(result.body.customer).toMatchObject({ id: customer.id, email, name: 'Changed Name', locale: 'en' });
+  expect(JSON.stringify(result.body)).not.toMatch(/passwordHash|tokenHash/);
+  const stored = await database.webCustomer.findUniqueOrThrow({ where: { id: customer.id } });
+  expect(stored.passwordHash).toBe(customer.passwordHash);
+});
